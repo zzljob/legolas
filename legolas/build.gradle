@@ -1,0 +1,33 @@
+buildscript {
+	repositories {
+		mavenCentral()
+	}
+	dependencies {
+		classpath 'com.android.tools.build:gradle:0.7.+'
+	}
+}
+
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+sourceCompatibility = 1.6
+version = '0.8.0-SNAPSHOT'
+buildDir = "target"
+
+[compileJava, javadoc, compileTestJava]*.options*.encoding = 'UTF-8'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile	'com.google.android:android:4.+',
+    				'org.slf4j:slf4j-api:1.7.+'
+    				
+    testCompile 'junit:junit:4.+'
+}
+
+repositories {
+    flatDir dirs: 'release'
+}
+

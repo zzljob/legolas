@@ -1,1 +1,6 @@
 /legolas/.settings
+/legolas/.gradle
+/legolas/.settings
+/legolas/bin
+/legolas/.classpath
+/legolas/.project
