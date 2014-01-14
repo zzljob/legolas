@@ -11,25 +11,26 @@ import android.widget.Toast;
 import com.yepstudio.android.legolas.Legolas;
 import com.yepstudio.android.legolas.error.LegolasError;
 import com.yepstudio.android.legolas.http.Response;
+import com.yepstudio.android.legolas.http.Response.OnErrorListener;
 
-public class MainActivity extends Activity implements Response.Listener<JSONArray> {
+public class MainActivity extends Activity implements Response.OnResponseListener<JSONArray> {
 	private HttpApi api, api2;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
-		Response.ErrorListener errorListener = new Response.ErrorListener() {
+		OnErrorListener errorListener = new OnErrorListener() {
 
 			@Override
-			public void onErrorResponse(LegolasError paramVolleyError) {
+			public void onError(LegolasError paramVolleyError) {
 				Toast.makeText(MainActivity.this, "网络错误", Toast.LENGTH_LONG)
 						.show();
 
 			}
 
 		};
-		Response.Listener<JSONArray> listener = new Response.Listener<JSONArray>() {
+		Response.OnResponseListener<JSONArray> listener = new Response.OnResponseListener<JSONArray>() {
 
 			@Override
 			public void onResponse(JSONArray paramT) {
@@ -45,7 +46,7 @@ public class MainActivity extends Activity implements Response.Listener<JSONArra
 
 		Legolas legolas = new Legolas.Build().create();
 
-		api = legolas.getInstance(this, HttpApi.class);
+		api = legolas.newInstance(this, HttpApi.class);
 		api.getUserInfo("list", 1, 2, new AdddDTO(), listener, errorListener);
 
 	}
@@ -63,7 +64,7 @@ public class MainActivity extends Activity implements Response.Listener<JSONArra
 	}
 
 	@Override
-	public void onResponse(JSONArray response) {
+	public void onResponse(JSONArray arg0) {
 		// TODO Auto-generated method stub
 		
 	}

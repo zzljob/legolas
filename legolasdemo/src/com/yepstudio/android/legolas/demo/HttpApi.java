@@ -6,7 +6,8 @@ import com.yepstudio.android.legolas.annotation.Api;
 import com.yepstudio.android.legolas.annotation.http.GET;
 import com.yepstudio.android.legolas.annotation.parameter.Path;
 import com.yepstudio.android.legolas.annotation.parameter.Query;
-import com.yepstudio.android.legolas.http.Response;
+import com.yepstudio.android.legolas.http.Response.OnErrorListener;
+import com.yepstudio.android.legolas.http.Response.OnResponseListener;
 
 @Api("http://tools.fund123.cn/")
 public interface HttpApi {
@@ -16,7 +17,7 @@ public interface HttpApi {
 			@Query("xx") int intaa, 
 			@Query("xxx") int intaaaa, 
 			AdddDTO dto,
-			Response.Listener<JSONArray> listener,
-			Response.ErrorListener errorListener);
+			OnResponseListener<JSONArray> listener,
+			OnErrorListener errorListener);
 
 }
