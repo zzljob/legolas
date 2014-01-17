@@ -15,9 +15,6 @@ public class Sl4fLog implements Log {
 
 	@Override
 	public void log(int showLevel, int level, String msg) {
-		if (showLevel < level) {
-			return;
-		}
 		switch (level) {
 		case TRACE:
 			logger.trace(msg);
@@ -45,9 +42,6 @@ public class Sl4fLog implements Log {
 
 	@Override
 	public void log(int showLevel, int level, String msg, Throwable t) {
-		if (showLevel < level) {
-			return;
-		}
 		switch (level) {
 		case TRACE:
 			logger.trace(msg, t);

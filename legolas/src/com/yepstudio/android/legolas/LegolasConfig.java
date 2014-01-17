@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.yepstudio.android.legolas.conversion.Converter;
+import com.yepstudio.android.legolas.conversion.JSONConverter;
 import com.yepstudio.android.legolas.handler.AuthHandler;
 import com.yepstudio.android.legolas.handler.ParamFormat;
 import com.yepstudio.android.legolas.log.LegolasLog;
@@ -16,7 +17,8 @@ import com.yepstudio.android.legolas.log.LegolasLog;
  * <li>@API的全局默认环境，{@linkplain LegolasConfig.API_URL_INDEX}</li>
  * <li>认证方式，要求实现接口{@link com.yepstudio.android.legolas.handler.AuthHandler}</li>
  * <li>参数格式化方式，要求实现接口{@link com.yepstudio.android.legolas.handler.ParamFormat}</li>
- * <li>转换方式，要求实现接口{@link com.yepstudio.android.legolas.conversion.Converter}</li>
+ * <li>默认转换方式，要求实现接口{@link com.yepstudio.android.legolas.conversion.Converter}</li>
+ * <li>注册转换方式，优先级大于 默认，要求实现接口{@link com.yepstudio.android.legolas.conversion.Converter}</li>
  * </ol>
  * @author zhangzl@fund123.cn
  * @createDate 2014年1月14日

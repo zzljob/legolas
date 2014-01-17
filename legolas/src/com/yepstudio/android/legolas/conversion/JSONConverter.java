@@ -1,14 +1,10 @@
 package com.yepstudio.android.legolas.conversion;
 
-import static java.util.regex.Pattern.CASE_INSENSITIVE;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Type;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -26,23 +22,11 @@ import com.yepstudio.android.legolas.log.LegolasLog;
  */
 public class JSONConverter implements Converter {
 	private static LegolasLog log = LegolasLog.getClazz(JSONConverter.class);
-	private static final Pattern CHARSET = Pattern.compile("\\Wcharset=([^\\s;]+)", CASE_INSENSITIVE);
 	private static String default_charset = "UTF-8";
-
-	public static String parseCharset(String mimeType) {
-		Matcher match = CHARSET.matcher(mimeType);
-		if (match.find()) {
-			return match.group(1).replaceAll("[\"\\\\]", "");
-		}
-		return default_charset;
-	}
 
 	@Override
 	public Object fromBody(ResponseBody body, Type clazz) throws ConversionException {
-		String charset = default_charset;
-		if (body.mimeType() != null) {
-			charset = parseCharset(body.mimeType());
-		}
+		String charset = Response.parseCharset(body.mimeType(), default_charset);
 		log.v("fromBody, charset:" + charset);
 		InputStream is = null;
 		try {

@@ -1,11 +1,17 @@
 package com.yepstudio.android.legolas.http;
 
+import static java.util.regex.Pattern.CASE_INSENSITIVE;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.http.protocol.HTTP;
+
+import android.text.TextUtils;
 
 import com.yepstudio.android.legolas.error.LegolasError;
 import com.yepstudio.android.legolas.http.mime.ByteArrayBody;
@@ -46,6 +52,22 @@ public class Response {
 		log.v(String.format("statusCode:%s, message:%s, headers:%s, responseBody:%s", statusCode, message, headers, responseBody));
 	}
 
+	public int getStatus() {
+		return statusCode;
+	}
+
+	public String getMessage() {
+		return message;
+	}
+
+	public Map<String, String> getHeaders() {
+		return headers;
+	}
+
+	public ResponseBody getBody() {
+		return responseBody;
+	}
+	
 	public String parseCharset() {
 		return parseCharset(this.headers);
 	}
@@ -66,40 +88,18 @@ public class Response {
 
 		return HTTP.DEFAULT_CONTENT_CHARSET;
 	}
-
-	public int getStatus() {
-		return statusCode;
-	}
-
-	public String getMessage() {
-		return message;
-	}
-
-	public Map<String, String> getHeaders() {
-		return headers;
-	}
-
-	public ResponseBody getBody() {
-		return responseBody;
-	}
 	
-	/**
-	 * T是要转换成的类型，从Response=>T<br/>
-	 * 转换是通过Converter接口转换的<br/>
-	 * 会根据T的Type的类型去查找Converter接口，如果没找到就会调用默认的Converter=>JSON
-	 * @author zzljob@gmail.com
-	 * @createDate 2014年1月8日
-	 */
-	public interface OnResponseListener<T> {
+	private static final Pattern CHARSET = Pattern.compile("\\Wcharset=([^\\s;]+)", CASE_INSENSITIVE);
 
-		public void onResponse(T response);
-		
-	}
-
-	public interface OnErrorListener {
-
-		public void onError(LegolasError error);
-		
+	public static String parseCharset(String mimeType, String defaultCharset) {
+		if (TextUtils.isEmpty(mimeType)) {
+			return defaultCharset;
+		}
+		Matcher match = CHARSET.matcher(mimeType);
+		if (match.find()) {
+			return match.group(1).replaceAll("[\"\\\\]", "");
+		}
+		return defaultCharset;
 	}
 	
 	private static final int BUFFER_SIZE = 0x1000;
@@ -137,5 +137,24 @@ public class Response {
 			}
 		}
 		return baos.toByteArray();
+	}
+	
+	/**
+	 * T是要转换成的类型，从Response=>T<br/>
+	 * 转换是通过Converter接口转换的<br/>
+	 * 会根据T的Type的类型去查找Converter接口，如果没找到就会调用默认的Converter=>JSON
+	 * @author zzljob@gmail.com
+	 * @createDate 2014年1月8日
+	 */
+	public interface OnResponseListener<T> {
+
+		public void onResponse(T response);
+		
+	}
+
+	public interface OnErrorListener {
+
+		public void onError(LegolasError error);
+		
 	}
 }

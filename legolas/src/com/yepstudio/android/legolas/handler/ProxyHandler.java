@@ -63,7 +63,7 @@ public class ProxyHandler implements InvocationHandler {
 			return executor.syncRequest(request, description.getResponseType());
 		}
 		
-		executor.doRequest(request);
+		executor.asyncRequest(request);
 		return null;
 	}
 	

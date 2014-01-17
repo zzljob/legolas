@@ -16,7 +16,7 @@ public interface RequestExecutor {
 	 * 异步执行
 	 * @param request
 	 */
-	public void doRequest(Request request);
+	public void asyncRequest(Request request);
 
 	/**
 	 * 同步执行

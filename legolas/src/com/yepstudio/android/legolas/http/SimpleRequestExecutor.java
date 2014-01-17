@@ -8,10 +8,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 
-import android.os.Handler;
-import android.os.Looper;
-
-import com.yepstudio.android.legolas.ExecutorDelivery;
 import com.yepstudio.android.legolas.ResponseDelivery;
 import com.yepstudio.android.legolas.error.LegolasError;
 import com.yepstudio.android.legolas.http.client.Client;
@@ -24,20 +20,21 @@ import com.yepstudio.android.legolas.log.LegolasLog;
  */
 public class SimpleRequestExecutor implements RequestExecutor {
 	private static LegolasLog log = LegolasLog.getClazz(SimpleRequestExecutor.class);
-	private static final ThreadPoolExecutor threadPool = (ThreadPoolExecutor) Executors.newCachedThreadPool(); 
+	private static final ThreadPoolExecutor threadPool = (ThreadPoolExecutor) Executors.newCachedThreadPool();
+	
 	private final Client client;
 	private final ResponseDelivery delivery;
 	private final ResponseParser parser;
 
-	public SimpleRequestExecutor(Client client) {
+	public SimpleRequestExecutor(Client client, ResponseDelivery delivery, ResponseParser parser) {
 		this.client = client;
-		parser = new SimpleResponseParser();
-		delivery = new ExecutorDelivery(new Handler(Looper.getMainLooper()));
+		this.parser = parser;//new SimpleResponseParser();
+		this.delivery = delivery;//new ExecutorDelivery(new Handler(Looper.getMainLooper()));
 		log.v("init");
 	}
 
 	@Override
-	public void doRequest(final Request request) {
+	public void asyncRequest(final Request request) {
 		log.v("doRequest execute ...");
 		threadPool.submit(new Runnable() {
 
@@ -53,6 +50,9 @@ public class SimpleRequestExecutor implements RequestExecutor {
 				} catch (LegolasError e) {
 					log.e("LegolasError", e);
 					delivery.postError(request, e);
+				} catch (Exception e) {
+					log.e("unexpectedError", e);
+					delivery.postError(request, LegolasError.unexpectedError(request.getUrl(), e));
 				}
 			}
 		});

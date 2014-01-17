@@ -5,13 +5,19 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.SystemClock;
 
+import com.yepstudio.android.legolas.conversion.Converter;
+import com.yepstudio.android.legolas.conversion.JSONConverter;
 import com.yepstudio.android.legolas.description.ApiDescription;
 import com.yepstudio.android.legolas.handler.ProxyHandler;
 import com.yepstudio.android.legolas.http.RequestExecutor;
+import com.yepstudio.android.legolas.http.ResponseParser;
 import com.yepstudio.android.legolas.http.Server;
 import com.yepstudio.android.legolas.http.SimpleRequestExecutor;
+import com.yepstudio.android.legolas.http.SimpleResponseParser;
 import com.yepstudio.android.legolas.http.client.Client;
 import com.yepstudio.android.legolas.http.client.UrlConnectionClient;
 import com.yepstudio.android.legolas.log.LegolasLog;
@@ -33,6 +39,9 @@ public class Legolas {
 	public static class Build {
 		private Server server;
 		private Client client;
+		private Converter converter;
+		private ResponseParser parser;
+		private ResponseDelivery delivery;
 		private RequestExecutor executor;
 
 		public Build setServer(Server server) {
@@ -49,28 +58,56 @@ public class Legolas {
 			this.executor = executor;
 			return this;
 		}
+		
+		public Build setConverter(Converter converter) {
+			this.converter = converter;
+			return this;
+		}
+		
+		public Build setParser(ResponseParser parser) {
+			this.parser = parser;
+			return this;
+		}
+
+		public Build setDelivery(ResponseDelivery delivery) {
+			this.delivery = delivery;
+			return this;
+		}
+
+		public Build setExecutor(RequestExecutor executor) {
+			this.executor = executor;
+			return this;
+		}
 
 		public Legolas create() {
 			if (client == null) {
 				client = new UrlConnectionClient();
 				log.v("use Default Client:" + client.toString());
 			}
+			if (converter == null) {
+				converter = new JSONConverter();
+			}
+			if (parser == null) {
+				parser = new SimpleResponseParser(converter);
+			}
+			if (delivery == null) {
+				delivery = new ExecutorDelivery(new Handler(Looper.getMainLooper()));
+			}
 			if (executor == null) {
-				executor = new SimpleRequestExecutor(client);
+				executor = new SimpleRequestExecutor(client, delivery, parser);
 				log.v("use DefaultRequestExecutor:" + executor.toString());
 			}
 			return new Legolas(server, client, executor);
 		}
+
 	}
 	
 	private final Server server;
-//	private final Client client;
 	private final RequestExecutor executor;
 	
 	public Legolas(Server server, Client client, RequestExecutor executor) {
 		super();
 		this.server = server;
-//		this.client = client;
 		this.executor = executor;
 	}
 

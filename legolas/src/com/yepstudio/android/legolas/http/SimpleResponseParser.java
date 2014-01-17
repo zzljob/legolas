@@ -6,7 +6,6 @@ import java.lang.reflect.Type;
 import com.yepstudio.android.legolas.LegolasConfig;
 import com.yepstudio.android.legolas.conversion.ConversionException;
 import com.yepstudio.android.legolas.conversion.Converter;
-import com.yepstudio.android.legolas.conversion.JSONConverter;
 import com.yepstudio.android.legolas.error.LegolasError;
 import com.yepstudio.android.legolas.log.LegolasLog;
 
@@ -17,6 +16,12 @@ import com.yepstudio.android.legolas.log.LegolasLog;
  */
 public class SimpleResponseParser implements ResponseParser {
 	private static LegolasLog log = LegolasLog.getClazz(SimpleResponseParser.class);
+	private final Converter defaultConverter;
+
+	public SimpleResponseParser(Converter defaultConverter) {
+		super();
+		this.defaultConverter = defaultConverter;
+	}
 
 	@Override
 	public Object doParse(Request request, Response response, Type type) throws LegolasError {
@@ -27,7 +32,7 @@ public class SimpleResponseParser implements ResponseParser {
 		int status = response.getStatus();
 		Converter converter = LegolasConfig.getConverter(type);
 		if (converter == null) {
-			converter = new JSONConverter();
+			converter = defaultConverter;
 		}
 		try {
 			// 介绍HTTP状态码

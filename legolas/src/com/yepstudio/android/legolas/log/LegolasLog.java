@@ -22,7 +22,7 @@ public class LegolasLog {
 			Class<?> cf = clazz.getClassLoader().loadClass("org.slf4j.LoggerFactory");
 			if (cf != null) {
 				logger = new Sl4fLog(clazz);
-				logger.log(LOG_LEVEL, Log.DEBUG, "have slf4j support, so use slf4j log.");
+				logger.log(LOG_LEVEL, Log.TRACE, "have slf4j support, so use slf4j log.");
 			}
 		} catch (ClassNotFoundException e1) {
 			logger = new AndroidLog(clazz);

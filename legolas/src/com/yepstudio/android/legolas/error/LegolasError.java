@@ -7,22 +7,28 @@ import com.yepstudio.android.legolas.conversion.ConversionException;
 import com.yepstudio.android.legolas.conversion.Converter;
 import com.yepstudio.android.legolas.http.Response;
 import com.yepstudio.android.legolas.http.mime.ResponseBody;
+import com.yepstudio.android.legolas.log.LegolasLog;
 
 @SuppressWarnings("serial")
 public class LegolasError extends RuntimeException {
+	private static LegolasLog log = LegolasLog.getClazz(LegolasError.class);
 	public static LegolasError networkError(String url, IOException exception) {
+		log.e("networkError", exception);
 		return new LegolasError(url, null, null, null, true, exception);
 	}
 
 	public static LegolasError conversionError(String url, Response response, Converter converter, Type successType, ConversionException exception) {
+		log.e("conversionError", exception);
 		return new LegolasError(url, response, converter, successType, false, exception);
 	}
 
 	public static LegolasError httpError(String url, Response response, Converter converter, Type successType) {
+		log.e(String.format("httpError, url:%s, Type:%s", url, successType));
 		return new LegolasError(url, response, converter, successType, false, null);
 	}
 
 	public static LegolasError unexpectedError(String url, Throwable exception) {
+		log.e("unexpectedError", exception);
 		return new LegolasError(url, null, null, null, false, exception);
 	}
 
