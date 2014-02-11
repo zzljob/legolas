@@ -5,6 +5,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import com.yepstudio.android.legolas.conversion.Converter;
 import com.yepstudio.android.legolas.conversion.JSONConverter;
 import com.yepstudio.android.legolas.handler.AuthHandler;
@@ -37,6 +40,12 @@ public class LegolasConfig {
 	private static Map<String, AuthHandler> authHandlerMap = new ConcurrentHashMap<String, AuthHandler>();
 	private static Map<String, ParamFormat<?>> paramHandlerMap = new ConcurrentHashMap<String, ParamFormat<?>>();
 	private static Map<Type, Converter> converterMap = new ConcurrentHashMap<Type, Converter>();
+	
+	static {
+		JSONConverter c = new JSONConverter();
+		register(JSONObject.class, c);
+		register(JSONArray.class, c);
+	}
 
 	public static String getKeyByClass(Class<?> clazz) {
 		return String.format("class:%s", clazz.getName());

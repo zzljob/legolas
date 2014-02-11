@@ -10,7 +10,6 @@ import android.os.Looper;
 import android.os.SystemClock;
 
 import com.yepstudio.android.legolas.conversion.Converter;
-import com.yepstudio.android.legolas.conversion.JSONConverter;
 import com.yepstudio.android.legolas.description.ApiDescription;
 import com.yepstudio.android.legolas.handler.ProxyHandler;
 import com.yepstudio.android.legolas.http.RequestExecutor;
@@ -83,9 +82,6 @@ public class Legolas {
 			if (client == null) {
 				client = new UrlConnectionClient();
 				log.v("use Default Client:" + client.toString());
-			}
-			if (converter == null) {
-				converter = new JSONConverter();
 			}
 			if (parser == null) {
 				parser = new SimpleResponseParser(converter);
