@@ -1,82 +1,77 @@
 package com.yepstudio.legolas.internal.converter;
 
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Type;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonParseException;
 import com.yepstudio.legolas.ConversionException;
 import com.yepstudio.legolas.Converter;
-import com.yepstudio.legolas.LegolasLog;
 import com.yepstudio.legolas.mime.RequestBody;
 import com.yepstudio.legolas.mime.ResponseBody;
 import com.yepstudio.legolas.response.Response;
 
 /**
- * 解析JSONObject或JSONArray
+ * 
  * @author zzljob@gmail.com
- * @create 2014年1月8日
- * @version 2.0，2014年4月23日
+ * @create 2014年5月5日
+ * @version 2.0, 2014年5月5日
+ *
  */
-public class JSONConverter implements Converter {
-	private static LegolasLog log = LegolasLog.getClazz(JSONConverter.class);
-	private static String default_charset = "UTF-8";
+public class GsonConverter implements Converter {
+
+	private final Gson gson;
+	private String encoding;
+
+	public GsonConverter() {
+		this(new GsonBuilder().create(), "UTF-8");
+	}
+
+	public GsonConverter(Gson gson) {
+		this(gson, "UTF-8");
+	}
+
+	public GsonConverter(Gson gson, String encoding) {
+		this.gson = gson;
+		this.encoding = encoding;
+	}
 
 	@Override
-	public Object fromBody(ResponseBody body, Type clazz) throws ConversionException {
-		String charset = Response.parseCharset(body.mimeType(), default_charset);
-		log.v("fromBody, charset:" + charset);
-		InputStream is = null;
+	public Object fromBody(ResponseBody body, Type type) throws ConversionException {
+		String charset = Response.parseCharset(body.mimeType(), encoding);
+		InputStreamReader isr = null;
 		try {
-			is = body.read();
-			String str = new String(Response.streamToBytes(is), charset);
-			str = str.trim();
-			log.v(str);
-			if (str.startsWith("{")) {
-				return new JSONObject(str);
-			} else if (str.startsWith("[")) {
-				return new JSONArray(str);
-			}
+			isr = new InputStreamReader(body.read(), charset);
+			return gson.fromJson(isr, type);
 		} catch (IOException e) {
-			log.e("ConversionException", e);
 			throw new ConversionException(e);
-		} catch (JSONException e) {
-			log.e("ConversionException", e);
+		} catch (JsonParseException e) {
+			throw new ConversionException(e);
+		} catch (Exception e) {
 			throw new ConversionException(e);
 		} finally {
-			if (is != null) {
+			if (isr != null) {
 				try {
-					is.close();
+					isr.close();
 				} catch (IOException ignored) {
 				}
 			}
 		}
-		return null;
 	}
 
 	@Override
 	public RequestBody toBody(Object object) {
-		String text = "";
-		if (object != null) {
-			Class<?> clazz = object.getClass();
-			if (clazz.equals(JSONObject.class)) {
-				text = ((JSONObject) object).toString();
-			} else if (clazz.equals(JSONArray.class)) {
-				text = ((JSONArray) object).toString();
-			}
-		}
 		try {
-			return new JsonRequestBody(text.getBytes(default_charset), default_charset);
+			return new JsonRequestBody(gson.toJson(object).getBytes(encoding), encoding);
 		} catch (UnsupportedEncodingException e) {
+			throw new AssertionError(e);
 		}
-		return null;
 	}
-	
+
 	private static class JsonRequestBody implements RequestBody {
 		private final byte[] jsonBytes;
 		private final String mimeType;
@@ -105,7 +100,6 @@ public class JSONConverter implements Converter {
 		public void writeTo(OutputStream out) throws IOException {
 			out.write(jsonBytes);
 		}
-
 	}
 
 	@Override

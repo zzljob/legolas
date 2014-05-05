@@ -5,7 +5,6 @@ import java.lang.reflect.Type;
 
 import com.yepstudio.legolas.ConversionException;
 import com.yepstudio.legolas.Converter;
-import com.yepstudio.legolas.LegolasConfig;
 import com.yepstudio.legolas.LegolasError;
 import com.yepstudio.legolas.LegolasLog;
 import com.yepstudio.legolas.ResponseParser;
@@ -21,24 +20,13 @@ import com.yepstudio.legolas.response.Response;
 public class SimpleResponseParser implements ResponseParser {
 	private static LegolasLog log = LegolasLog.getClazz(SimpleResponseParser.class);
 	
-	private final Converter defaultConverter;
-
-	public SimpleResponseParser(Converter defaultConverter) {
-		super();
-		this.defaultConverter = defaultConverter;
-	}
-
 	@Override
-	public Object doParse(Request request, Response response, Type type) throws LegolasError {
+	public Object doParse(Converter converter, Request request, Response response, Type type) throws LegolasError {
 		log.v("doParse => " + type);
 		if (type == null) {
 			return null;
 		}
 		int status = response.getStatus();
-		Converter converter = LegolasConfig.getInstance().getConverter(type);
-		if (converter == null) {
-			converter = defaultConverter;
-		}
 		try {
 			// 介绍HTTP状态码
 			// http://zh.wikipedia.org/wiki/HTTP%E7%8A%B6%E6%80%81%E7%A0%81

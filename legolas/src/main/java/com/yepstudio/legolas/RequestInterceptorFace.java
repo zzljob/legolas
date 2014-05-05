@@ -10,7 +10,7 @@ public interface RequestInterceptorFace {
 
 	public int getRequestType();
 
-	public Map<String, String> getHeaders();
+	public Map<String, Object> getHeaders();
 
 	public Map<String, Object> getPathParams();
 
@@ -22,7 +22,7 @@ public interface RequestInterceptorFace {
 
 	public Object getBodyParams();
 
-	public void addHeader(String name, String value);
+	public void addHeader(String name, Object value);
 
 	public void addPathParam(String name, Object value);
 

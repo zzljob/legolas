@@ -8,7 +8,9 @@ package com.yepstudio.legolas;
  * 
  */
 public class LegolasOptions {
+	
 	private Endpoint endpoint;
+	private Converter converter;
 
 	public Endpoint getEndpoint() {
 		return endpoint;
@@ -16,6 +18,14 @@ public class LegolasOptions {
 
 	public void setEndpoint(Endpoint endpoint) {
 		this.endpoint = endpoint;
+	}
+
+	public Converter getConverter() {
+		return converter;
+	}
+
+	public void setConverter(Converter converter) {
+		this.converter = converter;
 	}
 
 }

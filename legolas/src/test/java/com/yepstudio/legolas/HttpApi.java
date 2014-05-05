@@ -14,7 +14,9 @@ public interface HttpApi {
 
 	@GET(value = "/huodong/{list}?1=2")
 	public void getUserInfo(@Path(value = "list") String doublea,
-			@Query("xx") int intaa, @Query("xxx") int intaaaa, AdddDTO dto,
+			@Query("xx") int intaa, 
+			@Query("xxx") int intaaaa, 
+			AdddDTO dto,
 			OnResponseListener<JSONArray> listener,
 			OnErrorListener errorListener);
 

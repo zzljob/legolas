@@ -1,42 +1,42 @@
 package com.yepstudio.legolas.internal;
 
 import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 
 import com.yepstudio.legolas.Converter;
 import com.yepstudio.legolas.HttpSender;
 import com.yepstudio.legolas.LegolasLog;
 import com.yepstudio.legolas.Platform;
-import com.yepstudio.legolas.internal.converter.GsonConverter;
-import com.yepstudio.legolas.internal.http.HttpClientHttpSender;
-import com.yepstudio.legolas.internal.log.Sl4fLog;
 
-public class BasePlatform extends Platform {
-	private Executor executor = Executors.newCachedThreadPool();;
-	
+public class AndroidPlatform extends Platform {
+
 	@Override
 	public Converter defaultConverter() {
-		return new GsonConverter();
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	@Override
 	public HttpSender defaultHttpSender() {
-		return new HttpClientHttpSender();
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	@Override
 	public Executor defaultHttpExecutor() {
-		return executor;
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	@Override
 	public Executor defaultDeliveryExecutor() {
-		return executor;
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	@Override
 	public Class<? extends LegolasLog> defaultLog() {
-		return Sl4fLog.class;
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

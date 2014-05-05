@@ -45,7 +45,7 @@ public class SimpleRequestExecutor implements RequestExecutor {
 
 	@Override
 	public void asyncRequest(final RequestWrapper wrapper) {
-		log.v("doRequest execute ...");
+		log.v("asyncRequest execute ...");
 		executor.execute(new Runnable() {
 
 			@Override
@@ -62,7 +62,8 @@ public class SimpleRequestExecutor implements RequestExecutor {
 					response = httpSender.execute(request);
 					if (wrapper.getOnResponseListeners() != null) {
 						for (Type type : wrapper.getOnResponseListeners().keySet()) {
-							delivery.postResponse(wrapper.getOnResponseListeners().get(type), request, parser.doParse(request, response, type));
+							Object result = parser.doParse(wrapper.getConverter(), request, response, type);
+							delivery.postResponse(wrapper.getOnResponseListeners().get(type), request, result);
 						}
 					}
 				} catch (IOException e) {
@@ -101,7 +102,7 @@ public class SimpleRequestExecutor implements RequestExecutor {
 		Response response = null;
 		try {
 			response = task.get();
-			return parser.doParse(wrapper.getRequest(), response, wrapper.getResult());
+			return parser.doParse(wrapper.getConverter(), wrapper.getRequest(), response, wrapper.getResult());
 		} catch (InterruptedException e) {
 			log.e("syncRequest interrupted.", e);
 		} catch (ExecutionException e) {

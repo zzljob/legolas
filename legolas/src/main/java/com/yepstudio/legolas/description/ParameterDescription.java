@@ -109,15 +109,18 @@ public class ParameterDescription {
 		if (annotations != null && annotations.length > 0) {
 			return;
 		}
-		log.v("parseListener:");
+		log.v("start parseParamsWithoutAnnotation...");
 		if (type instanceof Class<?>) {
 			if (OnRequestListener.class.equals(type)) {
 				requestListener = true;
+				log.v("type:" + type + ", is OnRequestListener");
 			} else if (OnErrorListener.class.equals(type)) {
 				errorListener = true;
+				log.v("type:" + type + ", is OnErrorListener");
 			} else if (LegolasOptions.class.equals(type)) {
 				parameterType = ParameterType.OPTIONS;
 				options = true;
+				log.v("type:" + type + ", is LegolasOptions");
 			}
 		} else if (type instanceof ParameterizedType) {
 			Class<?> clazz = TypesHelper.getRawType(type);
@@ -125,6 +128,7 @@ public class ParameterDescription {
 				responseType = getParameterUpperBound((ParameterizedType) type);
 				response = true;
 				responseListener = true;
+				log.v("type:" + type + ", is OnResponseListener, and responseType:[" + responseType + "]");
 			}
 		}
 

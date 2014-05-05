@@ -40,14 +40,16 @@ import com.yepstudio.legolas.response.OnResponseListener;
 public class RequestBuilder implements RequestInterceptorFace {
 	
 	private static LegolasLog log = LegolasLog.getClazz(RequestBuilder.class);
+	private static String ENCODE= "UTF-8";
 
 	private final Endpoint endpoint;
-	private final Map<String, String> headers;
+	private final Map<String, Object> legolasHeaders;
 	private final ApiDescription api;
 	private final RequestDescription request;
-	private final Converter converter;
+	private Converter converter;
 	private Object[] arguments;
 	
+	private Map<String, Object> headerMap = new HashMap<String, Object>();
 	private Map<String, Object> pathMap = new HashMap<String, Object>();
 	private Map<String, Object> queryMap = new HashMap<String, Object>();
 	
@@ -59,10 +61,10 @@ public class RequestBuilder implements RequestInterceptorFace {
 	private final Map<Type, OnResponseListener<?>> onResponseListeners;
 	private final List<OnErrorListener> onErrorListeners;
 	
-	public RequestBuilder(Endpoint endpoint, Map<String, String> headers, ApiDescription api, RequestDescription request, Converter converter) {
+	public RequestBuilder(Endpoint endpoint, Map<String, Object> headers, ApiDescription api, RequestDescription request, Converter converter) {
 		super();
 		this.endpoint = endpoint;
-		this.headers = headers;
+		this.legolasHeaders = headers;
 		this.api = api;
 		this.request = request;
 		this.converter = converter;
@@ -109,13 +111,12 @@ public class RequestBuilder implements RequestInterceptorFace {
 				setBodyParam(p.getName(), arguments[i]);
 				break;
 			case ParameterType.NONE:
-				if (p.isOptions()) {
+				if (p.isOptions() && arguments[i] != null) {
 					parseArgumentsOptions((LegolasOptions) arguments[i]);
-				} else if (p.isListener()) {
+				} else if (p.isListener() && arguments[i] != null) {
 					parseArgumentsListener(p, arguments[i]);
 				}
 				break;
-
 			default:
 
 				break;
@@ -124,7 +125,9 @@ public class RequestBuilder implements RequestInterceptorFace {
 	}
 	
 	private void parseArgumentsOptions(LegolasOptions options) {
-		
+		if (options.getConverter() != null) {
+			converter = options.getConverter();
+		}
 	}
 	
 	private void parseArgumentsListener(ParameterDescription p, Object obj) {
@@ -148,7 +151,7 @@ public class RequestBuilder implements RequestInterceptorFace {
 	protected Endpoint getEndpoint() {
 		Endpoint rootPoint;
 		LegolasOptions options = getLegolasOptions();
-		if (options != null) {
+		if (options != null && options.getEndpoint() != null) {
 			rootPoint = options.getEndpoint();
 		} else {
 			rootPoint = endpoint;
@@ -204,16 +207,18 @@ public class RequestBuilder implements RequestInterceptorFace {
 		return request.getRequestType();
 	}
 	
-	public Map<String, String> getHeaders() {
-		Map<String, String> map = new HashMap<String, String>();
-		map.putAll(headers);
+	public Map<String, Object> getHeaders() {
+		Map<String, Object> map = new HashMap<String, Object>();
 		map.putAll(api.getHeaders());
 		map.putAll(request.getHeaders());
+		if(legolasHeaders != null){
+			map.putAll(legolasHeaders);
+		}
 		List<ParameterDescription> list = request.getParameters();
 		if (list != null) {
 			for (int i = 0; i < list.size(); i++) {
 				if (ParameterType.HEADER == list.get(i).getParameterType()) {
-					map.put(list.get(i).getName(), argumentToString(arguments[i]));
+					map.put(list.get(i).getName(), arguments[i]);
 				}
 			}
 		}
@@ -269,8 +274,8 @@ public class RequestBuilder implements RequestInterceptorFace {
 		return null;
 	}
 	
-	public void addHeader(String name, String value) {
-		headers.put(name, value);
+	public void addHeader(String name, Object value) {
+		headerMap.put(name, value);
 	}
 	
 	public void addPathParam(String name, Object value) {
@@ -312,20 +317,20 @@ public class RequestBuilder implements RequestInterceptorFace {
 		for (String name : request.getRequestPathParamNames()) {
 			value = null;
 			if (pathMap.containsKey(name)) {
-				value = argumentToString(pathMap.getOrDefault(name, ""));
+				value = converter.toParam(pathMap.get(name), ParameterType.PATH);
 			} else {
 				for (int i = 0; i < parameters.size(); i++) {
 					ParameterDescription description = parameters.get(i);
 					if (description.getName().equals(name)
 							&& description.getParameterType() == ParameterType.PATH) {
-						value = argumentToString(arguments[i]);
+						value = converter.toParam(arguments[i], ParameterType.PATH);
 					}
 				}
 			}
 			if (value == null) {
 				throw new IllegalArgumentException("request lost params : " + name);
 			}
-			String encodeValue = URLEncoder.encode(value, "UTF-8");
+			String encodeValue = URLEncoder.encode(value, ENCODE);
 			encodeValue = encodeValue.replace("+", "%20");
 			path = path.replace(String.format("{%s}", name), encodeValue);
 		}
@@ -352,27 +357,37 @@ public class RequestBuilder implements RequestInterceptorFace {
 				targetUrl.append("?");
 			}
 			for (String name : queryMap.keySet()) {
-				targetUrl.append(URLEncoder.encode(name, "UTF-8"));
+				targetUrl.append(URLEncoder.encode(name, ENCODE));
 				targetUrl.append("=");
-				targetUrl.append(URLEncoder.encode(argumentToString(queryMap.get(name)), "UTF-8"));
+				targetUrl.append(URLEncoder.encode(converter.toParam(queryMap.get(name), ParameterType.QUERY), ENCODE));
 				targetUrl.append("&");
 			}
 			targetUrl.deleteCharAt(targetUrl.length() - 1);
 		}
 		
 		URL url = null;
-		URL endpointURL = new URL(getEndpoint().getUrl());
-		url = new URL(endpointURL, targetUrl.toString());
-		return url.toString();
+		Endpoint endpoint = getEndpoint();
+		if (endpoint == null) {
+			return targetUrl.toString();
+		} else {
+			URL endpointURL = new URL(endpoint.getUrl());
+			url = new URL(endpointURL, targetUrl.toString());
+			return url.toString();
+		}
 	}
 	
 	public RequestWrapper build() throws Exception {
 		if (multipartBody != null && multipartBody.getPartCount() <= 0) {
 			throw new IllegalStateException("Multipart requests must contain at least one part.");
 		}
+		Map<String, Object> header = getHeaders();
+		Map<String, String> headers = new HashMap<String, String>();
+		for (String key : header.keySet()) {
+			headers.put(key, converter.toParam(header.get(key), ParameterType.HEADER));
+		}
 		//进行认证
 		Request request = new Request(getRequestDescription(), getRequestMethod(), buildTargetUrl(), headers, body);
-		return new RequestWrapper(request, this.request.getResponseType(), onRequestListeners, onResponseListeners, onErrorListeners);
+		return new RequestWrapper(request, this.request.getResponseType(), converter, onRequestListeners, onResponseListeners, onErrorListeners);
 	}
 	
 }

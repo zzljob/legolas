@@ -57,6 +57,7 @@ public class RequestDescription {
 	/**源请求URL**/
 	private String requestUrl;
 	private String requestPath;
+	
 	private final Set<String> requestPathParamNames;
 	/**requestUrl上带有的参数**/
 	private String requestQuery;
@@ -133,7 +134,7 @@ public class RequestDescription {
 	 * 解析方法上的注释
 	 */
 	private void parseMethodAnnotations() {
-		log.v("parseMethodAnnotations:");
+		log.d("start parseMethodAnnotations...");
 		Annotation[] methodAnnotations = javaMethod.getAnnotations();
 		if (methodAnnotations != null) {
 			for (Annotation methodAnnotation : methodAnnotations) {
@@ -170,7 +171,7 @@ public class RequestDescription {
 	 * @return
 	 */
 	private void parseRequestPathParams(String fullUrl) {
-		log.v("parseRequestPathParams:" + fullUrl);
+		log.d("parseRequestPathParams:" + fullUrl);
 		if (fullUrl == null || fullUrl == "") {
 			log.w("requestUrl is empty");
 			return ;
@@ -183,14 +184,13 @@ public class RequestDescription {
 			requestPath = fullUrl;
 			requestQuery = "";
 		}
-		log.v("parseRequestPathParams fullUrl:" + fullUrl);
 		log.v(String.format("requestPath:%s, requestQuery:%s", requestPath, requestQuery));
 		
 		Matcher m = PARAM_URL_REGEX.matcher(requestPath);
 	    String v = "";
 		while (m.find()) {
 			v = m.group(1);
-			log.v("fina path param : " + v);
+			log.v("find path param : [" + v + "]");
 			requestPathParamNames.add(v);
 		}
 	}
@@ -199,7 +199,7 @@ public class RequestDescription {
 	 * 解析参数
 	 */
 	private void parseParameters() {
-		log.v("parseParameters:");
+		log.d("start parseParameters...");
 		Type[] parameterTypes = javaMethod.getGenericParameterTypes();
 		//Class<?>[] clazzes = javaMethod.getParameterTypes();
 		Annotation[][] parameterAnnotations = javaMethod.getParameterAnnotations();
@@ -257,6 +257,7 @@ public class RequestDescription {
 	}
 	
 	private void vaildateParameters() {
+		log.d("start vaildateParameters...");
 		for (ParameterDescription description : parameters) {
 			if (ParameterType.PATH == description.getParameterType()) {
 				vaildatePath(description.getName());
@@ -271,7 +272,7 @@ public class RequestDescription {
 		if (!requestPathParamNames.contains(name)) {
 			throw new IllegalStateException("Method URL \"" + requestUrl + "\" does not contain {" + name + "}.");
 		}
-		log.v("vaildatePath:" + name + " success");
+		log.v("vaildatePath: [" + name + "] success");
 	}
 
 	public boolean isSynchronous() {
@@ -287,21 +288,6 @@ public class RequestDescription {
 	}
 
 	public String getRequestUrl() {
-		/*String url = requestPath;
-		for (String name : requestPathParamNames) {
-			for (int i = 0; i < parameters.size(); i++) {
-				ParameterDescription description = parameters.get(i);
-				if (description.getName().equalsIgnoreCase(name)
-						&& description.getParameterType() == ParameterType.PATH) {
-					url = url.replace(String.format("{%s}", name), String.valueOf(arguments[i]));
-				}
-			}
-		}
-		if (requestQuery == null || requestQuery.length() < 1) {
-			return url;
-		} else {
-			return url + "?" + requestQuery;
-		}*/
 		return requestUrl;
 	}
 

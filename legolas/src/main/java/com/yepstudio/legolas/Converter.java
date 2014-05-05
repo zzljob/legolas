@@ -24,7 +24,7 @@ public interface Converter {
 	   * {@link retrofit.RetrofitError}. The exception message should report all necessary information
 	   * about its cause as the response body will be set to {@code null}.
 	   */
-	  Object fromBody(ResponseBody body, Type clazz) throws ConversionException;
+	public Object fromBody(ResponseBody body, Type clazz) throws ConversionException;
 
 	  /**
 	   * Convert and object to an appropriate representation for HTTP transport.
@@ -32,5 +32,8 @@ public interface Converter {
 	   * @param object Object instance to convert.
 	   * @return Representation of the specified object as bytes.
 	   */
-	  RequestBody toBody(Object object);
+	  public RequestBody toBody(Object object);
+	  
+	  public String toParam(Object object, int type);
+	  
 }

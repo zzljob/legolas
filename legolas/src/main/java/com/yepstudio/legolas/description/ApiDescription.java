@@ -50,7 +50,7 @@ public class ApiDescription {
 	}
 
 	private synchronized void parseApi(Class<?> service) {
-		log.v("parseApi:" + service.getName());
+		log.v("parseApi:[" + service.getName() + "]");
 		validateServiceClass(service);
 		
 		Annotation[] annotations = service.getAnnotations();

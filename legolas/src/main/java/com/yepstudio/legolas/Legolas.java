@@ -1,5 +1,6 @@
 package com.yepstudio.legolas;
 
+import java.lang.ref.SoftReference;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -31,26 +32,28 @@ public class Legolas {
 	
 	private static LegolasLog log = LegolasLog.getClazz(Legolas.class);
 	
+	private static Map<Class<?>, SoftReference<ApiDescription>> apiDescriptionCache = new ConcurrentHashMap<Class<?>, SoftReference<ApiDescription>>();
+	
 	private static Map<Object, Legolas> legolasBindMap = new WeakHashMap<Object, Legolas>(5); 
 	private static Map<Object, Map<Class<?>, Object>> proxyBindMap = new WeakHashMap<Object, Map<Class<?>, Object>>(5); 
 	
 	private final Map<Class<?>, Endpoint> dynamicEndpoint = new ConcurrentHashMap<Class<?>, Endpoint>();
-	private final Map<Class<?>, Map<String, String>> dynamicHeaders = new ConcurrentHashMap<Class<?>, Map<String, String>>();
+	private final Map<Class<?>, Map<String, Object>> dynamicHeaders = new ConcurrentHashMap<Class<?>, Map<String, Object>>();
 	
 	private final Endpoint defaultEndpoint;
-	private final Map<String, String> defaultHeaders;
+	private final Map<String, Object> defaultHeaders;
+	private final Converter defaultConverter;
 	
 	private final RequestExecutor executor;
 	private final RequestInterceptor interceptor;
-	private final Converter converter;
 	
-	public Legolas(Endpoint defaultEndpoint, Map<String, String> defaultHeaders, RequestExecutor executor, RequestInterceptor interceptor, Converter converter) {
+	public Legolas(Endpoint defaultEndpoint, Map<String, Object> defaultHeaders, RequestExecutor executor, RequestInterceptor interceptor, Converter converter) {
 		super();
 		this.defaultEndpoint = defaultEndpoint;
 		this.defaultHeaders = defaultHeaders;
 		this.executor = executor;
 		this.interceptor = interceptor;
-		this.converter = converter;
+		this.defaultConverter = converter;
 	}
 
 	public <T> T newInstance(Class<T> clazz) {
@@ -63,7 +66,7 @@ public class Legolas {
 			throw new IllegalArgumentException("newInstance fail, bind and class can be null.");
 		}
 		log.d("newInstance, bind:" + bind + ", Class:" + clazz.getName());
-		ApiDescription apiDescription = LegolasConfig.getInstance().getApiDescription(clazz);
+		ApiDescription apiDescription = getApiDescription(clazz);
 		ProxyHandler handler = new ProxyHandler(apiDescription);
 		Object proxy = Proxy.newProxyInstance(clazz.getClassLoader(), new Class[] { clazz }, handler);
 		
@@ -97,6 +100,22 @@ public class Legolas {
 		return legolasBindMap.get(bind);
 	}
 	
+	protected static ApiDescription getApiDescription(Class<?> clazz) {
+		SoftReference<ApiDescription> apiRef = apiDescriptionCache.get(clazz);
+		ApiDescription api;
+		if (apiRef == null || apiRef.get() == null) {
+			long birthTime = System.currentTimeMillis();
+			api = new ApiDescription(clazz);
+			apiDescriptionCache.put(clazz, new SoftReference<ApiDescription>(api));
+			long finishTime = System.currentTimeMillis();
+			log.d("ApiDescription be init : [" + (finishTime - birthTime) + "ms]");
+		} else {
+			api = apiRef.get();
+			log.v("this api class is be cache, so sikp parse api.");
+		}
+		return api;
+	}
+	
 	private Map<Class<?>, Object> getApiBindMap(Object bind) {
 		Map<Class<?>, Object> apiMap = proxyBindMap.get(bind);
 		if (apiMap == null) {
@@ -114,9 +133,11 @@ public class Legolas {
 		return endpoint;
 	}
 	
-	public Map<String, String> getHeaders(Class<?> clazz) {
-		Map<String, String> headers = new LinkedHashMap<String, String>();
-		headers.putAll(defaultHeaders);
+	public Map<String, Object> getHeaders(Class<?> clazz) {
+		Map<String, Object> headers = new LinkedHashMap<String, Object>();
+		if (defaultHeaders != null) {
+			headers.putAll(defaultHeaders);
+		}
 		if (dynamicHeaders.get(clazz) != null) {
 			headers.putAll(dynamicHeaders.get(clazz));
 		}
@@ -145,11 +166,15 @@ public class Legolas {
 			}
 			
 			Class<?> clazz = apiDescription.getApiClazz();
-			RequestBuilder builder = new RequestBuilder(getEndpoint(clazz), getHeaders(clazz), apiDescription, description, converter);
-			builder.parseArguments(args);
-			interceptor.interceptor(builder);
-			RequestWrapper wrapper = builder.build();
-			
+			RequestBuilder builder = new RequestBuilder(getEndpoint(clazz), getHeaders(clazz), apiDescription, description, defaultConverter);
+			RequestWrapper wrapper = null;
+			try {
+				builder.parseArguments(args);
+				interceptor.interceptor(builder);
+				wrapper = builder.build();
+			} catch (Throwable th) {
+				throw new IllegalArgumentException("build request has error before request", th);
+			}
 			if (description.isSynchronous()) {
 				return executor.syncRequest(wrapper);
 			}
@@ -164,7 +189,7 @@ public class Legolas {
 
 	public static class Build {
 		private Endpoint endpoint;
-		private Map<String, String> headers;
+		private Map<String, Object> headers;
 		private RequestExecutor executor;
 		private RequestInterceptor interceptor;
 		private Converter converter;
@@ -200,11 +225,6 @@ public class Legolas {
 			return this;
 		}
 		
-		public Build setDefaultConverter(Converter defaultConverter) {
-			this.converter = defaultConverter;
-			return this;
-		}
-		
 		public Build setRequestInterceptor(RequestInterceptor interceptor) {
 			this.interceptor = interceptor;
 			return this;
@@ -215,13 +235,18 @@ public class Legolas {
 			return this;
 		}
 		
-		public Build setDefaultHeaders(Map<String, String> defaultHeaders) {
+		public Build setDefaultHeaders(Map<String, Object> defaultHeaders) {
 			this.headers = defaultHeaders;
 			return this;
 		}
 		
 		public Build setDefaultEndpoint(Endpoint defaultEndpoint) {
 			this.endpoint = defaultEndpoint;
+			return this;
+		}
+		
+		public Build setDefaultConverter(Converter defaultConverter) {
+			this.converter = defaultConverter;
 			return this;
 		}
 		
@@ -233,7 +258,7 @@ public class Legolas {
 				converter = Platform.get().defaultConverter();
 			}
 			if (parser == null) {
-				parser = new SimpleResponseParser(converter);
+				parser = new SimpleResponseParser();
 			}
 			if(interceptor == null){
 				interceptor = Platform.get().defaultRequestInterceptor();

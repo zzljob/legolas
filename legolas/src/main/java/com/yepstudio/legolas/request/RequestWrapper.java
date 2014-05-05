@@ -4,6 +4,7 @@ import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
 
+import com.yepstudio.legolas.Converter;
 import com.yepstudio.legolas.description.RequestDescription;
 import com.yepstudio.legolas.response.OnErrorListener;
 import com.yepstudio.legolas.response.OnResponseListener;
@@ -13,17 +14,18 @@ public class RequestWrapper {
 	private final List<OnRequestListener> onRequestListeners;
 	private final Map<Type, OnResponseListener<?>> onResponseListeners;
 	private final List<OnErrorListener> onErrorListeners;
-	//方法返回的类型
+	// 方法返回的类型
 	private final Type result;
-	
-	public RequestWrapper(Request request,
-			Type result,
+	private final Converter converter;
+
+	public RequestWrapper(Request request, Type result, Converter converter,
 			List<OnRequestListener> onRequestListeners,
 			Map<Type, OnResponseListener<?>> onResponseListeners,
 			List<OnErrorListener> onErrorListeners) {
 		super();
 		this.request = request;
 		this.result = result;
+		this.converter = converter;
 		this.onRequestListeners = onRequestListeners;
 		this.onResponseListeners = onResponseListeners;
 		this.onErrorListeners = onErrorListeners;
@@ -48,8 +50,12 @@ public class RequestWrapper {
 	public Type getResult() {
 		return result;
 	}
-	
+
 	public boolean isSynchronou() {
 		return RequestDescription.hasSynchronousReturnType(result);
+	}
+
+	public Converter getConverter() {
+		return converter;
 	}
 }
