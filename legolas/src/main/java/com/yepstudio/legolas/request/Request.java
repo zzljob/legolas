@@ -3,6 +3,7 @@ package com.yepstudio.legolas.request;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Map;
+import java.util.UUID;
 
 import com.yepstudio.legolas.LegolasLog;
 import com.yepstudio.legolas.mime.ByteArrayBody;
@@ -17,6 +18,7 @@ public class Request {
 
 	private static LegolasLog log = LegolasLog.getClazz(Request.class);
 
+	private final String uuid;
 	private final String description;
 	private final String url;
 	private final String method;
@@ -25,12 +27,13 @@ public class Request {
 
 	public Request(String description, String method, String url, Map<String, String> headers, RequestBody body) {
 		super();
+		uuid = UUID.randomUUID().toString();
 		this.description = description;
 		this.method = method;
 		this.url = url;
 		this.headers = headers;
 		this.body = body;
-		log.v(String.format("new Request, method:%s, url:%s, headers:%s, body:%s", method, url, headers, body));
+		log.i(String.format("new Request:[%s], method:%s, url:%s, headers:%s, body:%s", uuid, method, url, headers, body));
 	}
 
 	public String getMethod() {
@@ -65,6 +68,10 @@ public class Request {
 
 	public String getDescription() {
 		return description;
+	}
+
+	public String getUuid() {
+		return uuid;
 	}
 
 }

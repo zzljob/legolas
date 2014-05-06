@@ -10,16 +10,15 @@ import com.yepstudio.legolas.internal.Server;
  * 
  */
 public class Endpoints {
+	
 	private Endpoints() {
 	}
 
-	/** Create a server with the provided URL. */
 	public static Endpoint newFixedEndpoint(String url) {
-		return new Server(url, Endpoint.DEFAUL_TNAME);
+		return new Server(Endpoint.DEFAUL_TNAME, url);
 	}
 
-	/** Create an endpoint with the provided URL and name. */
 	public static Endpoint newFixedEndpoint(String url, String name) {
-		return new Server(url, name);
+		return new Server(name, url);
 	}
 }

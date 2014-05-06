@@ -45,7 +45,7 @@ public class SimpleRequestExecutor implements RequestExecutor {
 
 	@Override
 	public void asyncRequest(final RequestWrapper wrapper) {
-		log.v("asyncRequest execute ...");
+		log.i("asyncRequest execute ...");
 		executor.execute(new Runnable() {
 
 			@Override
@@ -72,13 +72,14 @@ public class SimpleRequestExecutor implements RequestExecutor {
 					error = e;
 				} catch (Throwable e) {
 					error = LegolasError.unexpectedError(request.getUrl(), e);
-				}
-				if (error != null) {
-					for (OnErrorListener listener : wrapper.getOnErrorListeners()) {
-						delivery.postError(listener, request, error);
+				} finally {
+					if (error != null) {
+						for (OnErrorListener listener : wrapper.getOnErrorListeners()) {
+							delivery.postError(listener, request, error);
+						}
 					}
+					profiler.afterCall(response, startTime, System.currentTimeMillis(), beforeCallData);
 				}
-				profiler.afterCall(response, startTime, System.currentTimeMillis(), beforeCallData);
 			}
 		});
 
@@ -86,7 +87,7 @@ public class SimpleRequestExecutor implements RequestExecutor {
 
 	@Override
 	public Object syncRequest(final RequestWrapper wrapper) throws LegolasError {
-		log.v("syncRequest execute ...");
+		log.i("syncRequest execute ...");
 		Callable<Response> callable = new Callable<Response>() {
 
 			@Override

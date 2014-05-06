@@ -8,6 +8,7 @@ import java.lang.annotation.Target;
 
 /**
  * 在请求过程中添加的Headers，优先级低于用于参数上的@Header
+ * 
  * @author zzljob@gmail.com
  * @create 2014年1月8日
  * @version 2.0, 2014年4月23日
@@ -17,5 +18,5 @@ import java.lang.annotation.Target;
 @Target({ ElementType.TYPE, ElementType.METHOD })
 public @interface Headers {
 
-	public String[] value();
+	public Item[] value();
 }

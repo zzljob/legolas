@@ -2,10 +2,8 @@ package com.yepstudio.legolas.internal;
 
 import com.yepstudio.legolas.Endpoint;
 
-
-
 /**
- * 服务端
+ * 服务端，{@link com.yepstudio.legolas.Endpoint} 的一个实现
  * 
  * @author zzljob@gmail.com
  * @create 2014年1月6日

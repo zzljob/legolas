@@ -122,10 +122,10 @@ public class HttpClientHttpSender implements HttpSender {
 
 	/** Container class for passing an entire {@link RequestBody} as an {@link HttpEntity}. */
 	static class EntityRequestBody extends AbstractHttpEntity {
-		final RequestBody typedOutput;
+		final RequestBody requestBody;
 
 		EntityRequestBody(RequestBody typedOutput) {
-			this.typedOutput = typedOutput;
+			this.requestBody = typedOutput;
 			setContentType(typedOutput.mimeType());
 		}
 
@@ -136,19 +136,19 @@ public class HttpClientHttpSender implements HttpSender {
 
 		@Override
 		public long getContentLength() {
-			return typedOutput.length();
+			return requestBody.length();
 		}
 
 		@Override
 		public InputStream getContent() throws IOException {
 			ByteArrayOutputStream out = new ByteArrayOutputStream();
-			typedOutput.writeTo(out);
+			requestBody.writeTo(out);
 			return new ByteArrayInputStream(out.toByteArray());
 		}
 
 		@Override
 		public void writeTo(OutputStream out) throws IOException {
-			typedOutput.writeTo(out);
+			requestBody.writeTo(out);
 		}
 
 		@Override

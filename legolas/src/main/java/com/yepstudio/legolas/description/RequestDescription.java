@@ -19,6 +19,7 @@ import com.yepstudio.legolas.annotation.Headers;
 import com.yepstudio.legolas.annotation.Http;
 import com.yepstudio.legolas.annotation.Multipart;
 import com.yepstudio.legolas.description.ParameterDescription.ParameterType;
+import com.yepstudio.legolas.request.Request;
 
 /**
  * 每个带有@GET @POST @PUT注释的方法，将一些数据缓存下来，省得每次都要调用反射
@@ -79,7 +80,7 @@ public class RequestDescription {
 	}
 	
 	public static boolean hasSynchronousReturnType(Type responseType) {
-		return !(responseType == void.class || responseType == Void.class);
+		return !(responseType == void.class || responseType == Void.class || responseType == Request.class);
 	}
 	
 	private Http getHttpAnnotation(Annotation methodAnnotation) {

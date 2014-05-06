@@ -40,14 +40,6 @@
 	</properties>
 
 	<dependencies>
-		<!-- To get this library to compile (with appropriate warnings) in your 
-			IDE, you need to point your IDE project SDK to your Android SDK and choose 
-			an Android version. This library has been designed to run in Android-3 and 
-			newer versions. To get this library to compile in Maven you need to have 
-			an Android SDK installed and pointed to by an ANDROID_HOME environment variable. 
-			This is because we use a bootclasspath during compilation to ensure that 
-			only APIs from a specific Android version have been used. NB The AndroidAPI 
-			dependency is included below to allow test execution and javadoc generation. -->
 		<dependency>
 			<groupId>com.google.android</groupId>
 			<artifactId>android</artifactId>
@@ -56,17 +48,11 @@
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>4.8.1</version>
-			<type>jar</type>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
 			<groupId>org.json</groupId>
 			<artifactId>json</artifactId>
 			<version>20080701</version>
 		</dependency>
+
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
@@ -93,6 +79,32 @@
 			<version>1.7.1</version>
 		</dependency>
 
+		<!-- Test -->
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.11</version>
+			<type>jar</type>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-all</artifactId>
+			<version>1.9.5</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.jayway.jsonpath</groupId>
+			<artifactId>json-path</artifactId>
+			<version>0.9.1</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.hamcrest</groupId>
+			<artifactId>hamcrest-all</artifactId>
+			<version>1.3</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 	<build>

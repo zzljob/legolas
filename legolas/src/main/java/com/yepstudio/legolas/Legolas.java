@@ -37,11 +37,12 @@ public class Legolas {
 	private static Map<Object, Legolas> legolasBindMap = new WeakHashMap<Object, Legolas>(5); 
 	private static Map<Object, Map<Class<?>, Object>> proxyBindMap = new WeakHashMap<Object, Map<Class<?>, Object>>(5); 
 	
+	private final Endpoint defaultEndpoint;
 	private final Map<Class<?>, Endpoint> dynamicEndpoint = new ConcurrentHashMap<Class<?>, Endpoint>();
+	
+	private final Map<String, Object> defaultHeaders;
 	private final Map<Class<?>, Map<String, Object>> dynamicHeaders = new ConcurrentHashMap<Class<?>, Map<String, Object>>();
 	
-	private final Endpoint defaultEndpoint;
-	private final Map<String, Object> defaultHeaders;
 	private final Converter defaultConverter;
 	
 	private final RequestExecutor executor;
@@ -56,10 +57,25 @@ public class Legolas {
 		this.defaultConverter = converter;
 	}
 
+	/**
+	 * new一个Api的请求实例
+	 * @param clazz 带有@Api注释的接口
+	 * @return JDK动态代理类
+	 */
 	public <T> T newInstance(Class<T> clazz) {
 		return newInstance(null, clazz);
 	}
 	
+	/**
+	 * new一个Api的请求实例，并且把它绑定到bind 对象上
+	 * <ul>
+	 * <li>对于绑定的对象可以通过{@link com.yepstudio.legolas.Legolas#getInstanceByBind(Object, Class)} 方法获取到</li>
+	 * <li>不需要考虑垃圾回收的问题，当绑定的bind对象被回收，那个该次new的对象也会被回收</li>
+	 * </ul>
+	 * @param bind 绑定的对象
+	 * @param clazz 带有@Api注释的接口
+	 * @return JDK动态代理类
+	 */
 	@SuppressWarnings("unchecked")
 	public <T> T newInstance(Object bind, Class<T> clazz) {
 		if (clazz == null) {
@@ -77,22 +93,93 @@ public class Legolas {
 		return (T) proxy;
 	}
 	
+	/**
+	 * 获取一个已经绑定过的Api对象
+	 * @param bind 绑定的对象
+	 * @param clazz 带有@Api注释的接口
+	 * @return 返回一个JDK动态代理类
+	 * @throws IllegalArgumentException
+	 */
 	@SuppressWarnings("unchecked")
 	public <T> T getInstanceByBind(Object bind, Class<T> clazz) {
 		if (bind == null || clazz == null) {
-			throw new IllegalArgumentException("newInstance fail, bind and class can be null.");
+			throw new IllegalArgumentException("getInstanceByBind fail, bind and class can be null.");
 		}
 		Object proxy = getApiBindMap(bind).get(clazz);
 		try {
 			if (Proxy.getInvocationHandler(proxy) == null) {
-				throw new IllegalArgumentException("getInstance fail, InvocationHandler is null.");
+				throw new IllegalArgumentException("getInstanceByBind fail, InvocationHandler is null.");
 			}
 		} catch (Throwable th) {
-			throw new IllegalArgumentException("getInstance fail, need newInstance before getInstance.", th);
+			throw new IllegalArgumentException("getInstanceByBind fail, need newInstance before getInstanceByBind.", th);
 		}
 		return (T) proxy;
 	}
 	
+	/**
+	 * 针对某个具体的API设置默认的{@link com.yepstudio.legolas.Endpoint}<br/>
+	 * 对于不同的API可能域名本身就不一样
+	 * @param clazz
+	 * @param endpoint
+	 */
+	public void setEndpoint(Class<?> clazz, Endpoint defaultEndpoint) {
+		dynamicEndpoint.put(clazz, defaultEndpoint);
+	}
+	
+	/**
+	 * 获取一个Api接口的{@link com.yepstudio.legolas.Endpoint}
+	 * @param clazz
+	 * @return
+	 */
+	public Endpoint getEndpoint(Class<?> clazz) {
+		Endpoint endpoint = dynamicEndpoint.get(clazz);
+		if (endpoint == null) {
+			return defaultEndpoint;
+		}
+		return endpoint;
+	}
+	
+	/**
+	 * 针对某个具体的API设置默认的defaultHeaders<br/>
+	 * @param clazz
+	 * @param defaultHeaders
+	 */
+	public void setHeaders(Class<?> clazz, Map<String, Object> defaultHeaders) {
+		dynamicHeaders.put(clazz, defaultHeaders);
+	}
+	
+	/**
+	 * 获取一个Api接口的默认的Header<br/>
+	 * 该Header的是根据Key来设置的，如果key多次设置，前面设置的将会被后面的覆盖<br/>
+	 * 该Header的覆盖优先级：<br/>
+	 * <ol>
+	 * <li> API类的{@link com.yepstudio.legolas.annotation.Headers }标签</li>
+	 * <li> API的方法的{@link com.yepstudio.legolas.annotation.Headers }标签</li>
+	 * <li> Legolas初始化是设置的defaultHeaders {@link com.yepstudio.legolas.Legolas.Build#setDefaultHeaders(Map) } </li>
+	 * <li> Legolas针对API设置的dynamicHeaders  {@link com.yepstudio.legolas.Legolas#setHeaders(Class, Map) } </li>
+	 * <li> API的方法的{@link com.yepstudio.legolas.annotation.Header }标签 </li>
+	 * </ul>
+	 *  
+	 * @param clazz
+	 * @return
+	 */
+	public Map<String, Object> getHeaders(Class<?> clazz) {
+		Map<String, Object> headers = new LinkedHashMap<String, Object>();
+		if (defaultHeaders != null) {
+			headers.putAll(defaultHeaders);
+		}
+		if (dynamicHeaders.get(clazz) != null) {
+			headers.putAll(dynamicHeaders.get(clazz));
+		}
+		return headers;
+	}
+	
+	/**
+	 * 获取绑定到bind对象上的Legolas对象<br/>
+	 * {@link com.yepstudio.legolas.Legolas.Build#setBind(Object)}
+	 * @param bind
+	 * @return
+	 */
 	public static Legolas getBindLegolas(Object bind) {
 		if (bind == null) {
 			throw new IllegalArgumentException("the bind can not be null.");
@@ -116,32 +203,13 @@ public class Legolas {
 		return api;
 	}
 	
-	private Map<Class<?>, Object> getApiBindMap(Object bind) {
+	private static Map<Class<?>, Object> getApiBindMap(Object bind) {
 		Map<Class<?>, Object> apiMap = proxyBindMap.get(bind);
 		if (apiMap == null) {
 			apiMap = new ConcurrentHashMap<Class<?>, Object>(5);
 			proxyBindMap.put(bind, apiMap);
 		}
 		return apiMap;
-	}
-	
-	public Endpoint getEndpoint(Class<?> clazz) {
-		Endpoint endpoint = dynamicEndpoint.get(clazz);
-		if (endpoint == null) {
-			return defaultEndpoint;
-		}
-		return endpoint;
-	}
-	
-	public Map<String, Object> getHeaders(Class<?> clazz) {
-		Map<String, Object> headers = new LinkedHashMap<String, Object>();
-		if (defaultHeaders != null) {
-			headers.putAll(defaultHeaders);
-		}
-		if (dynamicHeaders.get(clazz) != null) {
-			headers.putAll(dynamicHeaders.get(clazz));
-		}
-		return headers;
 	}
 	
 	private class ProxyHandler implements InvocationHandler {
@@ -187,6 +255,13 @@ public class Legolas {
 		}
 	}
 
+	/**
+	 * 建构Legolas对象
+	 * @author zzljob@gmail.com
+	 * @create 2014年5月6日
+	 * @version 2.0, 2014年5月6日
+	 *
+	 */
 	public static class Build {
 		private Endpoint endpoint;
 		private Map<String, Object> headers;
@@ -200,16 +275,31 @@ public class Legolas {
 		
 		private Object bind;
 		
+		/**
+		 * 设置Legolas的绑定对象，如果绑定对象被回收，Legolas对象也会在不使用后被回收
+		 * @param bind
+		 * @return
+		 */
 		public Build setBind(Object bind) {
 			this.bind = bind;
 			return this;
 		}
 		
+		/**
+		 * 设置分析器，如果不设置，将由{@link com.yepstudio.legolas.Platform#defaultProfiler()}提供默认分析器
+		 * @param profiler
+		 * @return
+		 */
 		public Build setProfiler(Profiler<?> profiler) {
 			this.profiler = profiler;
 			return this;
 		}
 		
+		/**
+		 * 设置
+		 * @param parser
+		 * @return
+		 */
 		public Build setResponseParser(ResponseParser parser) {
 			this.parser = parser;
 			return this;
@@ -230,7 +320,7 @@ public class Legolas {
 			return this;
 		}
 		
-		public Build setRequestInterceptor(RequestExecutor executor) {
+		public Build setRequestExecutor(RequestExecutor executor) {
 			this.executor = executor;
 			return this;
 		}
@@ -240,6 +330,12 @@ public class Legolas {
 			return this;
 		}
 		
+		/**
+		 * 针对所有的Api的默认的服务端<br/>
+		 * 当然你也可以通过
+		 * @param defaultEndpoint
+		 * @return
+		 */
 		public Build setDefaultEndpoint(Endpoint defaultEndpoint) {
 			this.endpoint = defaultEndpoint;
 			return this;
@@ -278,7 +374,5 @@ public class Legolas {
 			}
 			return legolas;
 		}
-		
 	}
-
 }

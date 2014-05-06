@@ -22,6 +22,6 @@ public @interface GET {
 	/**
 	 * 请求地址
 	 */
-	public String value();
+	public abstract String value();
 
 }

@@ -23,7 +23,7 @@ import com.yepstudio.legolas.description.RequestDescription.RequestType;
 import com.yepstudio.legolas.mime.FormUrlEncodedRequestBody;
 import com.yepstudio.legolas.mime.MultipartRequestBody;
 import com.yepstudio.legolas.mime.RequestBody;
-import com.yepstudio.legolas.mime.StringRequestBody;
+import com.yepstudio.legolas.mime.StringBody;
 import com.yepstudio.legolas.request.OnRequestListener;
 import com.yepstudio.legolas.request.Request;
 import com.yepstudio.legolas.request.RequestWrapper;
@@ -162,7 +162,7 @@ public class RequestBuilder implements RequestInterceptorFace {
 	public String getRequestUrl() {
 		StringBuilder builder = new StringBuilder();
 		builder.append(api.getApiPath());
-		if (!api.getApiPath().endsWith("/")) {
+		if (!api.getApiPath().endsWith("/") && !request.getRequestPath().startsWith("/")) {
 			builder.append("/");
 		}
 		builder.append(request.getRequestUrl());
@@ -295,7 +295,7 @@ public class RequestBuilder implements RequestInterceptorFace {
 			if (target instanceof RequestBody) {
 				multipartBody.addPart(name, (RequestBody) target);
 			} else if (target instanceof String) {
-				multipartBody.addPart(name, new StringRequestBody((String) target));
+				multipartBody.addPart(name, new StringBody((String) target));
 			} else {
 				multipartBody.addPart(name, converter.toBody(target));
 			}
@@ -342,7 +342,7 @@ public class RequestBuilder implements RequestInterceptorFace {
 	protected String buildTargetUrl() throws UnsupportedEncodingException, MalformedURLException {
 		StringBuilder targetUrl = new StringBuilder();
 		targetUrl.append(api.getApiPath());
-		if (!api.getApiPath().endsWith("/")) {
+		if (!api.getApiPath().endsWith("/") && !request.getRequestPath().startsWith("/")) {
 			targetUrl.append("/");
 		}
 		targetUrl.append(buildTargetPath());
@@ -353,7 +353,9 @@ public class RequestBuilder implements RequestInterceptorFace {
 			hasQuery = true;
 		}
 		if(queryMap != null && queryMap.size() > 0){
-			if (!hasQuery) {
+			if (hasQuery) {
+				targetUrl.append("&");
+			} else {
 				targetUrl.append("?");
 			}
 			for (String name : queryMap.keySet()) {

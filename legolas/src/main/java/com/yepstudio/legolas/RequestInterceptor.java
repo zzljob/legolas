@@ -9,6 +9,6 @@ package com.yepstudio.legolas;
  */
 public interface RequestInterceptor {
 	
-	public boolean interceptor(RequestInterceptorFace face);
+	public void interceptor(RequestInterceptorFace face);
 
 }

@@ -73,8 +73,8 @@ public abstract class Platform {
 		return new RequestInterceptor() {
 
 			@Override
-			public boolean interceptor(RequestInterceptorFace face) {
-				return false;
+			public void interceptor(RequestInterceptorFace face) {
+				
 			}
 
 		};

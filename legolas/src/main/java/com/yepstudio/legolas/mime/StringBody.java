@@ -2,9 +2,9 @@ package com.yepstudio.legolas.mime;
 
 import java.io.UnsupportedEncodingException;
 
-public class StringRequestBody extends ByteArrayBody {
+public class StringBody extends ByteArrayBody {
 
-	public StringRequestBody(String string) {
+	public StringBody(String string) {
 		super("text/plain; charset=UTF-8", convertToBytes(string));
 	}
 
