@@ -11,15 +11,13 @@ import java.util.regex.Pattern;
 
 import org.apache.http.protocol.HTTP;
 
-import android.text.TextUtils;
-
 import com.yepstudio.legolas.LegolasLog;
 import com.yepstudio.legolas.mime.ByteArrayBody;
 import com.yepstudio.legolas.mime.ResponseBody;
 
 /**
  * 
- * @author zhangzl@fund123.cn
+ * @author zzljob@gmail.com
  * @create 2014年1月14日
  * @version 2.0，2014年4月30日
  */
@@ -92,7 +90,7 @@ public class Response {
 	private static final Pattern CHARSET = Pattern.compile("\\Wcharset=([^\\s;]+)", CASE_INSENSITIVE);
 
 	public static String parseCharset(String mimeType, String defaultCharset) {
-		if (TextUtils.isEmpty(mimeType)) {
+		if (mimeType == null || mimeType.trim().length() < 1) {
 			return defaultCharset;
 		}
 		Matcher match = CHARSET.matcher(mimeType);

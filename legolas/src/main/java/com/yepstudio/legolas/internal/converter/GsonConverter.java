@@ -11,6 +11,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParseException;
 import com.yepstudio.legolas.ConversionException;
 import com.yepstudio.legolas.Converter;
+import com.yepstudio.legolas.LegolasLog;
 import com.yepstudio.legolas.mime.RequestBody;
 import com.yepstudio.legolas.mime.ResponseBody;
 import com.yepstudio.legolas.response.Response;
@@ -23,6 +24,7 @@ import com.yepstudio.legolas.response.Response;
  *
  */
 public class GsonConverter implements Converter {
+	private static LegolasLog log = LegolasLog.getClazz(GsonConverter.class);
 
 	private final Gson gson;
 	private String encoding;
@@ -42,7 +44,9 @@ public class GsonConverter implements Converter {
 
 	@Override
 	public Object fromBody(ResponseBody body, Type type) throws ConversionException {
+		log.d("fromBody:[" + type + "]");
 		String charset = Response.parseCharset(body.mimeType(), encoding);
+		log.d("charset:[" + charset + "]");
 		InputStreamReader isr = null;
 		try {
 			isr = new InputStreamReader(body.read(), charset);

@@ -6,18 +6,31 @@ import com.yepstudio.legolas.Converter;
 import com.yepstudio.legolas.HttpSender;
 import com.yepstudio.legolas.LegolasLog;
 import com.yepstudio.legolas.Platform;
+import com.yepstudio.legolas.internal.converter.GsonConverter;
+import com.yepstudio.legolas.internal.converter.JSONConverter;
 
 public class AndroidPlatform extends Platform {
 
 	@Override
 	public Converter defaultConverter() {
-		// TODO Auto-generated method stub
-		return null;
+		Converter converter = null;
+		try {
+			Class<?> clazz = Class.forName("com.google.gson.Gson");
+			if (clazz != null) {
+				converter = new GsonConverter();
+			}
+		} catch (Throwable th) {
+			
+		}
+		if (converter == null) {
+			converter = new JSONConverter();
+		}
+		return converter;
 	}
 
 	@Override
 	public HttpSender defaultHttpSender() {
-		// TODO Auto-generated method stub
+		
 		return null;
 	}
 

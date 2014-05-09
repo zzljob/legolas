@@ -30,9 +30,9 @@ public interface HttpApi {
 	@GET(value = "/check")
 	@Headers({ 
 		@Item(key = "request", value = "GET"),
-		@Item(key = "user-agent", value = "getHuodong")
+		@Item(key = "own", value = "own")
 	})
-	public Request check(@Query("app") String app, @Query("appType") String appType, OnRequestListener requestListener, OnResponseListener<JSONArray> responseListener, OnErrorListener errorListener);
+	public Request check(@Query("app") String app, @Query("appType") String appType, OnRequestListener requestListener, OnResponseListener<CheckResult> responseListener, OnErrorListener errorListener);
 
 	@GET(value = "Redirect/Update.ashx")
 	public void update(@Query("xx") int intaa, @Query("xxx") int intaaaa, AdddDTO dto, OnResponseListener<JSONArray> listener, OnErrorListener errorListener);

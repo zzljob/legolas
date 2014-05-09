@@ -24,12 +24,13 @@ import com.yepstudio.legolas.response.Response;
  * @version 2.0，2014年4月23日
  */
 public class JSONConverter implements Converter {
+	
 	private static LegolasLog log = LegolasLog.getClazz(JSONConverter.class);
-	private static String default_charset = "UTF-8";
+	private static String DEFAULT_CHARSET = "UTF-8";
 
 	@Override
 	public Object fromBody(ResponseBody body, Type clazz) throws ConversionException {
-		String charset = Response.parseCharset(body.mimeType(), default_charset);
+		String charset = Response.parseCharset(body.mimeType(), DEFAULT_CHARSET);
 		log.v("fromBody, charset:" + charset);
 		InputStream is = null;
 		try {
@@ -71,7 +72,7 @@ public class JSONConverter implements Converter {
 			}
 		}
 		try {
-			return new JsonRequestBody(text.getBytes(default_charset), default_charset);
+			return new JsonRequestBody(text.getBytes(DEFAULT_CHARSET), DEFAULT_CHARSET);
 		} catch (UnsupportedEncodingException e) {
 		}
 		return null;

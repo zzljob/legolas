@@ -37,23 +37,22 @@ public class Legolas {
 	private static Map<Object, Legolas> legolasBindMap = new WeakHashMap<Object, Legolas>(5); 
 	private static Map<Object, Map<Class<?>, Object>> proxyBindMap = new WeakHashMap<Object, Map<Class<?>, Object>>(5); 
 	
+	private Map<Class<?>, Endpoint> dynamicEndpoint;
+	private Map<Class<?>, Map<String, Object>> dynamicHeaders;
+	private Map<Class<?>, RequestInterceptor> dynamicInterceptors;
+	
 	private final Endpoint defaultEndpoint;
-	private final Map<Class<?>, Endpoint> dynamicEndpoint = new ConcurrentHashMap<Class<?>, Endpoint>();
-	
 	private final Map<String, Object> defaultHeaders;
-	private final Map<Class<?>, Map<String, Object>> dynamicHeaders = new ConcurrentHashMap<Class<?>, Map<String, Object>>();
-	
 	private final Converter defaultConverter;
-	
+	private final RequestInterceptor defaultInterceptor;
 	private final RequestExecutor executor;
-	private final RequestInterceptor interceptor;
 	
 	public Legolas(Endpoint defaultEndpoint, Map<String, Object> defaultHeaders, RequestExecutor executor, RequestInterceptor interceptor, Converter converter) {
 		super();
 		this.defaultEndpoint = defaultEndpoint;
 		this.defaultHeaders = defaultHeaders;
 		this.executor = executor;
-		this.interceptor = interceptor;
+		this.defaultInterceptor = interceptor;
 		this.defaultConverter = converter;
 	}
 
@@ -116,6 +115,13 @@ public class Legolas {
 		return (T) proxy;
 	}
 	
+	private Map<Class<?>, Endpoint> getOrNewDynamicEndpointMap() {
+		if (dynamicEndpoint == null) {
+			dynamicEndpoint = new ConcurrentHashMap<Class<?>, Endpoint>(5);
+		}
+		return dynamicEndpoint;
+	}
+	
 	/**
 	 * 针对某个具体的API设置默认的{@link com.yepstudio.legolas.Endpoint}<br/>
 	 * 对于不同的API可能域名本身就不一样
@@ -123,7 +129,7 @@ public class Legolas {
 	 * @param endpoint
 	 */
 	public void setEndpoint(Class<?> clazz, Endpoint defaultEndpoint) {
-		dynamicEndpoint.put(clazz, defaultEndpoint);
+		getOrNewDynamicEndpointMap().put(clazz, defaultEndpoint);
 	}
 	
 	/**
@@ -132,11 +138,21 @@ public class Legolas {
 	 * @return
 	 */
 	public Endpoint getEndpoint(Class<?> clazz) {
+		if (dynamicEndpoint == null) {
+			return defaultEndpoint;
+		}
 		Endpoint endpoint = dynamicEndpoint.get(clazz);
 		if (endpoint == null) {
 			return defaultEndpoint;
 		}
 		return endpoint;
+	}
+	
+	private Map<Class<?>, Map<String, Object>> getOrNewDynamicHeadersMap() {
+		if (dynamicHeaders == null) {
+			dynamicHeaders = new ConcurrentHashMap<Class<?>, Map<String, Object>>(5);
+		}
+		return dynamicHeaders;
 	}
 	
 	/**
@@ -145,7 +161,7 @@ public class Legolas {
 	 * @param defaultHeaders
 	 */
 	public void setHeaders(Class<?> clazz, Map<String, Object> defaultHeaders) {
-		dynamicHeaders.put(clazz, defaultHeaders);
+		getOrNewDynamicHeadersMap().put(clazz, defaultHeaders);
 	}
 	
 	/**
@@ -158,6 +174,7 @@ public class Legolas {
 	 * <li> Legolas初始化是设置的defaultHeaders {@link com.yepstudio.legolas.Legolas.Build#setDefaultHeaders(Map) } </li>
 	 * <li> Legolas针对API设置的dynamicHeaders  {@link com.yepstudio.legolas.Legolas#setHeaders(Class, Map) } </li>
 	 * <li> API的方法的{@link com.yepstudio.legolas.annotation.Header }标签 </li>
+	 * <li> 通过{@link com.yepstudio.legolas.RequestInterceptor#interceptor(RequestInterceptorFace) }设置的Header </li>
 	 * </ul>
 	 *  
 	 * @param clazz
@@ -168,10 +185,32 @@ public class Legolas {
 		if (defaultHeaders != null) {
 			headers.putAll(defaultHeaders);
 		}
-		if (dynamicHeaders.get(clazz) != null) {
+		if (dynamicHeaders != null && dynamicHeaders.get(clazz) != null) {
 			headers.putAll(dynamicHeaders.get(clazz));
 		}
 		return headers;
+	}
+	
+	private Map<Class<?>, RequestInterceptor> getOrNewDynamicInterceptorsMap() {
+		if (dynamicInterceptors == null) {
+			dynamicInterceptors = new ConcurrentHashMap<Class<?>, RequestInterceptor>(5);
+		}
+		return dynamicInterceptors;
+	}
+	
+	public void setRequestInterceptor(Class<?> clazz, RequestInterceptor dynamicInterceptor) {
+		getOrNewDynamicInterceptorsMap().put(clazz, dynamicInterceptor);
+	}
+	
+	public RequestInterceptor getRequestInterceptor(Class<?> clazz) {
+		if (dynamicInterceptors == null) {
+			return defaultInterceptor;
+		}
+		RequestInterceptor interceptor = dynamicInterceptors.get(clazz);
+		if (interceptor == null) {
+			return defaultInterceptor;
+		}
+		return interceptor;
 	}
 	
 	/**
@@ -238,7 +277,10 @@ public class Legolas {
 			RequestWrapper wrapper = null;
 			try {
 				builder.parseArguments(args);
-				interceptor.interceptor(builder);
+				RequestInterceptor interceptor = getRequestInterceptor(clazz);
+				if (interceptor != null) {
+					interceptor.interceptor(builder);
+				}
 				wrapper = builder.build();
 			} catch (Throwable th) {
 				throw new IllegalArgumentException("build request has error before request", th);
@@ -350,20 +392,20 @@ public class Legolas {
 			if (httpSender == null) {
 				httpSender = Platform.get().defaultHttpSender();
 			}
-			if(converter == null){
+			if (converter == null) {
 				converter = Platform.get().defaultConverter();
 			}
 			if (parser == null) {
 				parser = new SimpleResponseParser();
 			}
-			if(interceptor == null){
+			if (interceptor == null) {
 				interceptor = Platform.get().defaultRequestInterceptor();
 			}
 			if (delivery == null) {
 				delivery = new ExecutorDelivery(Platform.get().defaultDeliveryExecutor());
 			}
 			if (profiler == null) {
-				profiler = Platform.get().defaultProfiler(); 
+				profiler = Platform.get().defaultProfiler();
 			}
 			if (executor == null) {
 				executor = new SimpleRequestExecutor(Platform.get().defaultHttpExecutor(), httpSender, delivery, parser, profiler);

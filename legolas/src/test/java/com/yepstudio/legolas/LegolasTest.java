@@ -1,12 +1,12 @@
 package com.yepstudio.legolas;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import org.json.JSONArray;
 import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -44,7 +44,7 @@ public class LegolasTest {
 
 	@Test
 	public void testRequest1() throws InterruptedException, IOException {
-		logger.trace("testRequest1");
+		logger.trace("---------------------------------testRequest1-----------------------------------");
 		
 		RequestInterceptor interceptor = new RequestInterceptor() {
 
@@ -65,31 +65,54 @@ public class LegolasTest {
 		TimeUnit.SECONDS.sleep(10);
 	}
 	
-	public void testRequest2() {
-		OnRequestListener requestListener = new OnRequestListener() {
+	@Test
+	public void testRequest2() throws InterruptedException {
+		logger.trace("---------------------------------testRequest2-----------------------------------");
+		RequestInterceptor interceptor = new RequestInterceptor() {
 
 			@Override
+			public void interceptor(RequestInterceptorFace face) {
+				logger.info(face.getRequestUrl());
+			}
+
+		};
+		Legolas legolas = new Legolas.Build()
+													.setDefaultEndpoint(Endpoints.newFixedEndpoint("http://rebirth.duapp.com"))
+													.setRequestInterceptor(interceptor).create();
+
+		Map<String, Object> defaultHeaders = new HashMap<String, Object>();
+		defaultHeaders.put("own", "defaultHeaders");
+		defaultHeaders.put("defaultHeaders", "defaultHeadersxxxx");
+		legolas.setHeaders(HttpApi.class, defaultHeaders);
+		
+		HttpApi api = legolas.newInstance(HttpApi.class);
+		
+		OnRequestListener requestListener = new OnRequestListener() {
+			
+			@Override
 			public void onRequest(Request request) {
-				
+				logger.info("requestListener:{}, url:{}", request.getUuid(), request.getUrl());
 			}
 			
 		};
-		OnResponseListener<JSONArray> responseListener = new OnResponseListener<JSONArray>() {
-
+		OnResponseListener<CheckResult> responseListener = new OnResponseListener<CheckResult>() {
+			
 			@Override
-			public void onResponse(JSONArray response) {
-				
+			public void onResponse(CheckResult response) {
+				logger.info("responseListener:{}", response.toString());
 			}
 			
 		};
 		OnErrorListener errorListener = new OnErrorListener() {
-
+			
 			@Override
 			public void onError(LegolasError error) {
-				
+				logger.info("errorListener");
 			}
 			
 		};
+		Request request = api.check("com.yepstudio.geekpark", "APK", requestListener, responseListener, errorListener);
+		TimeUnit.SECONDS.sleep(10);
 	}
 
 }

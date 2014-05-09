@@ -52,6 +52,7 @@ public class Request {
 		return body;
 	}
 
+	@Deprecated
 	public static Request readBodyToBytesIfNecessary(Request request) throws IOException {
 		RequestBody body = request.getBody();
 		if (body == null || body instanceof ByteArrayBody) {
