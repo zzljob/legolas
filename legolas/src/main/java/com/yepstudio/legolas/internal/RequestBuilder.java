@@ -1,10 +1,14 @@
 package com.yepstudio.legolas.internal;
 
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -41,6 +45,9 @@ public class RequestBuilder implements RequestInterceptorFace {
 	
 	private static LegolasLog log = LegolasLog.getClazz(RequestBuilder.class);
 	private static String ENCODE= "UTF-8";
+	
+	private static Map<Class<?>, List<Field>> fieldsCache;
+	private static Map<Class<?>, List<Method>> methodsCache;
 
 	private final Endpoint endpoint;
 	private final Map<String, Object> legolasHeaders;
@@ -93,19 +100,35 @@ public class RequestBuilder implements RequestInterceptorFace {
 			ParameterDescription p = list.get(i);
 			switch (p.getParameterType()) {
 			case ParameterType.HEADER:
-				addHeader(p.getName(), argumentToString(arguments[i]));
+				addHeader(p.getName(), arguments[i]);
 				break;
 			case ParameterType.PATH:
-				addPathParam(p.getName(), arguments[i]);
+				if (p.isMuitiParameter()) {
+					addPathsParam(p.getType(), arguments[i]);
+				} else {
+					addPathParam(p.getName(), arguments[i]);
+				}
 				break;
 			case ParameterType.QUERY:
-				addQueryParam(p.getName(), arguments[i]);
+				if (p.isMuitiParameter()) {
+					addQuerysParam(p.getType(), arguments[i]);
+				} else {
+					addQueryParam(p.getName(), arguments[i]);
+				}
 				break;
 			case ParameterType.PART:
-				addPartParam(p.getName(), arguments[i]);
+				if (p.isMuitiParameter()) {
+					addPartsParam(p.getType(), arguments[i]);
+				} else {
+					addPartParam(p.getName(), arguments[i]);
+				}
 				break;
 			case ParameterType.FIELD:
-				addFieldParam(p.getName(), arguments[i]);
+				if (p.isMuitiParameter()) {
+					addFieldsParam(p.getType(), arguments[i]);
+				} else {
+					addFieldParam(p.getName(), arguments[i]);
+				}
 				break;
 			case ParameterType.BODY:
 				setBodyParam(p.getName(), arguments[i]);
@@ -115,7 +138,7 @@ public class RequestBuilder implements RequestInterceptorFace {
 					parseArgumentsOptions((LegolasOptions) arguments[i]);
 				} else if (p.isListener() && arguments[i] != null) {
 					parseArgumentsListener(p, arguments[i]);
-				}
+				} 
 				break;
 			default:
 
@@ -152,6 +175,7 @@ public class RequestBuilder implements RequestInterceptorFace {
 		Endpoint rootPoint;
 		LegolasOptions options = getLegolasOptions();
 		if (options != null && options.getEndpoint() != null) {
+			log.d("find LegolasOptions in param and Endpoint of LegolasOptions is not null, so use it");
 			rootPoint = options.getEndpoint();
 		} else {
 			rootPoint = endpoint;
@@ -165,21 +189,12 @@ public class RequestBuilder implements RequestInterceptorFace {
 		if (!api.getApiPath().endsWith("/") && !request.getRequestPath().startsWith("/")) {
 			builder.append("/");
 		}
-		builder.append(request.getRequestUrl());
-		
-		Endpoint rootPoint = getEndpoint();
-		if (rootPoint == null) {
-			throw new IllegalArgumentException("endpoint is null, it must be set, you can set by Legolas or LegolasOptions");
-		}
-		
-		URL url = null;
+		builder.append(request.getRequestPath());
 		try {
-			URL endpointURL = new URL(rootPoint.getUrl());
-			url = new URL(endpointURL, builder.toString());
+			return applyEndpoint(builder.toString());
 		} catch (MalformedURLException e) {
-			log.e("endpoint is not a URL", e);
+			throw new RuntimeException(e);
 		}
-		return url.toString();
 	}
 	
 	public String getRequestDescription() {
@@ -211,7 +226,7 @@ public class RequestBuilder implements RequestInterceptorFace {
 		Map<String, Object> map = new HashMap<String, Object>();
 		map.putAll(api.getHeaders());
 		map.putAll(request.getHeaders());
-		if(legolasHeaders != null){
+		if (legolasHeaders != null && legolasHeaders.size() > 0) {
 			map.putAll(legolasHeaders);
 		}
 		List<ParameterDescription> list = request.getParameters();
@@ -223,14 +238,6 @@ public class RequestBuilder implements RequestInterceptorFace {
 			}
 		}
 		return map;
-	}
-	
-	private String argumentToString(Object arg) {
-		if (arg == null) {
-			return "";
-		} else {
-			return arg.toString();
-		}
 	}
 	
 	private Map<String, Object> getParams(int paramType) {
@@ -278,16 +285,152 @@ public class RequestBuilder implements RequestInterceptorFace {
 		headerMap.put(name, value);
 	}
 	
+	protected void addPathsParam(Type type, Object value) {
+		try {
+			addMuitiParameter(pathMap, value);
+		} catch (Throwable th) {
+			throw new RuntimeException(th);
+		}
+	}
+	
 	public void addPathParam(String name, Object value) {
 		pathMap.put(name, value);
+	}
+	
+	protected void addQuerysParam(Type type, Object value) {
+		try {
+			addMuitiParameter(queryMap, value);
+		} catch (Throwable th) {
+			throw new RuntimeException(th);
+		}
+	}
+	
+	private void addMuitiParameter(Map<String, Object> target, Object value) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException {
+		if (value == null) {
+			return ;
+		}
+		log.d("addMuitiParameter:");
+		if (value instanceof Map) {
+			log.v("is map, add Parameter for map");
+			Map map = (Map) value;
+			for (Object key : map.keySet()) {
+				if (key != null) {
+					Object result = map.get(key);
+					log.v("Map:" + key.toString() + "=>" + result);
+					target.put(key.toString(), result);
+				}
+			}
+		} else {
+			Class<?> clazz = value.getClass();
+			log.v("is Object, add Parameter for Object");
+			cacheAllPublicFieldsAndMethods(clazz);
+			List<Field> fieldList = fieldsCache.get(clazz);
+			if (fieldList != null && !fieldList.isEmpty()) {
+				for (Field field : fieldList) {
+					Object result = field.get(value);
+					log.v("Field:" + field.getName() + "=>" + result);
+					target.put(field.getName(), result);	
+				}
+			}
+			
+			List<Method> methodList = methodsCache.get(clazz);
+			if (methodList != null && !methodList.isEmpty()) {
+				for (Method method : methodList) {
+					String name = method.getName();
+					String paramName = method2Param(name);
+					if (paramName != null) {
+						Object result = method.invoke(value);
+						log.v("Method: [" + method.getName() + "] " + paramName + "=>" + result);
+						target.put(paramName, result);
+					}
+				}
+			}
+		}
+	}
+	
+	private String method2Param(String name) {
+		String paramName = null;
+		if ("getClass".equals(name)) {
+			return null;
+		}
+		if (name.startsWith("get") && name.length() > 3) {
+			paramName = "";
+			if (name.length() > 4) {
+				paramName = name.substring(4);
+			}
+			paramName = name.substring(3, 4).toLowerCase() + paramName;
+		} else if (name.startsWith("is") && name.length() > 2) {
+			paramName = "";
+			if (name.length() > 3) {
+				paramName = name.substring(2);
+			}
+			paramName = name.substring(2, 3).toLowerCase() + paramName;
+		}
+		return paramName;
+	}
+	
+	private static void cacheAllPublicFieldsAndMethods(Class<?> clazz) {
+		if (fieldsCache == null) {
+			fieldsCache = new HashMap<Class<?>, List<Field>>();
+		}
+		if (methodsCache == null) {
+			methodsCache = new HashMap<Class<?>, List<Method>>();
+		}
+		if (fieldsCache.containsKey(clazz) || methodsCache.containsKey(clazz)) {
+			return ;
+		}
+		Field[] fields = clazz.getFields();
+		List<Field> fieldList = null;
+		if (fields != null && fields.length > 0) {
+			fieldList = new ArrayList<Field>(fields.length);
+			for (Field field : fields) {
+				fieldList.add(field);
+			}
+		}
+		fieldsCache.put(clazz, fieldList);
+		
+		Method[] methods = clazz.getMethods();
+		List<Method> methodList = null;
+		if (methods != null && methods.length > 0) {
+			methodList = new ArrayList<Method>(methods.length);
+			for (Method method : methods) {
+				
+				methodList.add(method);
+			}
+		}
+		methodsCache.put(clazz, methodList);
 	}
 	
 	public void addQueryParam(String name, Object value) {
 		queryMap.put(name, value);
 	}
 	
+	protected void addFieldsParam(Type type, Object value) {
+		try {
+			Map<String, Object> fieldsMap = new HashMap<String, Object>();
+			addMuitiParameter(fieldsMap, value);
+			for (String key : fieldsMap.keySet()) {
+				addFieldParam(key, fieldsMap.get(key));
+			}
+		} catch (Throwable th) {
+			throw new RuntimeException(th);
+		}
+	}
+	
 	public void addFieldParam(String name, Object target) {
-		formBody.addField(name, argumentToString(target));
+		formBody.addField(name, converter.toParam(target, ParameterType.FIELD));
+	}
+	
+	protected void addPartsParam(Type type, Object value) {
+		try {
+			Map<String, Object> partsMap = new HashMap<String, Object>();
+			addMuitiParameter(partsMap, value);
+			for (String key : partsMap.keySet()) {
+				addPartParam(key, partsMap.get(key));
+			}
+		} catch (Throwable th) {
+			throw new RuntimeException(th);
+		}
 	}
 	
 	public void addPartParam(String name, Object target) {
@@ -310,7 +453,7 @@ public class RequestBuilder implements RequestInterceptorFace {
 		}
 	}
 	
-	protected String buildTargetPath() throws UnsupportedEncodingException {
+	protected String buildRequestPath() {
 		String path = request.getRequestPath();
 		String value;
 		List<ParameterDescription> parameters = request.getParameters();
@@ -328,52 +471,78 @@ public class RequestBuilder implements RequestInterceptorFace {
 				}
 			}
 			if (value == null) {
-				throw new IllegalArgumentException("request lost params : " + name);
+				throw new IllegalArgumentException("request lost [PATH] params : " + name);
 			}
-			String encodeValue = URLEncoder.encode(value, ENCODE);
-			encodeValue = encodeValue.replace("+", "%20");
-			path = path.replace(String.format("{%s}", name), encodeValue);
+			path = path.replace(String.format("{%s}", name), encodeValue(value));
 		}
-		log.d("path : " + path);
-		
+		log.d("buildRequestPath : " + path);
 		return path;
 	}
 	
-	protected String buildTargetUrl() throws UnsupportedEncodingException, MalformedURLException {
+	protected String encodeValue(String value) {
+		try {
+			String encodeValue = URLEncoder.encode(value, ENCODE);
+			if (encodeValue != null && encodeValue.contains("+")) {
+				log.v("encodeValue , replace [+] : [" + encodeValue + "]");
+				encodeValue = encodeValue.replace("+", "%20");
+			}
+			log.v("encodeValue: [" + value + "]=>[" + encodeValue + "]");
+			return encodeValue;
+		} catch (UnsupportedEncodingException e) {
+			log.e("UnsupportedEncodingException:[" + ENCODE + "]", e);
+			return value;
+		}
+	}
+	
+	protected String buildTargetUrl() throws MalformedURLException {
+		log.i("buildTargetUrl:");
 		StringBuilder targetUrl = new StringBuilder();
 		targetUrl.append(api.getApiPath());
-		if (!api.getApiPath().endsWith("/") && !request.getRequestPath().startsWith("/")) {
+		log.v("API path : " + api.getApiPath());
+		String requestPath = buildRequestPath();
+		log.v("Request Path : " + requestPath);
+		if (!api.getApiPath().endsWith("/") 
+				&& requestPath != null
+				&& requestPath.trim().length() > 0
+				&& !requestPath.startsWith("/")) {
 			targetUrl.append("/");
 		}
-		targetUrl.append(buildTargetPath());
+		targetUrl.append(requestPath);
 		boolean hasQuery = false;
 		if (request.getRequestQuery() != null && request.getRequestQuery().trim().length() > 0) {
 			targetUrl.append("?");
 			targetUrl.append(request.getRequestQuery());
 			hasQuery = true;
+			log.v("hasQuery : " + request.getRequestQuery());
 		}
-		if(queryMap != null && queryMap.size() > 0){
+		if (queryMap != null && queryMap.size() > 0) {
 			if (hasQuery) {
 				targetUrl.append("&");
 			} else {
 				targetUrl.append("?");
 			}
 			for (String name : queryMap.keySet()) {
-				targetUrl.append(URLEncoder.encode(name, ENCODE));
+				targetUrl.append(encodeValue(name));
 				targetUrl.append("=");
-				targetUrl.append(URLEncoder.encode(converter.toParam(queryMap.get(name), ParameterType.QUERY), ENCODE));
+				targetUrl.append(encodeValue(converter.toParam(queryMap.get(name), ParameterType.QUERY)));
 				targetUrl.append("&");
 			}
 			targetUrl.deleteCharAt(targetUrl.length() - 1);
 		}
-		
+		return applyEndpoint(targetUrl.toString());
+	}
+	
+	protected String applyEndpoint(String targetUrl) throws MalformedURLException {
 		URL url = null;
 		Endpoint endpoint = getEndpoint();
 		if (endpoint == null) {
+			log.w("endpoint is null, can switch HOST, targetUrl : " + targetUrl);
 			return targetUrl.toString();
 		} else {
+			log.d("endpoint find, use relative path of [" + endpoint.getUrl() + "]");
 			URL endpointURL = new URL(endpoint.getUrl());
-			url = new URL(endpointURL, targetUrl.toString());
+			url = new URL(endpointURL, targetUrl);
+			log.v("[" + targetUrl.toString() + "]=>[" + url.toString() + "]");
 			return url.toString();
 		}
 	}
@@ -387,7 +556,6 @@ public class RequestBuilder implements RequestInterceptorFace {
 		for (String key : header.keySet()) {
 			headers.put(key, converter.toParam(header.get(key), ParameterType.HEADER));
 		}
-		//进行认证
 		Request request = new Request(getRequestDescription(), getRequestMethod(), buildTargetUrl(), headers, body);
 		return new RequestWrapper(request, this.request.getResponseType(), converter, onRequestListeners, onResponseListeners, onErrorListeners);
 	}

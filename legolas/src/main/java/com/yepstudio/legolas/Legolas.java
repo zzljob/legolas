@@ -138,6 +138,7 @@ public class Legolas {
 	 * @return
 	 */
 	public Endpoint getEndpoint(Class<?> clazz) {
+		log.d("getEndpoint for API : [" + clazz + "]");
 		if (dynamicEndpoint == null) {
 			return defaultEndpoint;
 		}
@@ -145,6 +146,7 @@ public class Legolas {
 		if (endpoint == null) {
 			return defaultEndpoint;
 		}
+		log.v("has set dynamicEndpoint for " + clazz + ", use it");
 		return endpoint;
 	}
 	

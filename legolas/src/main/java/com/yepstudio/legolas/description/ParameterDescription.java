@@ -10,10 +10,14 @@ import com.yepstudio.legolas.LegolasOptions;
 import com.yepstudio.legolas.TypesHelper;
 import com.yepstudio.legolas.annotation.Body;
 import com.yepstudio.legolas.annotation.Field;
+import com.yepstudio.legolas.annotation.Fields;
 import com.yepstudio.legolas.annotation.Header;
 import com.yepstudio.legolas.annotation.Part;
+import com.yepstudio.legolas.annotation.Parts;
 import com.yepstudio.legolas.annotation.Path;
+import com.yepstudio.legolas.annotation.Paths;
 import com.yepstudio.legolas.annotation.Query;
+import com.yepstudio.legolas.annotation.Querys;
 import com.yepstudio.legolas.request.OnRequestListener;
 import com.yepstudio.legolas.response.OnErrorListener;
 import com.yepstudio.legolas.response.OnResponseListener;
@@ -29,20 +33,22 @@ public class ParameterDescription {
 
 	private static LegolasLog log = LegolasLog.getClazz(ParameterDescription.class);
 
+	/**参数的Java Type**/
 	private final Type type;
 	private final Annotation[] annotations;
 
 	private int parameterType = ParameterType.NONE;
 	private String name;
+	private boolean muitiParameter = false;
+	private boolean options = false;
 
-	private boolean response;
+	/**OnResponseListener里边包含的Java Type**/
 	private Type responseType;
 
 	private boolean requestListener = false;
 	private boolean responseListener = false;
 	private boolean errorListener = false;
 
-	private boolean options = false;
 
 	public static interface ParameterType {
 		final int PATH = 0;
@@ -71,6 +77,7 @@ public class ParameterDescription {
 		}
 		log.v("parseAnnotation:");
 		for (Annotation annotation : annotations) {
+			log.v(annotation.toString());
 			if (Path.class == annotation.annotationType()) {
 				parameterType = ParameterType.PATH;
 				Path anno = (Path) annotation;
@@ -95,11 +102,20 @@ public class ParameterDescription {
 				parameterType = ParameterType.BODY;
 				Body anno = (Body) annotation;
 				name = anno.value();
-			} else {
-				
-			}
-			log.v(annotation.toString());
-			if (name == null || name.length() < 1) {
+			} else if (Paths.class == annotation.annotationType()) {
+				parameterType = ParameterType.PATH;
+				muitiParameter = true;
+			} else if (Querys.class == annotation.annotationType()) {
+				parameterType = ParameterType.QUERY;
+				muitiParameter = true;
+			} else if (Parts.class == annotation.annotationType()) {
+				parameterType = ParameterType.PART;
+				muitiParameter = true;
+			} else if (Fields.class == annotation.annotationType()) {
+				parameterType = ParameterType.PART;
+				muitiParameter = true;
+			} 
+			if (muitiParameter == false && (name == null || name.trim().length() < 1)) {
 				throw new IllegalStateException("parameter with Annotation, name can not be empty.");
 			}
 		}
@@ -126,7 +142,6 @@ public class ParameterDescription {
 			Class<?> clazz = TypesHelper.getRawType(type);
 			if (OnResponseListener.class.equals(clazz)) {
 				responseType = getParameterUpperBound((ParameterizedType) type);
-				response = true;
 				responseListener = true;
 				log.v("type:" + type + ", is OnResponseListener, and responseType:[" + responseType + "]");
 			}
@@ -158,10 +173,6 @@ public class ParameterDescription {
 		return requestListener || responseListener || errorListener;
 	}
 
-	public boolean isResponse() {
-		return response;
-	}
-	
 	public boolean isOptions() {
 		return options;
 	}
@@ -188,6 +199,14 @@ public class ParameterDescription {
 
 	public boolean isErrorListener() {
 		return errorListener;
+	}
+
+	public boolean isMuitiParameter() {
+		return muitiParameter;
+	}
+
+	public Type getType() {
+		return type;
 	}
 
 }

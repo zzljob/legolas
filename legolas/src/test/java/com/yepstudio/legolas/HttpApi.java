@@ -1,5 +1,7 @@
 package com.yepstudio.legolas;
 
+import java.util.Map;
+
 import org.json.JSONArray;
 
 import com.yepstudio.legolas.annotation.Api;
@@ -8,6 +10,7 @@ import com.yepstudio.legolas.annotation.Headers;
 import com.yepstudio.legolas.annotation.Item;
 import com.yepstudio.legolas.annotation.Path;
 import com.yepstudio.legolas.annotation.Query;
+import com.yepstudio.legolas.annotation.Querys;
 import com.yepstudio.legolas.request.OnRequestListener;
 import com.yepstudio.legolas.request.Request;
 import com.yepstudio.legolas.response.OnErrorListener;
@@ -35,6 +38,6 @@ public interface HttpApi {
 	public Request check(@Query("app") String app, @Query("appType") String appType, OnRequestListener requestListener, OnResponseListener<CheckResult> responseListener, OnErrorListener errorListener);
 
 	@GET(value = "Redirect/Update.ashx")
-	public void update(@Query("xx") int intaa, @Query("xxx") int intaaaa, AdddDTO dto, OnResponseListener<JSONArray> listener, OnErrorListener errorListener);
+	public Request update(@Query("xx") int intaa, @Query("xxx") int intaaaa, @Querys Map<String, Object> map, @Querys AdddDTO dto, OnResponseListener<CheckResult> listener, OnErrorListener errorListener);
 
 }

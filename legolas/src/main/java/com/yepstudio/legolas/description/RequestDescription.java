@@ -202,7 +202,6 @@ public class RequestDescription {
 	private void parseParameters() {
 		log.d("start parseParameters...");
 		Type[] parameterTypes = javaMethod.getGenericParameterTypes();
-		//Class<?>[] clazzes = javaMethod.getParameterTypes();
 		Annotation[][] parameterAnnotations = javaMethod.getParameterAnnotations();
 		
 		boolean hasListener = false;
@@ -250,9 +249,9 @@ public class RequestDescription {
 			}
 		} else if (requestType == RequestType.SIMPLE) {
 			if (hasPart || hasField) {
-				throw new IllegalStateException("RequestType [SIMPLE] just support @Body in Parameter.");
+				throw new IllegalStateException("RequestType [SIMPLE] just not support @Field、@Part in Parameter.");
 			} else if (bodyParams > 1) {
-				throw new IllegalStateException("RequestType [SIMPLE] just support @Body in Parameter, and just one Parameter whit @Body.");
+				throw new IllegalStateException("RequestType [SIMPLE] just support just one Parameter with @Body.");
 			} 
 		}
 	}
