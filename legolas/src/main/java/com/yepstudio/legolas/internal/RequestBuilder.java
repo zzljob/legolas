@@ -103,11 +103,7 @@ public class RequestBuilder implements RequestInterceptorFace {
 				addHeader(p.getName(), arguments[i]);
 				break;
 			case ParameterType.PATH:
-				if (p.isMuitiParameter()) {
-					addPathsParam(p.getType(), arguments[i]);
-				} else {
-					addPathParam(p.getName(), arguments[i]);
-				}
+				addPathParam(p.getName(), arguments[i]);
 				break;
 			case ParameterType.QUERY:
 				if (p.isMuitiParameter()) {
@@ -141,7 +137,7 @@ public class RequestBuilder implements RequestInterceptorFace {
 				} 
 				break;
 			default:
-
+				
 				break;
 			}
 		}
@@ -283,14 +279,6 @@ public class RequestBuilder implements RequestInterceptorFace {
 	
 	public void addHeader(String name, Object value) {
 		headerMap.put(name, value);
-	}
-	
-	protected void addPathsParam(Type type, Object value) {
-		try {
-			addMuitiParameter(pathMap, value);
-		} catch (Throwable th) {
-			throw new RuntimeException(th);
-		}
 	}
 	
 	public void addPathParam(String name, Object value) {

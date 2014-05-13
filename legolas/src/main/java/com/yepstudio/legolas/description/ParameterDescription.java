@@ -15,7 +15,6 @@ import com.yepstudio.legolas.annotation.Header;
 import com.yepstudio.legolas.annotation.Part;
 import com.yepstudio.legolas.annotation.Parts;
 import com.yepstudio.legolas.annotation.Path;
-import com.yepstudio.legolas.annotation.Paths;
 import com.yepstudio.legolas.annotation.Query;
 import com.yepstudio.legolas.annotation.Querys;
 import com.yepstudio.legolas.request.OnRequestListener;
@@ -102,9 +101,6 @@ public class ParameterDescription {
 				parameterType = ParameterType.BODY;
 				Body anno = (Body) annotation;
 				name = anno.value();
-			} else if (Paths.class == annotation.annotationType()) {
-				parameterType = ParameterType.PATH;
-				muitiParameter = true;
 			} else if (Querys.class == annotation.annotationType()) {
 				parameterType = ParameterType.QUERY;
 				muitiParameter = true;
