@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.FutureTask;
 
 import com.yepstudio.legolas.HttpSender;
@@ -21,7 +21,7 @@ import com.yepstudio.legolas.response.OnErrorListener;
 import com.yepstudio.legolas.response.Response;
 
 /**
- * 简单的网络执行器
+ * 简单的请求执行器
  * @author zzljob@gmail.com
  * @create 2014年1月8日
  * @version 2.0，2014年4月30日
@@ -29,13 +29,13 @@ import com.yepstudio.legolas.response.Response;
 public class SimpleRequestExecutor implements RequestExecutor {
 	private static LegolasLog log = LegolasLog.getClazz(SimpleRequestExecutor.class);
 	
-	private final Executor executor;
+	private final ExecutorService executor;
 	private final HttpSender httpSender;
 	private final ResponseParser parser;
 	private final ResponseDelivery delivery;
 	private final Profiler profiler;
 
-	public SimpleRequestExecutor(Executor executor, HttpSender httpSender, ResponseDelivery delivery, ResponseParser parser, Profiler<?> profiler) {
+	public SimpleRequestExecutor(ExecutorService executor, HttpSender httpSender, ResponseDelivery delivery, ResponseParser parser, Profiler<?> profiler) {
 		this.executor = executor;
 		this.httpSender = httpSender;
 		this.parser = parser;
@@ -46,20 +46,31 @@ public class SimpleRequestExecutor implements RequestExecutor {
 	@Override
 	public void asyncRequest(final RequestWrapper wrapper) {
 		log.i("asyncRequest execute ...");
-		executor.execute(new Runnable() {
+		
+		executor.submit(new Runnable() {
 
 			@Override
 			public void run() {
-				LegolasError error = null;
 				Request request = wrapper.getRequest();
-				Object beforeCallData = profiler.beforeCall(request);
+				LegolasError error = null;
 				long startTime = System.currentTimeMillis();
 				Response response = null;
+				Object beforeCallData = null;
 				try {
-					for (OnRequestListener listener : wrapper.getOnRequestListeners()) {
-						delivery.submitRequest(listener, request);
+					beforeCallData = profiler.beforeCall(request);
+					
+					if (wrapper.getOnRequestListeners() != null) {
+						for (OnRequestListener listener : wrapper.getOnRequestListeners()) {
+							delivery.submitRequest(listener, request);
+						}
 					}
+					
+					if (request.isCancel()) {
+						return ;
+					}
+					
 					response = httpSender.execute(request);
+					
 					if (wrapper.getOnResponseListeners() != null) {
 						for (Type type : wrapper.getOnResponseListeners().keySet()) {
 							Object result = parser.doParse(wrapper.getConverter(), request, response, type);
@@ -78,11 +89,14 @@ public class SimpleRequestExecutor implements RequestExecutor {
 							delivery.postError(listener, request, error);
 						}
 					}
-					profiler.afterCall(response, startTime, System.currentTimeMillis(), beforeCallData);
+					if (request.isCancel()) {
+						profiler.cancelCall(beforeCallData);
+					} else {
+						profiler.afterCall(response, startTime, System.currentTimeMillis(), beforeCallData);
+					}
 				}
 			}
 		});
-
 	}
 
 	@Override
@@ -94,6 +108,7 @@ public class SimpleRequestExecutor implements RequestExecutor {
 			public Response call() throws IOException {
 				return httpSender.execute(wrapper.getRequest());
 			}
+			
 		};
 
 		FutureTask<Response> task = new FutureTask<Response>(callable);

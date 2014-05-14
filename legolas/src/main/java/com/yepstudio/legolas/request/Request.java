@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.yepstudio.legolas.LegolasLog;
 import com.yepstudio.legolas.mime.ByteArrayBody;
@@ -24,6 +25,8 @@ public class Request {
 	private final String method;
 	private final Map<String, String> headers;
 	private final RequestBody body;
+	
+	private AtomicBoolean cancel = new AtomicBoolean(false);
 
 	public Request(String description, String method, String url, Map<String, String> headers, RequestBody body) {
 		super();
@@ -36,6 +39,10 @@ public class Request {
 		log.i(String.format("new Request:[%s], method:%s, url:%s, headers:%s, body:%s", uuid, method, url, headers, body));
 	}
 
+	public void cancel() {
+		cancel.set(true);
+	}
+	
 	public String getMethod() {
 		return method;
 	}
@@ -73,6 +80,10 @@ public class Request {
 
 	public String getUuid() {
 		return uuid;
+	}
+
+	public boolean isCancel() {
+		return cancel.get();
 	}
 
 }

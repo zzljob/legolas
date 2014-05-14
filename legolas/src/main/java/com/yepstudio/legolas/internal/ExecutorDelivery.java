@@ -25,7 +25,7 @@ public class ExecutorDelivery implements ResponseDelivery {
     }
     
 	public void submitRequest(final OnRequestListener onRequestListener, final Request request) {
-		if (onRequestListener == null) {
+		if (onRequestListener == null || request.isCancel()) {
 			return;
 		}
 		executor.execute(new Runnable() {
@@ -44,7 +44,7 @@ public class ExecutorDelivery implements ResponseDelivery {
 
     @Override
     public void postResponse(final OnResponseListener onResponseListener, final Request request, final Object result, final Runnable runnable) {
-    	if (onResponseListener == null) {
+		if (onResponseListener == null || request.isCancel()) {
 			return;
 		}
     	executor.execute(new Runnable() {
@@ -61,9 +61,9 @@ public class ExecutorDelivery implements ResponseDelivery {
 
     @Override
 	public void postError(final OnErrorListener onErrorListener, final Request request, final LegolasError error) {
-    	if(onErrorListener == null){
-    		return ;
-    	}
+		if (onErrorListener == null || request.isCancel()) {
+			return;
+		}
     	executor.execute(new Runnable() {
 
 			@Override

@@ -1,6 +1,7 @@
 package com.yepstudio.legolas.internal;
 
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import com.yepstudio.legolas.Converter;
@@ -12,7 +13,7 @@ import com.yepstudio.legolas.internal.http.HttpClientHttpSender;
 import com.yepstudio.legolas.internal.log.Sl4fLog;
 
 public class BasePlatform extends Platform {
-	private Executor executor = Executors.newCachedThreadPool();;
+	private ExecutorService executor = Executors.newCachedThreadPool();;
 	
 	@Override
 	public Converter defaultConverter() {
@@ -25,7 +26,7 @@ public class BasePlatform extends Platform {
 	}
 
 	@Override
-	public Executor defaultHttpExecutor() {
+	public ExecutorService defaultHttpExecutor() {
 		return executor;
 	}
 

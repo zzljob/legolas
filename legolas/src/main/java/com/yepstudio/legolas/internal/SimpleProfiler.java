@@ -26,4 +26,9 @@ public class SimpleProfiler implements Profiler<Request> {
 		log.d(String.format("afterCall, success:[%s], request:[%s], spend:[%s ms]", response != null, request.getUuid(), elapsedTime - startTime));
 	}
 
+	@Override
+	public void cancelCall(Request beforeCallData) {
+		log.d(String.format("cancelCall : ", beforeCallData.getUuid()));
+	}
+
 }

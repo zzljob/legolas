@@ -1,6 +1,7 @@
 package com.yepstudio.legolas;
 
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 
 import android.os.Build;
 
@@ -50,7 +51,7 @@ public abstract class Platform {
 	 * 
 	 * @return
 	 */
-	public abstract Executor defaultHttpExecutor();
+	public abstract ExecutorService defaultHttpExecutor();
 
 	/**
 	 * 默认的投递的执行器，也就是Listener的执行线程

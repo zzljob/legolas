@@ -50,7 +50,7 @@ public class SimpleResponseParser implements ResponseParser {
 			throw LegolasError.networkError(request.getUrl(), e);
 		} catch (ConversionException e) {
 			throw LegolasError.conversionError(request.getUrl(), response, converter, type, e);
-		} catch (Exception e) {
+		} catch (Throwable e) {
 			throw LegolasError.unexpectedError(request.getUrl(), e);
 		}
 		return null;
