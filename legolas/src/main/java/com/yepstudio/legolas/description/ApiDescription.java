@@ -3,13 +3,18 @@ package com.yepstudio.legolas.description;
 import java.lang.annotation.Annotation;
 import java.lang.ref.SoftReference;
 import java.lang.reflect.Method;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.yepstudio.legolas.LegolasLog;
+import com.yepstudio.legolas.RequestInterceptor;
 import com.yepstudio.legolas.annotation.Api;
 import com.yepstudio.legolas.annotation.Description;
 import com.yepstudio.legolas.annotation.Headers;
+import com.yepstudio.legolas.annotation.Interceptors;
+import com.yepstudio.legolas.internal.ParseHelper;
 
 /**
  * 每个带有@Api注释的类的描述类，将一些数据缓存下来，省得每次都要调用反射
@@ -27,6 +32,8 @@ public class ApiDescription {
 	private String apiPath;
 	private final Map<String, String> headers;
 	private final Map<Method, SoftReference<RequestDescription>> requestDescriptionCache;
+	private List<RequestInterceptor> interceptors;
+	private boolean expansionInterceptors;
 
 	public ApiDescription(Class<?> clazz) {
 		super();
@@ -64,6 +71,13 @@ public class ApiDescription {
 					ParseHelper.parseHeaders(headers, (Headers) annotation);
 				} else if (annotation.annotationType() == Description.class) {
 					description = ((Description) annotation).value();
+				} else if (annotation.annotationType() == Interceptors.class) {
+					if (interceptors == null) {
+						interceptors = new LinkedList<RequestInterceptor>();
+					}
+					Interceptors is = (Interceptors) annotation;
+					expansionInterceptors = is.expansion();
+					ParseHelper.parseInterceptors(interceptors, is);
 				}
 			}
 		}
@@ -119,6 +133,14 @@ public class ApiDescription {
 
 	public Map<String, String> getHeaders() {
 		return headers;
+	}
+
+	public boolean isExpansionInterceptors() {
+		return expansionInterceptors;
+	}
+
+	public List<RequestInterceptor> getInterceptors() {
+		return interceptors;
 	}
 	
 }

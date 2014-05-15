@@ -13,6 +13,11 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import android.util.Log;
+
+import com.google.gson.Gson;
+import com.yepstudio.legolas.annotation.GET;
+import com.yepstudio.legolas.internal.http.MockHttpSender;
 import com.yepstudio.legolas.request.OnRequestListener;
 import com.yepstudio.legolas.request.Request;
 import com.yepstudio.legolas.response.OnErrorListener;
@@ -56,7 +61,6 @@ public class LegolasTest {
 		
 		Legolas legolas = new Legolas.Build()
 											.setDefaultEndpoint(Endpoints.newFixedEndpoint("http://rebirth.duapp.com"))
-											.setRequestInterceptor(interceptor)
 											.create();
 		
 		HttpApi api = legolas.newInstance(HttpApi.class);
@@ -64,27 +68,32 @@ public class LegolasTest {
 		TimeUnit.SECONDS.sleep(10);
 	}
 	
+	@Test
 	public void testRequest2() throws InterruptedException {
 		logger.trace("---------------------------------testRequest2-----------------------------------");
-		RequestInterceptor interceptor = new RequestInterceptor() {
-
-			@Override
-			public void interceptor(RequestInterceptorFace face) {
-				logger.info("--------------------------");
-				logger.info(face.getRequestUrl());
-			}
-
-		};
-		Legolas legolas = new Legolas.Build()
-													.setDefaultEndpoint(Endpoints.newFixedEndpoint("http://rebirth.duapp.com"))
-													.setRequestInterceptor(interceptor).create();
+		MockHttpSender httpSender = new MockHttpSender();
+		String url = "http://tools.fund123.cn/Redirect/Update.ashx?aa_a=0.0&xxx=2&aaa=0.0&zx=11&aAaxxxx_a=false&aa=0&xx=1";
+		
+		CheckResult result = new CheckResult();
+		result.setSuccess(true);
+		CheckResult.Response r = new CheckResult.Response();
+		r.setApp("xxxxxxxx");
+		result.setResponse(r);
+		Gson gson = new Gson();
+		String text = gson.toJson(result);
+		logger.info("json : {}", text);
+		httpSender.putMockResponse("GET", url, text);
+		
+		Legolas legolas = new Legolas.Build().setDefaultEndpoint(Endpoints.newFixedEndpoint("http://tools.fund123.cn"))
+				.setHttpSender(httpSender)
+				.create();
 
 		Map<String, Object> defaultHeaders = new HashMap<String, Object>();
 		defaultHeaders.put("own", "defaultHeaders");
 		defaultHeaders.put("defaultHeaders", "defaultHeadersxxxx");
 		legolas.setHeaders(HttpApi.class, defaultHeaders);
 		
-		HttpApi api = legolas.newInstance(HttpApi.class);
+		ToolHttpApi api = legolas.newInstance(ToolHttpApi.class);
 		
 		OnRequestListener requestListener = new OnRequestListener() {
 			
@@ -98,23 +107,24 @@ public class LegolasTest {
 			
 			@Override
 			public void onResponse(CheckResult response) {
-				logger.info("responseListener:{}", response.toString());
+				logger.info("responseListener:{}, getApp:{}", response.getSuccess(), response.getResponse().getApp());
 			}
 			
 		};
 		OnErrorListener errorListener = new OnErrorListener() {
 			
 			@Override
-			public void onError(LegolasError error) {
+			public void onError(LegolasException error) {
 				logger.info("errorListener");
 			}
 			
 		};
-		Request request = api.check("com.yepstudio.geekpark", "APK", requestListener, responseListener, errorListener);
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put("zx", 11);
+		Request request = api.update(1, 2, map, new AdddDTO(), responseListener, errorListener);
 		TimeUnit.SECONDS.sleep(10);
 	}
 	
-	@Test
 	public void testRequest3() throws InterruptedException {
 		logger.trace("---------------------------------testRequest3-----------------------------------");
 		Legolas legolas = new Legolas.Build().setDefaultEndpoint(Endpoints.newFixedEndpoint("http://rebirth.duapp.com")).create();
@@ -138,14 +148,14 @@ public class LegolasTest {
 			
 			@Override
 			public void onResponse(CheckResult response) {
-				logger.info("responseListener:{}", response.toString());
+				logger.info("responseListener, getSuccess:{}, Re", response.getSuccess());
 			}
 			
 		};
 		OnErrorListener errorListener = new OnErrorListener() {
 			
 			@Override
-			public void onError(LegolasError error) {
+			public void onError(LegolasException error) {
 				logger.info("errorListener");
 			}
 			

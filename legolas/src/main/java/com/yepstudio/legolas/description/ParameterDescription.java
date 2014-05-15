@@ -7,8 +7,8 @@ import java.lang.reflect.WildcardType;
 
 import com.yepstudio.legolas.LegolasLog;
 import com.yepstudio.legolas.LegolasOptions;
-import com.yepstudio.legolas.TypesHelper;
 import com.yepstudio.legolas.annotation.Body;
+import com.yepstudio.legolas.annotation.Description;
 import com.yepstudio.legolas.annotation.Field;
 import com.yepstudio.legolas.annotation.Fields;
 import com.yepstudio.legolas.annotation.Header;
@@ -17,6 +17,7 @@ import com.yepstudio.legolas.annotation.Parts;
 import com.yepstudio.legolas.annotation.Path;
 import com.yepstudio.legolas.annotation.Query;
 import com.yepstudio.legolas.annotation.Querys;
+import com.yepstudio.legolas.internal.TypesHelper;
 import com.yepstudio.legolas.request.OnRequestListener;
 import com.yepstudio.legolas.response.OnErrorListener;
 import com.yepstudio.legolas.response.OnResponseListener;
@@ -35,7 +36,8 @@ public class ParameterDescription {
 	/**参数的Java Type**/
 	private final Type type;
 	private final Annotation[] annotations;
-
+	
+	private String description;
 	private int parameterType = ParameterType.NONE;
 	private String name;
 	private boolean muitiParameter = false;
@@ -110,6 +112,8 @@ public class ParameterDescription {
 			} else if (Fields.class == annotation.annotationType()) {
 				parameterType = ParameterType.PART;
 				muitiParameter = true;
+			} else if (Description.class == annotation.annotationType()) {
+				description = ((Description) annotation).value(); 
 			} 
 			if (muitiParameter == false && (name == null || name.trim().length() < 1)) {
 				throw new IllegalStateException("parameter with Annotation, name can not be empty.");
@@ -203,6 +207,10 @@ public class ParameterDescription {
 
 	public Type getType() {
 		return type;
+	}
+
+	public String getDescription() {
+		return description;
 	}
 
 }

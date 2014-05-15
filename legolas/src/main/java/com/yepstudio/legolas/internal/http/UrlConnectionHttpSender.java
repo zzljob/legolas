@@ -21,10 +21,18 @@ import com.yepstudio.legolas.response.Response;
 public class UrlConnectionHttpSender implements HttpSender {
 	private static LegolasLog log = LegolasLog.getClazz(UrlConnectionHttpSender.class);
 
-	private static final int CHUNK_SIZE = 4096;
+	private static final int CHUNK_SIZE = 4096; //4K
 	private final Field methodField;
+	private final int connectTimeout;
+	private final int readTimeout;
 
 	public UrlConnectionHttpSender() {
+		this(15 * 1000, 20 * 1000);
+	}
+	
+	public UrlConnectionHttpSender(int connectTimeout, int readTimeout) {
+		this.connectTimeout = connectTimeout;
+		this.readTimeout = readTimeout;
 		try {
 			this.methodField = HttpURLConnection.class.getDeclaredField("method");
 			this.methodField.setAccessible(true);
@@ -43,9 +51,9 @@ public class UrlConnectionHttpSender implements HttpSender {
 
 	protected HttpURLConnection openConnection(Request request) throws IOException {
 		HttpURLConnection connection = (HttpURLConnection) new URL(request.getUrl()).openConnection();
-		connection.setConnectTimeout(15 * 1000);
-		connection.setReadTimeout(20 * 1000);
-		log.v(String.format("openConnection, ConnectTimeout:%s, ReadTimeout:%s", "15s", "20s"));
+		connection.setConnectTimeout(connectTimeout);
+		connection.setReadTimeout(readTimeout);
+		log.v(String.format("openConnection, ConnectTimeout:%s s, ReadTimeout:%s s", connectTimeout / 1000, readTimeout / 1000));
 		return connection;
 	}
 	

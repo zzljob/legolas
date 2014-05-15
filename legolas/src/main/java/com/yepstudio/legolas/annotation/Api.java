@@ -20,6 +20,6 @@ public @interface Api {
 	 * 注册整个API的根路径Path
 	 * @return
 	 */
-	public abstract String value() default "/";
+	public abstract String value() default "";
 
 }

@@ -16,7 +16,7 @@ import java.lang.annotation.Target;
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
-@Http("GET")
+@Http(value = "GET", httpValue = "value", supportBody = false)
 public @interface GET {
 
 	/**

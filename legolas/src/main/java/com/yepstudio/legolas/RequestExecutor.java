@@ -25,6 +25,6 @@ public interface RequestExecutor {
 	 * @param type
 	 * @return
 	 */
-	public Object syncRequest(RequestWrapper wrapper) throws LegolasError;
+	public Object syncRequest(RequestWrapper wrapper) throws LegolasException;
 
 }

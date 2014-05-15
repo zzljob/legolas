@@ -5,9 +5,8 @@ import java.util.concurrent.ExecutorService;
 
 import android.os.Build;
 
-import com.yepstudio.legolas.internal.AndroidPlatform;
-import com.yepstudio.legolas.internal.BasePlatform;
 import com.yepstudio.legolas.internal.SimpleProfiler;
+import com.yepstudio.legolas.internal.platform.BasePlatform;
 
 public abstract class Platform {
 
@@ -20,7 +19,7 @@ public abstract class Platform {
 			if (Build.VERSION.SDK_INT != 0) {
 				return null;
 			}
-			p = new AndroidPlatform();
+			//p = new AndroidPlatform();
 		} catch (ClassNotFoundException ignored) {
 			
 		}
@@ -52,13 +51,13 @@ public abstract class Platform {
 	 * @return
 	 */
 	public abstract ExecutorService defaultHttpExecutor();
-
+	
 	/**
 	 * 默认的投递的执行器，也就是Listener的执行线程
 	 * 
 	 * @return
 	 */
-	public abstract Executor defaultDeliveryExecutor();
+	public abstract Executor defaultResponseDeliveryExecutor();
 
 	public abstract Class<? extends LegolasLog> defaultLog();
 
@@ -68,17 +67,6 @@ public abstract class Platform {
 
 	public boolean isDebug() {
 		return false;
-	}
-
-	public RequestInterceptor defaultRequestInterceptor() {
-		return new RequestInterceptor() {
-
-			@Override
-			public void interceptor(RequestInterceptorFace face) {
-				
-			}
-
-		};
 	}
 
 }

@@ -1,4 +1,4 @@
-package com.yepstudio.legolas.internal;
+package com.yepstudio.legolas.internal.platform;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -31,7 +31,7 @@ public class BasePlatform extends Platform {
 	}
 
 	@Override
-	public Executor defaultDeliveryExecutor() {
+	public Executor defaultResponseDeliveryExecutor() {
 		return executor;
 	}
 

@@ -20,5 +20,5 @@ public interface ResponseDelivery {
 
 	public void postResponse(OnResponseListener<?> onResponseListener, Request request, Object result, Runnable runnable);
 
-	public void postError(OnErrorListener onErrorListener, Request request, LegolasError error);
+	public void postError(OnErrorListener onErrorListener, Request request, LegolasException error);
 }

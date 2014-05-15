@@ -2,6 +2,7 @@ package com.yepstudio.legolas;
 
 import java.lang.reflect.Type;
 
+import com.yepstudio.legolas.exception.ConversionException;
 import com.yepstudio.legolas.mime.RequestBody;
 import com.yepstudio.legolas.mime.ResponseBody;
 

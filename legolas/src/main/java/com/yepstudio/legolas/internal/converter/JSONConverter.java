@@ -10,9 +10,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.yepstudio.legolas.ConversionException;
 import com.yepstudio.legolas.Converter;
 import com.yepstudio.legolas.LegolasLog;
+import com.yepstudio.legolas.exception.ConversionException;
 import com.yepstudio.legolas.mime.RequestBody;
 import com.yepstudio.legolas.mime.ResponseBody;
 import com.yepstudio.legolas.response.Response;

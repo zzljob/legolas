@@ -5,14 +5,18 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 
 import com.yepstudio.legolas.description.ApiDescription;
 import com.yepstudio.legolas.description.RequestDescription;
-import com.yepstudio.legolas.internal.ExecutorDelivery;
+import com.yepstudio.legolas.internal.ExecutorResponseDelivery;
 import com.yepstudio.legolas.internal.RequestBuilder;
+import com.yepstudio.legolas.internal.SimpleProfilerDelivery;
 import com.yepstudio.legolas.internal.SimpleRequestExecutor;
 import com.yepstudio.legolas.internal.SimpleResponseParser;
 import com.yepstudio.legolas.request.Request;
@@ -39,20 +43,17 @@ public class Legolas {
 	
 	private Map<Class<?>, Endpoint> dynamicEndpoint;
 	private Map<Class<?>, Map<String, Object>> dynamicHeaders;
-	private Map<Class<?>, RequestInterceptor> dynamicInterceptors;
 	
 	private final Endpoint defaultEndpoint;
 	private final Map<String, Object> defaultHeaders;
 	private final Converter defaultConverter;
-	private final RequestInterceptor defaultInterceptor;
 	private final RequestExecutor executor;
 	
-	public Legolas(Endpoint defaultEndpoint, Map<String, Object> defaultHeaders, RequestExecutor executor, RequestInterceptor interceptor, Converter converter) {
+	public Legolas(Endpoint defaultEndpoint, Map<String, Object> defaultHeaders, RequestExecutor executor, Converter converter) {
 		super();
 		this.defaultEndpoint = defaultEndpoint;
 		this.defaultHeaders = defaultHeaders;
 		this.executor = executor;
-		this.defaultInterceptor = interceptor;
 		this.defaultConverter = converter;
 	}
 
@@ -193,28 +194,6 @@ public class Legolas {
 		return headers;
 	}
 	
-	private Map<Class<?>, RequestInterceptor> getOrNewDynamicInterceptorsMap() {
-		if (dynamicInterceptors == null) {
-			dynamicInterceptors = new ConcurrentHashMap<Class<?>, RequestInterceptor>(5);
-		}
-		return dynamicInterceptors;
-	}
-	
-	public void setRequestInterceptor(Class<?> clazz, RequestInterceptor dynamicInterceptor) {
-		getOrNewDynamicInterceptorsMap().put(clazz, dynamicInterceptor);
-	}
-	
-	public RequestInterceptor getRequestInterceptor(Class<?> clazz) {
-		if (dynamicInterceptors == null) {
-			return defaultInterceptor;
-		}
-		RequestInterceptor interceptor = dynamicInterceptors.get(clazz);
-		if (interceptor == null) {
-			return defaultInterceptor;
-		}
-		return interceptor;
-	}
-	
 	/**
 	 * 获取绑定到bind对象上的Legolas对象<br/>
 	 * {@link com.yepstudio.legolas.Legolas.Build#setBind(Object)}
@@ -279,10 +258,24 @@ public class Legolas {
 			RequestWrapper wrapper = null;
 			try {
 				builder.parseArguments(args);
-				RequestInterceptor interceptor = getRequestInterceptor(clazz);
-				if (interceptor != null) {
-					interceptor.interceptor(builder);
+				
+				List<RequestInterceptor> interceptors;
+				if (description.isExpansionInterceptors()) {
+					interceptors = apiDescription.getInterceptors();
+					if (interceptors != null && interceptors.size() > 0) {
+						for (RequestInterceptor requestInterceptor : interceptors) {
+							requestInterceptor.interceptor(builder);
+						}
+					}
 				}
+				
+				interceptors = description.getInterceptors();
+				if (interceptors != null && interceptors.size() > 0) {
+					for (RequestInterceptor requestInterceptor : interceptors) {
+						requestInterceptor.interceptor(builder);
+					}
+				}
+				
 				wrapper = builder.build();
 			} catch (Throwable th) {
 				throw new IllegalArgumentException("build request has error before request", th);
@@ -309,12 +302,17 @@ public class Legolas {
 	public static class Build {
 		private Endpoint endpoint;
 		private Map<String, Object> headers;
-		private RequestExecutor executor;
-		private RequestInterceptor interceptor;
+		
+		private RequestExecutor requestExecutor;
+		
 		private Converter converter;
+		
+		private ExecutorService httpSenderExecutor;
 		private HttpSender httpSender;
 		private ResponseDelivery delivery;
 		private ResponseParser parser;
+		
+		private ProfilerDelivery profilerDelivery;
 		private Profiler<?> profiler;
 		
 		private Object bind;
@@ -339,6 +337,11 @@ public class Legolas {
 			return this;
 		}
 		
+		public Build setProfilerDelivery(ProfilerDelivery profilerDelivery) {
+			this.profilerDelivery = profilerDelivery;
+			return this;
+		}
+		
 		/**
 		 * 设置
 		 * @param parser
@@ -354,18 +357,18 @@ public class Legolas {
 			return this;
 		}
 		
+		public Build setHttpSenderExecutor(ExecutorService httpSenderExecutor){
+			this.httpSenderExecutor = httpSenderExecutor;
+			return this;
+		}
+		
 		public Build setHttpSender(HttpSender httpSender) {
 			this.httpSender = httpSender;
 			return this;
 		}
 		
-		public Build setRequestInterceptor(RequestInterceptor interceptor) {
-			this.interceptor = interceptor;
-			return this;
-		}
-		
 		public Build setRequestExecutor(RequestExecutor executor) {
-			this.executor = executor;
+			this.requestExecutor = executor;
 			return this;
 		}
 		
@@ -394,25 +397,28 @@ public class Legolas {
 			if (httpSender == null) {
 				httpSender = Platform.get().defaultHttpSender();
 			}
+			if (httpSenderExecutor == null) {
+				httpSenderExecutor = Platform.get().defaultHttpExecutor();
+			}
 			if (converter == null) {
 				converter = Platform.get().defaultConverter();
 			}
 			if (parser == null) {
 				parser = new SimpleResponseParser();
 			}
-			if (interceptor == null) {
-				interceptor = Platform.get().defaultRequestInterceptor();
-			}
 			if (delivery == null) {
-				delivery = new ExecutorDelivery(Platform.get().defaultDeliveryExecutor());
+				delivery = new ExecutorResponseDelivery(Platform.get().defaultResponseDeliveryExecutor());
 			}
 			if (profiler == null) {
 				profiler = Platform.get().defaultProfiler();
 			}
-			if (executor == null) {
-				executor = new SimpleRequestExecutor(Platform.get().defaultHttpExecutor(), httpSender, delivery, parser, profiler);
+			if (profilerDelivery == null) {
+				profilerDelivery = new SimpleProfilerDelivery(profiler);
 			}
-			Legolas legolas = new Legolas(endpoint, headers, executor, interceptor, converter);
+			if (requestExecutor == null) {
+				requestExecutor = new SimpleRequestExecutor(httpSenderExecutor, httpSender, delivery, parser, profilerDelivery);
+			}
+			Legolas legolas = new Legolas(endpoint, headers, requestExecutor, converter);
 			if (bind != null) {
 				legolasBindMap.put(bind, legolas);
 			}

@@ -22,7 +22,8 @@ public class SimpleProfiler implements Profiler<Request> {
 	}
 
 	@Override
-	public void afterCall(Response response, long startTime, long elapsedTime, Request request) {
+	public void afterCall(Response response, long startTime, Request request) {
+		long elapsedTime = System.currentTimeMillis();
 		log.d(String.format("afterCall, success:[%s], request:[%s], spend:[%s ms]", response != null, request.getUuid(), elapsedTime - startTime));
 	}
 

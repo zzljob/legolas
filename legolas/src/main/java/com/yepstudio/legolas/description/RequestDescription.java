@@ -14,11 +14,15 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.yepstudio.legolas.LegolasLog;
+import com.yepstudio.legolas.RequestInterceptor;
+import com.yepstudio.legolas.annotation.Description;
 import com.yepstudio.legolas.annotation.FormUrlEncoded;
 import com.yepstudio.legolas.annotation.Headers;
 import com.yepstudio.legolas.annotation.Http;
+import com.yepstudio.legolas.annotation.Interceptors;
 import com.yepstudio.legolas.annotation.Multipart;
 import com.yepstudio.legolas.description.ParameterDescription.ParameterType;
+import com.yepstudio.legolas.internal.ParseHelper;
 import com.yepstudio.legolas.request.Request;
 
 /**
@@ -58,6 +62,9 @@ public class RequestDescription {
 	/**源请求URL**/
 	private String requestUrl;
 	private String requestPath;
+	
+	private List<RequestInterceptor> interceptors;
+	private boolean expansionInterceptors;
 	
 	private final Set<String> requestPathParamNames;
 	/**requestUrl上带有的参数**/
@@ -145,6 +152,15 @@ public class RequestDescription {
 					requestType = RequestType.FORM_URL_ENCODED;
 				} else if (Multipart.class == methodAnnotation.annotationType()) {
 					requestType = RequestType.MULTIPART;
+				} else if (Description.class == methodAnnotation.annotationType()) {
+					description = ((Description) methodAnnotation).value();
+				} else if (Interceptors.class == methodAnnotation.annotationType()) {
+					if (interceptors == null) {
+						interceptors = new LinkedList<RequestInterceptor>();
+					}
+					Interceptors is = (Interceptors) methodAnnotation;
+					expansionInterceptors = is.expansion();
+					ParseHelper.parseInterceptors(interceptors, is);
 				} else {
 					Http http = getHttpAnnotation(methodAnnotation);
 					if (httpRequest && http != null) {
@@ -330,5 +346,16 @@ public class RequestDescription {
 
 	public Set<String> getRequestPathParamNames() {
 		return requestPathParamNames;
+	}
+
+	public boolean isExpansionInterceptors() {
+		if (interceptors == null || interceptors.isEmpty()) {
+			return true;
+		}
+		return expansionInterceptors;
+	}
+
+	public List<RequestInterceptor> getInterceptors() {
+		return interceptors;
 	}
 }

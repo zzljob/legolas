@@ -1,4 +1,4 @@
-package com.yepstudio.legolas.internal;
+package com.yepstudio.legolas.internal.platform;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -14,7 +14,9 @@ import com.yepstudio.legolas.Platform;
 import com.yepstudio.legolas.internal.converter.GsonConverter;
 import com.yepstudio.legolas.internal.converter.JSONConverter;
 import com.yepstudio.legolas.internal.http.AndroidHttpClientHttpSender;
+import com.yepstudio.legolas.internal.http.UrlConnectionHttpSender;
 import com.yepstudio.legolas.internal.log.AndroidLog;
+import com.yepstudio.legolas.internal.log.Sl4fLog;
 
 public class AndroidPlatform extends Platform {
 	private Handler handler = new Handler(Looper.getMainLooper());
@@ -38,7 +40,11 @@ public class AndroidPlatform extends Platform {
 
 	@Override
 	public HttpSender defaultHttpSender() {
-		return new AndroidHttpClientHttpSender();
+		if (android.os.Build.VERSION.SDK_INT >= 9) {
+			return new AndroidHttpClientHttpSender();
+		} else {
+			return new UrlConnectionHttpSender();
+		}
 	}
 
 	@Override
@@ -47,7 +53,7 @@ public class AndroidPlatform extends Platform {
 	}
 
 	@Override
-	public Executor defaultDeliveryExecutor() {
+	public Executor defaultResponseDeliveryExecutor() {
 		return new Executor(){
 
 			@Override
@@ -60,6 +66,13 @@ public class AndroidPlatform extends Platform {
 
 	@Override
 	public Class<? extends LegolasLog> defaultLog() {
+		try {
+			Class<?> clazz = Class.forName("org.slf4j.Logger");
+			if (clazz != null) {
+				return Sl4fLog.class;
+			}
+		} catch (Throwable th) {
+		}
 		return AndroidLog.class;
 	}
 

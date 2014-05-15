@@ -2,7 +2,7 @@ package com.yepstudio.legolas.internal;
 
 import java.util.concurrent.Executor;
 
-import com.yepstudio.legolas.LegolasError;
+import com.yepstudio.legolas.LegolasException;
 import com.yepstudio.legolas.ResponseDelivery;
 import com.yepstudio.legolas.request.OnRequestListener;
 import com.yepstudio.legolas.request.Request;
@@ -16,11 +16,11 @@ import com.yepstudio.legolas.response.OnResponseListener;
  * @version 2.0, 2014年4月30日
  *
  */
-public class ExecutorDelivery implements ResponseDelivery {
+public class ExecutorResponseDelivery implements ResponseDelivery {
 	
     private final Executor executor;
 
-    public ExecutorDelivery(Executor executor) {
+    public ExecutorResponseDelivery(Executor executor) {
         this.executor = executor;
     }
     
@@ -60,7 +60,7 @@ public class ExecutorDelivery implements ResponseDelivery {
     }
 
     @Override
-	public void postError(final OnErrorListener onErrorListener, final Request request, final LegolasError error) {
+	public void postError(final OnErrorListener onErrorListener, final Request request, final LegolasException error) {
 		if (onErrorListener == null || request.isCancel()) {
 			return;
 		}

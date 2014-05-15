@@ -1,4 +1,4 @@
-package com.yepstudio.legolas;
+package com.yepstudio.legolas.internal;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.GenericArrayType;

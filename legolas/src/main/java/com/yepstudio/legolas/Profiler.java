@@ -4,7 +4,7 @@ import com.yepstudio.legolas.request.Request;
 import com.yepstudio.legolas.response.Response;
 
 /**
- * 性能分析的接口，运行在与HttpSender相同的线程
+ * 性能分析的接口，运行在非主线程
  * @author zzljob@gmail.com
  * @create 2014年4月24日
  * @version 2.0, 2014年4月24日
@@ -27,7 +27,7 @@ public interface Profiler<T> {
 	 * @param elapsedTime 请求结束的时间
 	 * @param beforeCallData 请求前调用返回的对象
 	 */
-	public void afterCall(Response response, long startTime, long elapsedTime, T beforeCallData);
+	public void afterCall(Response response, long startTime, T beforeCallData);
 	
 	/**
 	 * 请求被取消时被调用

@@ -17,6 +17,9 @@ public class RequestWrapper {
 	// 方法返回的类型
 	private final Type result;
 	private final Converter converter;
+	
+	private long startTime;
+	private Object beforeCallData;
 
 	public RequestWrapper(Request request, Type result, Converter converter,
 			List<OnRequestListener> onRequestListeners,
@@ -58,4 +61,21 @@ public class RequestWrapper {
 	public Converter getConverter() {
 		return converter;
 	}
+
+	public long getStartTime() {
+		return startTime;
+	}
+
+	public Object getBeforeCallData() {
+		return beforeCallData;
+	}
+
+	public void setStartTime(long startTime) {
+		this.startTime = startTime;
+	}
+
+	public void setBeforeCallData(Object beforeCallData) {
+		this.beforeCallData = beforeCallData;
+	}
+
 }
