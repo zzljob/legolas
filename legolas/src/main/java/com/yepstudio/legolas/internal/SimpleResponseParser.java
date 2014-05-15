@@ -2,6 +2,8 @@ package com.yepstudio.legolas.internal;
 
 import java.io.IOException;
 
+import org.apache.http.HttpStatus;
+
 import com.yepstudio.legolas.LegolasLog;
 import com.yepstudio.legolas.ResponseParser;
 import com.yepstudio.legolas.exception.HttpException;
@@ -30,11 +32,11 @@ public class SimpleResponseParser implements ResponseParser {
 					return successfullRequest(response);
 				}
 			} else if (status >= 300 && status < 400) { // 3xx重定向
-				if (status == 304) {
+				if (status == HttpStatus.SC_NOT_MODIFIED) {
 					//读取缓存
 					return cachedRequest(request, response);
 				} else {
-					throw new HttpException("just http status code 200, 304 be Support");
+					throw new HttpException("just http status code 200, 304 be Supported");
 				}
 			} else if (status >= 400 && status < 500) { // 4xx请求错误
 				throw new HttpException();
@@ -49,14 +51,11 @@ public class SimpleResponseParser implements ResponseParser {
 	
 	private Response successfullRequest(Response response) throws IOException {
 		log.v("successfullRequest");
-//		if (type.equals(Response.class)) {
-//			return Response.readBodyToBytesIfNecessary(response);
-//		}
-//		return converter.fromBody(response.getBody(), type);
 		return response;
 	}
 	
 	private Response cachedRequest(Request request, Response response) throws IOException {
+		log.v("cachedRequest");
 		return response;
 	}
 

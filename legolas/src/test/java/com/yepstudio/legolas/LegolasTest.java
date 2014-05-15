@@ -13,10 +13,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import android.util.Log;
-
 import com.google.gson.Gson;
-import com.yepstudio.legolas.annotation.GET;
 import com.yepstudio.legolas.internal.http.MockHttpSender;
 import com.yepstudio.legolas.request.OnRequestListener;
 import com.yepstudio.legolas.request.Request;

@@ -1,19 +1,22 @@
 package com.yepstudio.legolas.internal.platform;
 
+import java.io.File;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import com.yepstudio.legolas.Cache;
 import com.yepstudio.legolas.Converter;
 import com.yepstudio.legolas.HttpSender;
 import com.yepstudio.legolas.LegolasLog;
 import com.yepstudio.legolas.Platform;
+import com.yepstudio.legolas.internal.DiskBasedCache;
 import com.yepstudio.legolas.internal.converter.GsonConverter;
 import com.yepstudio.legolas.internal.http.HttpClientHttpSender;
 import com.yepstudio.legolas.internal.log.Sl4fLog;
 
 public class BasePlatform extends Platform {
-	private ExecutorService executor = Executors.newCachedThreadPool();;
+	private ExecutorService executor = Executors.newCachedThreadPool();
 	
 	@Override
 	public Converter defaultConverter() {
@@ -38,6 +41,16 @@ public class BasePlatform extends Platform {
 	@Override
 	public Class<? extends LegolasLog> defaultLog() {
 		return Sl4fLog.class;
+	}
+
+	@Override
+	public Cache defaultCache() {
+		String dirStr = System.getProperty("java.io.tmpdir");
+		StringBuilder builder = new StringBuilder(dirStr);
+		builder.append(File.separator).append("legolas").append(File.separator);
+		Cache cache = new DiskBasedCache(new File(builder.toString()));
+		cache.initialize();
+		return cache;
 	}
 
 }

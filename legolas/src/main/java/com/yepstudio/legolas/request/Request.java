@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.yepstudio.legolas.Cache;
 import com.yepstudio.legolas.LegolasLog;
 import com.yepstudio.legolas.mime.ByteArrayBody;
 import com.yepstudio.legolas.mime.RequestBody;
@@ -26,6 +27,7 @@ public class Request {
 	private final Map<String, String> headers;
 	private final RequestBody body;
 	
+	private Cache.Entry cacheEntry;
 	private AtomicBoolean cancel = new AtomicBoolean(false);
 
 	public Request(String description, String method, String url, Map<String, String> headers, RequestBody body) {
@@ -84,6 +86,18 @@ public class Request {
 
 	public boolean isCancel() {
 		return cancel.get();
+	}
+	
+	public String getCacheKey() {
+		return String.format("%s:%s", getMethod(), getUrl());
+	}
+	
+	public void setCacheEntry(Cache.Entry entry) {
+		cacheEntry = entry;
+	}
+
+	public Cache.Entry getCacheEntry() {
+		return cacheEntry;
 	}
 
 }

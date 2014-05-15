@@ -1,16 +1,21 @@
 package com.yepstudio.legolas.internal.platform;
 
+import java.io.File;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 
+import com.yepstudio.legolas.Cache;
 import com.yepstudio.legolas.Converter;
 import com.yepstudio.legolas.HttpSender;
 import com.yepstudio.legolas.LegolasLog;
 import com.yepstudio.legolas.Platform;
+import com.yepstudio.legolas.internal.DiskBasedCache;
+import com.yepstudio.legolas.internal.NoCache;
 import com.yepstudio.legolas.internal.converter.GsonConverter;
 import com.yepstudio.legolas.internal.converter.JSONConverter;
 import com.yepstudio.legolas.internal.http.AndroidHttpClientHttpSender;
@@ -74,6 +79,19 @@ public class AndroidPlatform extends Platform {
 		} catch (Throwable th) {
 		}
 		return AndroidLog.class;
+	}
+
+	@Override
+	public Cache defaultCache() {
+		if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())
+				&& !Environment.MEDIA_MOUNTED_READ_ONLY.equals(Environment.getExternalStorageState())) {
+			File file = Environment.getExternalStorageDirectory();
+			Cache cache = new DiskBasedCache(new File(file, "legolas"));
+			cache.initialize();
+			return cache;
+		} else {
+			return new NoCache();
+		}
 	}
 
 }

@@ -12,6 +12,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 
+import org.apache.http.HttpStatus;
+
+import com.yepstudio.legolas.Cache;
 import com.yepstudio.legolas.HttpSender;
 import com.yepstudio.legolas.LegolasException;
 import com.yepstudio.legolas.LegolasLog;
@@ -21,6 +24,8 @@ import com.yepstudio.legolas.ResponseDelivery;
 import com.yepstudio.legolas.ResponseParser;
 import com.yepstudio.legolas.exception.ConversionException;
 import com.yepstudio.legolas.exception.NetworkException;
+import com.yepstudio.legolas.mime.ByteArrayBody;
+import com.yepstudio.legolas.mime.ResponseBody;
 import com.yepstudio.legolas.request.OnRequestListener;
 import com.yepstudio.legolas.request.Request;
 import com.yepstudio.legolas.request.RequestWrapper;
@@ -41,17 +46,19 @@ public class SimpleRequestExecutor implements RequestExecutor {
 	private final ResponseParser responseParser;
 	private final ResponseDelivery responseDelivery;
 	private final ProfilerDelivery profilerDelivery;
+	private final Cache cache;
 	
 	private final CompletionService<Response> service;
 	private final Thread watchThread;
 	private final Map<Future<Response>, RequestWrapper> futureMap;
 
-	public SimpleRequestExecutor(ExecutorService httpSenderExecutor, HttpSender httpSender, ResponseDelivery responseDelivery, ResponseParser responseParser, ProfilerDelivery pd) {
+	public SimpleRequestExecutor(ExecutorService httpSenderExecutor, HttpSender httpSender, ResponseDelivery responseDelivery, ResponseParser responseParser, ProfilerDelivery profiler, Cache cache) {
 		this.httpSenderExecutor = httpSenderExecutor;
 		this.httpSender = httpSender;
 		this.responseParser = responseParser;
 		this.responseDelivery = responseDelivery;
-		this.profilerDelivery = pd;
+		this.profilerDelivery = profiler;
+		this.cache = cache;
 		
 		service = new ExecutorCompletionService<Response>(this.httpSenderExecutor);
 		futureMap = new WeakHashMap<Future<Response>, RequestWrapper>();
@@ -124,8 +131,25 @@ public class SimpleRequestExecutor implements RequestExecutor {
 					if (request.isCancel()) {
 						throw new CancelException();
 					}
-					// 304，Etag
-					response = responseParser.doParse(request, httpSender.execute(request));
+					
+					//Read Cache
+					Cache.Entry entry = cache.get(wrapper.getRequest().getCacheKey());
+					if (entry == null) {
+						response = httpSender.execute(request);
+						log.d("cache-miss");
+					} else{
+						wrapper.getRequest().setCacheEntry(entry);
+						if (entry.isExpired() || entry.refreshNeeded()) {//缓存过期 或者 需要更新
+							log.d("cache-hit-expired");
+							response = httpSender.execute(request);
+						} else {
+							log.d("cache-hit-parsed");
+							ResponseBody body = new ByteArrayBody(null, entry.data);
+							response = new Response(HttpStatus.SC_OK, "OK", entry.responseHeaders, body);
+						}
+					}
+					
+					response = responseParser.doParse(request, response);
 					
 					if (request.isCancel()) {
 						throw new CancelException();
@@ -146,6 +170,8 @@ public class SimpleRequestExecutor implements RequestExecutor {
 	}
 	
 	private class CancelException extends Exception {
+
+		private static final long serialVersionUID = -2595820862553291465L;
 		
 	}
 	

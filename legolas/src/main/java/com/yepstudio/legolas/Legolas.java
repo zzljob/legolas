@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 
 import com.yepstudio.legolas.description.ApiDescription;
@@ -304,6 +303,7 @@ public class Legolas {
 		private Map<String, Object> headers;
 		
 		private RequestExecutor requestExecutor;
+		private Cache cache;
 		
 		private Converter converter;
 		
@@ -362,6 +362,11 @@ public class Legolas {
 			return this;
 		}
 		
+		public Build setCache(Cache cache) {
+			this.cache = cache;
+			return this;
+		}
+		
 		public Build setHttpSender(HttpSender httpSender) {
 			this.httpSender = httpSender;
 			return this;
@@ -415,8 +420,11 @@ public class Legolas {
 			if (profilerDelivery == null) {
 				profilerDelivery = new SimpleProfilerDelivery(profiler);
 			}
+			if (cache == null) {
+				cache = Platform.get().defaultCache();
+			}
 			if (requestExecutor == null) {
-				requestExecutor = new SimpleRequestExecutor(httpSenderExecutor, httpSender, delivery, parser, profilerDelivery);
+				requestExecutor = new SimpleRequestExecutor(httpSenderExecutor, httpSender, delivery, parser, profilerDelivery, cache);
 			}
 			Legolas legolas = new Legolas(endpoint, headers, requestExecutor, converter);
 			if (bind != null) {

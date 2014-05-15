@@ -37,6 +37,8 @@ public abstract class Platform {
 	 * @return
 	 */
 	public abstract Converter defaultConverter();
+	
+	public abstract Cache defaultCache();
 
 	/**
 	 * 默认的Http请求器
