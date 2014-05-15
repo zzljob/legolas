@@ -2,6 +2,7 @@ package com.yepstudio.legolas.internal;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.util.Date;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.Callable;
@@ -13,6 +14,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 
 import org.apache.http.HttpStatus;
+import org.apache.http.impl.cookie.DateUtils;
 
 import com.yepstudio.legolas.Cache;
 import com.yepstudio.legolas.HttpSender;
@@ -138,7 +140,16 @@ public class SimpleRequestExecutor implements RequestExecutor {
 						response = httpSender.execute(request);
 						log.d("cache-miss");
 					} else{
+						//设置缓存
 						wrapper.getRequest().setCacheEntry(entry);
+						if (entry.etag != null) {//设置Etag
+							wrapper.getRequest().getHeaders().put("If-None-Match", entry.etag);
+						}
+						if (entry.serverDate > 0) {//设置Etag 的时间
+							Date refTime = new Date(entry.serverDate);
+							wrapper.getRequest().getHeaders().put("If-Modified-Since", DateUtils.formatDate(refTime));
+						}
+						
 						if (entry.isExpired() || entry.refreshNeeded()) {//缓存过期 或者 需要更新
 							log.d("cache-hit-expired");
 							response = httpSender.execute(request);

@@ -14,12 +14,12 @@ import com.yepstudio.legolas.Converter;
 import com.yepstudio.legolas.HttpSender;
 import com.yepstudio.legolas.LegolasLog;
 import com.yepstudio.legolas.Platform;
-import com.yepstudio.legolas.internal.cache.DiskBasedCache;
-import com.yepstudio.legolas.internal.cache.NoCache;
-import com.yepstudio.legolas.internal.converter.GsonConverter;
-import com.yepstudio.legolas.internal.converter.JSONConverter;
-import com.yepstudio.legolas.internal.http.AndroidHttpClientHttpSender;
-import com.yepstudio.legolas.internal.http.UrlConnectionHttpSender;
+import com.yepstudio.legolas.cache.DiskBasedCache;
+import com.yepstudio.legolas.cache.NoCache;
+import com.yepstudio.legolas.converter.GsonConverter;
+import com.yepstudio.legolas.converter.JSONConverter;
+import com.yepstudio.legolas.httpsender.AndroidHttpClientHttpSender;
+import com.yepstudio.legolas.httpsender.UrlConnectionHttpSender;
 import com.yepstudio.legolas.internal.log.AndroidLog;
 import com.yepstudio.legolas.internal.log.Sl4fLog;
 

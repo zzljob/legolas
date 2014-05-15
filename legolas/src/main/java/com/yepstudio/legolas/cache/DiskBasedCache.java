@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.yepstudio.legolas.internal.cache;
+package com.yepstudio.legolas.cache;
 
 import java.io.EOFException;
 import java.io.File;

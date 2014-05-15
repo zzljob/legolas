@@ -1,4 +1,4 @@
-package com.yepstudio.legolas.internal.http;
+package com.yepstudio.legolas.httpsender;
 
 import android.net.http.AndroidHttpClient;
 

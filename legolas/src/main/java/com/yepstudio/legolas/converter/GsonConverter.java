@@ -1,17 +1,16 @@
-package com.yepstudio.legolas.internal.converter;
+package com.yepstudio.legolas.converter;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Type;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParseException;
-import com.yepstudio.legolas.Converter;
 import com.yepstudio.legolas.LegolasLog;
 import com.yepstudio.legolas.exception.ConversionException;
+import com.yepstudio.legolas.mime.JsonRequestBody;
 import com.yepstudio.legolas.mime.RequestBody;
 import com.yepstudio.legolas.mime.ResponseBody;
 import com.yepstudio.legolas.response.Response;
@@ -23,7 +22,7 @@ import com.yepstudio.legolas.response.Response;
  * @version 2.0, 2014年5月5日
  *
  */
-public class GsonConverter implements Converter {
+public class GsonConverter extends AbstractConverter {
 	private static LegolasLog log = LegolasLog.getClazz(GsonConverter.class);
 
 	private final Gson gson;
@@ -55,7 +54,7 @@ public class GsonConverter implements Converter {
 			throw new ConversionException(e);
 		} catch (JsonParseException e) {
 			throw new ConversionException(e);
-		} catch (Exception e) {
+		} catch (Throwable e) {
 			throw new ConversionException(e);
 		} finally {
 			if (isr != null) {
@@ -70,48 +69,11 @@ public class GsonConverter implements Converter {
 	@Override
 	public RequestBody toBody(Object object) {
 		try {
-			return new JsonRequestBody(gson.toJson(object).getBytes(encoding), encoding);
+			return new JsonRequestBody(gson.toJson(object), encoding);
 		} catch (UnsupportedEncodingException e) {
-			throw new AssertionError(e);
+			
 		}
-	}
-
-	private static class JsonRequestBody implements RequestBody {
-		private final byte[] jsonBytes;
-		private final String mimeType;
-
-		JsonRequestBody(byte[] jsonBytes, String encode) {
-			this.jsonBytes = jsonBytes;
-			this.mimeType = "application/json; charset=" + encode;
-		}
-
-		@Override
-		public String fileName() {
-			return null;
-		}
-
-		@Override
-		public String mimeType() {
-			return mimeType;
-		}
-
-		@Override
-		public long length() {
-			return jsonBytes.length;
-		}
-
-		@Override
-		public void writeTo(OutputStream out) throws IOException {
-			out.write(jsonBytes);
-		}
-	}
-
-	@Override
-	public String toParam(Object object, int type) {
-		if (object == null) {
-			return "";
-		}
-		return object.toString();
+		return null;
 	}
 
 }

@@ -1,8 +1,7 @@
-package com.yepstudio.legolas.internal.converter;
+package com.yepstudio.legolas.converter;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Type;
 
@@ -10,9 +9,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.yepstudio.legolas.Converter;
 import com.yepstudio.legolas.LegolasLog;
 import com.yepstudio.legolas.exception.ConversionException;
+import com.yepstudio.legolas.mime.JsonRequestBody;
 import com.yepstudio.legolas.mime.RequestBody;
 import com.yepstudio.legolas.mime.ResponseBody;
 import com.yepstudio.legolas.response.Response;
@@ -23,7 +22,7 @@ import com.yepstudio.legolas.response.Response;
  * @create 2014年1月8日
  * @version 2.0，2014年4月23日
  */
-public class JSONConverter implements Converter {
+public class JSONConverter extends AbstractConverter {
 	
 	private static LegolasLog log = LegolasLog.getClazz(JSONConverter.class);
 	private static String DEFAULT_CHARSET = "UTF-8";
@@ -42,12 +41,16 @@ public class JSONConverter implements Converter {
 				return new JSONObject(str);
 			} else if (str.startsWith("[")) {
 				return new JSONArray(str);
+			} else {
+				throw new RuntimeException("not supported type");
 			}
 		} catch (IOException e) {
 			log.e("ConversionException", e);
 			throw new ConversionException(e);
 		} catch (JSONException e) {
 			log.e("ConversionException", e);
+			throw new ConversionException(e);
+		} catch (Throwable e) {
 			throw new ConversionException(e);
 		} finally {
 			if (is != null) {
@@ -57,64 +60,27 @@ public class JSONConverter implements Converter {
 				}
 			}
 		}
-		return null;
 	}
 
 	@Override
 	public RequestBody toBody(Object object) {
 		String text = "";
 		if (object != null) {
-			Class<?> clazz = object.getClass();
-			if (clazz.equals(JSONObject.class)) {
+			if (object instanceof JSONObject) {
 				text = ((JSONObject) object).toString();
-			} else if (clazz.equals(JSONArray.class)) {
+			} else if (object instanceof JSONArray) {
 				text = ((JSONArray) object).toString();
+			} else if (object instanceof String) {
+				text = (String) text;
+			} else {
+				text = object.toString();
 			}
 		}
 		try {
-			return new JsonRequestBody(text.getBytes(DEFAULT_CHARSET), DEFAULT_CHARSET);
+			return new JsonRequestBody(DEFAULT_CHARSET, text);
 		} catch (UnsupportedEncodingException e) {
+			
 		}
 		return null;
 	}
-	
-	private static class JsonRequestBody implements RequestBody {
-		private final byte[] jsonBytes;
-		private final String mimeType;
-
-		JsonRequestBody(byte[] jsonBytes, String encode) {
-			this.jsonBytes = jsonBytes;
-			this.mimeType = "application/json; charset=" + encode;
-		}
-
-		@Override
-		public String fileName() {
-			return null;
-		}
-
-		@Override
-		public String mimeType() {
-			return mimeType;
-		}
-
-		@Override
-		public long length() {
-			return jsonBytes.length;
-		}
-
-		@Override
-		public void writeTo(OutputStream out) throws IOException {
-			out.write(jsonBytes);
-		}
-
-	}
-
-	@Override
-	public String toParam(Object object, int type) {
-		if (object == null) {
-			return "";
-		}
-		return object.toString();
-	}
-
 }

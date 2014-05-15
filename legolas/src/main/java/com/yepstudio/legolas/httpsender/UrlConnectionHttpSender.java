@@ -1,4 +1,4 @@
-package com.yepstudio.legolas.internal.http;
+package com.yepstudio.legolas.httpsender;
 
 import java.io.IOException;
 import java.io.InputStream;

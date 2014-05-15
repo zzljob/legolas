@@ -10,9 +10,9 @@ import com.yepstudio.legolas.Converter;
 import com.yepstudio.legolas.HttpSender;
 import com.yepstudio.legolas.LegolasLog;
 import com.yepstudio.legolas.Platform;
-import com.yepstudio.legolas.internal.cache.DiskBasedCache;
-import com.yepstudio.legolas.internal.converter.GsonConverter;
-import com.yepstudio.legolas.internal.http.HttpClientHttpSender;
+import com.yepstudio.legolas.cache.DiskBasedCache;
+import com.yepstudio.legolas.converter.GsonConverter;
+import com.yepstudio.legolas.httpsender.HttpClientHttpSender;
 import com.yepstudio.legolas.internal.log.Sl4fLog;
 
 public class BasePlatform extends Platform {
