@@ -37,8 +37,8 @@ public class Legolas {
 	
 	private static Map<Class<?>, SoftReference<ApiDescription>> apiDescriptionCache = new ConcurrentHashMap<Class<?>, SoftReference<ApiDescription>>();
 	
-	private static Map<Object, Legolas> legolasBindMap = new WeakHashMap<Object, Legolas>(5); 
-	private static Map<Object, Map<Class<?>, Object>> proxyBindMap = new WeakHashMap<Object, Map<Class<?>, Object>>(5); 
+	private static Map<Object, Legolas> legolasBindMap; 
+	private static Map<Object, Map<Class<?>, Object>> proxyBindMap; 
 	
 	private Map<Class<?>, Endpoint> dynamicEndpoint;
 	private Map<Class<?>, Map<String, Object>> dynamicHeaders;
@@ -193,6 +193,13 @@ public class Legolas {
 		return headers;
 	}
 	
+	private static Map<Object, Legolas> getOrNewLegolasBindMap() {
+		if (legolasBindMap == null) {
+			legolasBindMap = new WeakHashMap<Object, Legolas>(5);
+		}
+		return legolasBindMap;
+	}
+	
 	/**
 	 * 获取绑定到bind对象上的Legolas对象<br/>
 	 * {@link com.yepstudio.legolas.Legolas.Build#setBind(Object)}
@@ -203,7 +210,7 @@ public class Legolas {
 		if (bind == null) {
 			throw new IllegalArgumentException("the bind can not be null.");
 		}
-		return legolasBindMap.get(bind);
+		return getOrNewLegolasBindMap().get(bind);
 	}
 	
 	protected static ApiDescription getApiDescription(Class<?> clazz) {
@@ -223,6 +230,9 @@ public class Legolas {
 	}
 	
 	private static Map<Class<?>, Object> getApiBindMap(Object bind) {
+		if (proxyBindMap == null) {
+			proxyBindMap = new WeakHashMap<Object, Map<Class<?>, Object>>(5);
+		}
 		Map<Class<?>, Object> apiMap = proxyBindMap.get(bind);
 		if (apiMap == null) {
 			apiMap = new ConcurrentHashMap<Class<?>, Object>(5);
@@ -428,7 +438,7 @@ public class Legolas {
 			}
 			Legolas legolas = new Legolas(endpoint, headers, requestExecutor, converter);
 			if (bind != null) {
-				legolasBindMap.put(bind, legolas);
+				getOrNewLegolasBindMap().put(bind, legolas);
 			}
 			return legolas;
 		}
