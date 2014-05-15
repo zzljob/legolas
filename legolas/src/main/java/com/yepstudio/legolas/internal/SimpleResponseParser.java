@@ -28,25 +28,28 @@ public class SimpleResponseParser implements ResponseParser {
 			// 介绍HTTP状态码
 			// http://zh.wikipedia.org/wiki/HTTP%E7%8A%B6%E6%80%81%E7%A0%81
 			if (status >= 200 && status < 300) { // 2XX == successful request
-				if (status == 200) {
+				if (status == HttpStatus.SC_OK || status == HttpStatus.SC_NO_CONTENT) {
 					return successfullRequest(response);
+				} else {
+					throw new HttpException("just http status code 200，204, 304 be Supported");
 				}
 			} else if (status >= 300 && status < 400) { // 3xx重定向
 				if (status == HttpStatus.SC_NOT_MODIFIED) {
 					//读取缓存
 					return cachedRequest(request, response);
 				} else {
-					throw new HttpException("just http status code 200, 304 be Supported");
+					throw new HttpException("just http status code 200，204, 304 be Supported");
 				}
 			} else if (status >= 400 && status < 500) { // 4xx请求错误
 				throw new HttpException();
 			} else if (status >= 500 && status < 600) { // 5xx服务器错误
 				throw new ServiceException();
+			} else {
+				throw new HttpException();
 			}
 		} catch (IOException e) {
 			throw new NetworkException(e);
 		}
-		return null;
 	}
 	
 	private Response successfullRequest(Response response) throws IOException {
