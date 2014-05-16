@@ -6,25 +6,20 @@ public class HttpException extends LegolasException {
 
 	private static final long serialVersionUID = 4223041631699763099L;
 
-	public HttpException() {
-		super();
+	public HttpException(String uuid, String message, Throwable cause) {
+		super(uuid, message, cause);
 	}
 
-	public HttpException(String message, Throwable cause,
-			boolean enableSuppression, boolean writableStackTrace) {
-		super(message, cause, enableSuppression, writableStackTrace);
+	public HttpException(String uuid, String message) {
+		super(uuid, message);
 	}
 
-	public HttpException(String message, Throwable cause) {
-		super(message, cause);
+	public HttpException(String uuid, Throwable cause) {
+		super(uuid, cause);
 	}
 
-	public HttpException(String message) {
-		super(message);
-	}
-
-	public HttpException(Throwable cause) {
-		super(cause);
+	public HttpException(String uuid) {
+		super(uuid);
 	}
 
 }

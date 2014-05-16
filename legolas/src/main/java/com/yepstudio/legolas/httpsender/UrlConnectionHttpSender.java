@@ -46,7 +46,7 @@ public class UrlConnectionHttpSender implements HttpSender {
 		log.v("execute");
 		HttpURLConnection connection = openConnection(request);
 		prepareRequest(connection, request);
-		return readResponse(connection);
+		return readResponse(request, connection);
 	}
 
 	protected HttpURLConnection openConnection(Request request) throws IOException {
@@ -93,7 +93,7 @@ public class UrlConnectionHttpSender implements HttpSender {
 		}
 	}
 
-	Response readResponse(HttpURLConnection connection) throws IOException {
+	Response readResponse(Request request, HttpURLConnection connection) throws IOException {
 		log.v(String.format("readResponse"));
 		int status = connection.getResponseCode();
 		String reason = connection.getResponseMessage();
@@ -115,7 +115,7 @@ public class UrlConnectionHttpSender implements HttpSender {
 			stream = connection.getInputStream();
 		}
 		ResponseBody responseBody = new StreamResponseBody(mimeType, length, stream);
-		return new Response(status, reason, headers, responseBody);
+		return new Response(request.getUuid(), status, reason, headers, responseBody);
 	}
 
 	private static class StreamResponseBody implements ResponseBody {

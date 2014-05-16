@@ -1,7 +1,5 @@
 package com.yepstudio.legolas.converter;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Type;
 
@@ -22,7 +20,7 @@ import com.yepstudio.legolas.response.Response;
  * @create 2014年1月8日
  * @version 2.0，2014年4月23日
  */
-public class JSONConverter extends AbstractConverter {
+public class JSONConverter extends BasicConverter {
 	
 	private static LegolasLog log = LegolasLog.getClazz(JSONConverter.class);
 	private static String DEFAULT_CHARSET = "UTF-8";
@@ -31,53 +29,43 @@ public class JSONConverter extends AbstractConverter {
 	public Object fromBody(ResponseBody body, Type clazz) throws ConversionException {
 		String charset = Response.parseCharset(body.mimeType(), DEFAULT_CHARSET);
 		log.v("fromBody, charset:" + charset);
-		InputStream is = null;
-		try {
-			is = body.read();
-			String str = new String(Response.streamToBytes(is), charset);
-			str = str.trim();
-			log.v(str);
-			if (str.startsWith("{")) {
-				return new JSONObject(str);
-			} else if (str.startsWith("[")) {
-				return new JSONArray(str);
-			} else {
-				throw new RuntimeException("not supported type");
+		String jsonText;
+		if (clazz == JSONObject.class) {
+			jsonText = (String) super.fromBody(body, String.class);
+			log.d("jsonText : " + jsonText);
+			jsonText = jsonText.substring(jsonText.indexOf("{"), jsonText.lastIndexOf("}")  + 1);
+			try {
+				return new JSONObject(jsonText);
+			} catch (JSONException e) {
+				throw new ConversionException(null, e);
 			}
-		} catch (IOException e) {
-			log.e("ConversionException", e);
-			throw new ConversionException(e);
-		} catch (JSONException e) {
-			log.e("ConversionException", e);
-			throw new ConversionException(e);
-		} catch (Throwable e) {
-			throw new ConversionException(e);
-		} finally {
-			if (is != null) {
-				try {
-					is.close();
-				} catch (IOException ignored) {
-				}
+		} else if (clazz == JSONArray.class) {
+			jsonText = (String) super.fromBody(body, String.class);
+			jsonText = jsonText.substring(jsonText.indexOf("["), jsonText.lastIndexOf("]")  + 1);
+			try {
+				return new JSONArray(jsonText);
+			} catch (JSONException e) {
+				throw new ConversionException(null, e);
 			}
+		} else {
+			return super.fromBody(body, clazz);
 		}
 	}
 
 	@Override
 	public RequestBody toBody(Object object) {
-		String text = "";
+		String jsonText = "";
 		if (object != null) {
 			if (object instanceof JSONObject) {
-				text = ((JSONObject) object).toString();
+				jsonText = ((JSONObject) object).toString();
 			} else if (object instanceof JSONArray) {
-				text = ((JSONArray) object).toString();
-			} else if (object instanceof String) {
-				text = (String) text;
+				jsonText = ((JSONArray) object).toString();
 			} else {
-				text = object.toString();
+				return super.toBody(object);
 			}
 		}
 		try {
-			return new JsonRequestBody(DEFAULT_CHARSET, text);
+			return new JsonRequestBody(DEFAULT_CHARSET, jsonText);
 		} catch (UnsupportedEncodingException e) {
 			
 		}

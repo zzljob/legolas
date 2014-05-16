@@ -59,7 +59,7 @@ public class HttpClientHttpSender implements HttpSender {
 	public Response execute(Request request) throws IOException {
 		HttpUriRequest apacheRequest = createRequest(request);
 		HttpResponse apacheResponse = execute(client, apacheRequest);
-		return parseResponse(apacheResponse);
+		return parseResponse(request, apacheResponse);
 	}
 
 	/** Execute the specified {@code request} using the provided {@code client}. */
@@ -71,7 +71,7 @@ public class HttpClientHttpSender implements HttpSender {
 		return new GenericHttpRequest(request);
 	}
 
-	static Response parseResponse(HttpResponse response) throws IOException {
+	static Response parseResponse(Request request, HttpResponse response) throws IOException {
 		StatusLine statusLine = response.getStatusLine();
 		int status = statusLine.getStatusCode();
 		String reason = statusLine.getReasonPhrase();
@@ -94,7 +94,7 @@ public class HttpClientHttpSender implements HttpSender {
 			body = new ByteArrayBody(contentType, bytes);
 		}
 
-		return new Response(status, reason, headers, body);
+		return new Response(request.getUuid(), status, reason, headers, body);
 	}
 
 	private static class GenericHttpRequest extends HttpEntityEnclosingRequestBase {

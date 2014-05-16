@@ -11,6 +11,7 @@ import com.yepstudio.legolas.HttpSender;
 import com.yepstudio.legolas.LegolasLog;
 import com.yepstudio.legolas.Platform;
 import com.yepstudio.legolas.cache.DiskBasedCache;
+import com.yepstudio.legolas.converter.BasicConverter;
 import com.yepstudio.legolas.converter.GsonConverter;
 import com.yepstudio.legolas.httpsender.HttpClientHttpSender;
 import com.yepstudio.legolas.internal.log.Sl4fLog;
@@ -20,7 +21,18 @@ public class BasePlatform extends Platform {
 	
 	@Override
 	public Converter defaultConverter() {
-		return new GsonConverter();
+		Converter converter = null;
+		try {
+			Class<?> clazz = Class.forName("com.google.gson.Gson");
+			if (clazz != null) {
+				converter = new GsonConverter();
+			}
+		} catch (Throwable th) {
+		}
+		if (converter == null) {
+			converter = new BasicConverter();
+		}
+		return converter;
 	}
 
 	@Override

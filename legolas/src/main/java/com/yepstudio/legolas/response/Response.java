@@ -36,13 +36,16 @@ public class Response {
 	
 	/** Response Body. */
 	private final ResponseBody responseBody;
+	
+	private final String uuid;
 
-	public Response(int statusCode, String message, Map<String, String> headers) {
-		this(statusCode, message, headers, null);
+	public Response(String uuid, int statusCode, String message, Map<String, String> headers) {
+		this(uuid, statusCode, message, headers, null);
 	}
 	
-	public Response(int statusCode, String message, Map<String, String> headers, ResponseBody responseBody) {
+	public Response(String uuid, int statusCode, String message, Map<String, String> headers, ResponseBody responseBody) {
 		super();
+		this.uuid = uuid;
 		this.statusCode = statusCode;
 		this.message = message;
 		this.headers = headers;
@@ -114,7 +117,7 @@ public class Response {
 			byte[] bodyBytes = streamToBytes(is);
 			body = new ByteArrayBody(bodyMime, bodyBytes);
 
-			return new Response(response.getStatus(), response.getMessage(), response.getHeaders(), body);
+			return new Response(response.getUuid(), response.getStatus(), response.getMessage(), response.getHeaders(), body);
 		} finally {
 			if (is != null) {
 				try {
@@ -135,6 +138,10 @@ public class Response {
 			}
 		}
 		return baos.toByteArray();
+	}
+
+	public String getUuid() {
+		return uuid;
 	}
 	
 

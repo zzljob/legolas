@@ -22,7 +22,7 @@ import com.yepstudio.legolas.response.Response;
  * @version 2.0, 2014年5月5日
  *
  */
-public class GsonConverter extends AbstractConverter {
+public class GsonConverter extends BasicConverter {
 	private static LegolasLog log = LegolasLog.getClazz(GsonConverter.class);
 
 	private final Gson gson;
@@ -51,11 +51,11 @@ public class GsonConverter extends AbstractConverter {
 			isr = new InputStreamReader(body.read(), charset);
 			return gson.fromJson(isr, type);
 		} catch (IOException e) {
-			throw new ConversionException(e);
+			throw new ConversionException(null, e);
 		} catch (JsonParseException e) {
-			throw new ConversionException(e);
+			throw new ConversionException(null, e);
 		} catch (Throwable e) {
-			throw new ConversionException(e);
+			throw new ConversionException(null, e);
 		} finally {
 			if (isr != null) {
 				try {

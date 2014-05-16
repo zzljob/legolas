@@ -41,14 +41,14 @@ public class SimpleResponseParser implements ResponseParser {
 					throw new HttpException("just http status code 200，204, 304 be Supported");
 				}
 			} else if (status >= 400 && status < 500) { // 4xx请求错误
-				throw new HttpException();
+				throw new HttpException(request.getUuid());
 			} else if (status >= 500 && status < 600) { // 5xx服务器错误
-				throw new ServiceException();
+				throw new ServiceException(request.getUuid());
 			} else {
-				throw new HttpException();
+				throw new HttpException(request.getUuid());
 			}
 		} catch (IOException e) {
-			throw new NetworkException(e);
+			throw new NetworkException(request.getUuid(), e);
 		}
 	}
 	

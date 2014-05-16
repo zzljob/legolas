@@ -6,25 +6,21 @@ public class ServiceException extends LegolasException {
 
 	private static final long serialVersionUID = -6649149773387034472L;
 
-	public ServiceException() {
-		super();
+	public ServiceException(String uuid, String message, Throwable cause) {
+		super(uuid, message, cause);
 	}
 
-	public ServiceException(String message, Throwable cause,
-			boolean enableSuppression, boolean writableStackTrace) {
-		super(message, cause, enableSuppression, writableStackTrace);
+	public ServiceException(String uuid, String message) {
+		super(uuid, message);
 	}
 
-	public ServiceException(String message, Throwable cause) {
-		super(message, cause);
+	public ServiceException(String uuid, Throwable cause) {
+		super(uuid, cause);
 	}
 
-	public ServiceException(String message) {
-		super(message);
+	public ServiceException(String uuid) {
+		super(uuid);
 	}
 
-	public ServiceException(Throwable cause) {
-		super(cause);
-	}
 
 }

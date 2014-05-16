@@ -156,7 +156,7 @@ public class SimpleRequestExecutor implements RequestExecutor {
 						} else {
 							log.d("cache-hit-parsed");
 							ResponseBody body = new ByteArrayBody(null, entry.data);
-							response = new Response(HttpStatus.SC_OK, "OK", entry.responseHeaders, body);
+							response = new Response(wrapper.getRequest().getUuid(), HttpStatus.SC_OK, "OK", entry.responseHeaders, body);
 						}
 					}
 					
@@ -168,7 +168,7 @@ public class SimpleRequestExecutor implements RequestExecutor {
 					executResponseListeners(wrapper, response);
 					return null;
 				} catch (IOException e) {
-					throw new NetworkException(e);
+					throw new NetworkException(wrapper.getRequest().getUuid(), e);
 				} catch (LegolasException e) {
 					throw e;
 				} catch (CancelException e) {
@@ -236,10 +236,12 @@ public class SimpleRequestExecutor implements RequestExecutor {
 			log.e("send syncRequest has a IOException", e);
 			Throwable thr = e.getCause();
 			if (thr instanceof IOException) {
-				throw new NetworkException(thr);
+				throw new NetworkException(wrapper.getRequest().getUuid(), thr);
 			} else {
-				throw new LegolasException(thr);
+				throw new LegolasException(wrapper.getRequest().getUuid(), thr);
 			}
+		} catch (ConversionException e) {
+			throw new ConversionException(wrapper.getRequest().getUuid(), e);
 		} catch (LegolasException e) {
 			throw e;
 		} finally {

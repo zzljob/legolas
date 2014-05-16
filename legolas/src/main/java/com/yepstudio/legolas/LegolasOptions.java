@@ -7,7 +7,7 @@ package com.yepstudio.legolas;
  * @version 2.0, 2014年4月23日
  * 
  */
-public class LegolasOptions {
+public final class LegolasOptions {
 	
 	private Endpoint endpoint;
 	private Converter converter;

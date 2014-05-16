@@ -6,25 +6,21 @@ public class ConversionException extends LegolasException {
 
 	private static final long serialVersionUID = -5439925901304555188L;
 
-	public ConversionException() {
-		super();
+	public ConversionException(String uuid, String message, Throwable cause) {
+		super(uuid, message, cause);
 	}
 
-	public ConversionException(String message, Throwable cause,
-			boolean enableSuppression, boolean writableStackTrace) {
-		super(message, cause, enableSuppression, writableStackTrace);
+	public ConversionException(String uuid, String message) {
+		super(uuid, message);
 	}
 
-	public ConversionException(String message, Throwable cause) {
-		super(message, cause);
+	public ConversionException(String uuid, Throwable cause) {
+		super(uuid, cause);
 	}
 
-	public ConversionException(String message) {
-		super(message);
+	public ConversionException(String uuid) {
+		super(uuid);
 	}
 
-	public ConversionException(Throwable cause) {
-		super(cause);
-	}
-	
+
 }

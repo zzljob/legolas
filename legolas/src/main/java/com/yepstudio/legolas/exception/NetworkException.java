@@ -6,25 +6,20 @@ public class NetworkException extends LegolasException {
 
 	private static final long serialVersionUID = -749730287973068769L;
 
-	public NetworkException() {
-		super();
+	public NetworkException(String uuid, String message, Throwable cause) {
+		super(uuid, message, cause);
 	}
 
-	public NetworkException(String message, Throwable cause,
-			boolean enableSuppression, boolean writableStackTrace) {
-		super(message, cause, enableSuppression, writableStackTrace);
+	public NetworkException(String uuid, String message) {
+		super(uuid, message);
 	}
 
-	public NetworkException(String message, Throwable cause) {
-		super(message, cause);
+	public NetworkException(String uuid, Throwable cause) {
+		super(uuid, cause);
 	}
 
-	public NetworkException(String message) {
-		super(message);
-	}
-
-	public NetworkException(Throwable cause) {
-		super(cause);
+	public NetworkException(String uuid) {
+		super(uuid);
 	}
 
 }

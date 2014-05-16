@@ -60,16 +60,16 @@ public class MockHttpSender implements HttpSender {
 		if (text == null || text.trim().length() < 1) {
 			return null;
 		}
-		return makeResponse(text);
+		return makeResponse(request, text);
 	}
 
-	protected Response makeResponse(String text) {
+	protected Response makeResponse(Request request, String text) {
 		int status = 200;
 		String reason = "Ok";
 		Map<String, String> headers = new HashMap<String, String>();
 		log.d(String.format("execute finished, response:%s", text));
 		ResponseBody body = new StringBody(text);
-		return new Response(status, reason, headers, body);
+		return new Response(request.getUuid(), status, reason, headers, body);
 	}
 
 	protected String makeKey(String method, String url) {
