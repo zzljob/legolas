@@ -6,7 +6,7 @@ import java.util.concurrent.ExecutorService;
 import android.os.Build;
 
 import com.yepstudio.legolas.internal.SimpleProfiler;
-import com.yepstudio.legolas.internal.platform.BasePlatform;
+import com.yepstudio.legolas.internal.platform.BasicPlatform;
 
 public abstract class Platform {
 
@@ -23,7 +23,7 @@ public abstract class Platform {
 		} catch (ClassNotFoundException ignored) {
 			
 		}
-		p = new BasePlatform();
+		p = new BasicPlatform();
 		return p;
 	}
 

@@ -16,7 +16,7 @@ import com.yepstudio.legolas.description.RequestDescription;
 import com.yepstudio.legolas.internal.ExecutorResponseDelivery;
 import com.yepstudio.legolas.internal.RequestBuilder;
 import com.yepstudio.legolas.internal.SimpleProfilerDelivery;
-import com.yepstudio.legolas.internal.SimpleRequestExecutor;
+import com.yepstudio.legolas.internal.BasicRequestExecutor;
 import com.yepstudio.legolas.internal.SimpleResponseParser;
 import com.yepstudio.legolas.request.Request;
 import com.yepstudio.legolas.request.RequestWrapper;
@@ -434,7 +434,7 @@ public class Legolas {
 				cache = Platform.get().defaultCache();
 			}
 			if (requestExecutor == null) {
-				requestExecutor = new SimpleRequestExecutor(httpSenderExecutor, httpSender, delivery, parser, profilerDelivery, cache);
+				requestExecutor = new BasicRequestExecutor(httpSenderExecutor, httpSender, delivery, parser, profilerDelivery, cache);
 			}
 			Legolas legolas = new Legolas(endpoint, headers, requestExecutor, converter);
 			if (bind != null) {

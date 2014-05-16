@@ -40,8 +40,8 @@ import com.yepstudio.legolas.response.Response;
  * @create 2014年1月8日
  * @version 2.0，2014年4月30日
  */
-public class SimpleRequestExecutor implements RequestExecutor {
-	private static LegolasLog log = LegolasLog.getClazz(SimpleRequestExecutor.class);
+public class BasicRequestExecutor implements RequestExecutor {
+	private static LegolasLog log = LegolasLog.getClazz(BasicRequestExecutor.class);
 	
 	private final ExecutorService httpSenderExecutor;
 	private final HttpSender httpSender;
@@ -54,7 +54,7 @@ public class SimpleRequestExecutor implements RequestExecutor {
 	private final Thread watchThread;
 	private final Map<Future<Response>, RequestWrapper> futureMap;
 
-	public SimpleRequestExecutor(ExecutorService httpSenderExecutor, HttpSender httpSender, ResponseDelivery responseDelivery, ResponseParser responseParser, ProfilerDelivery profiler, Cache cache) {
+	public BasicRequestExecutor(ExecutorService httpSenderExecutor, HttpSender httpSender, ResponseDelivery responseDelivery, ResponseParser responseParser, ProfilerDelivery profiler, Cache cache) {
 		this.httpSenderExecutor = httpSenderExecutor;
 		this.httpSender = httpSender;
 		this.responseParser = responseParser;

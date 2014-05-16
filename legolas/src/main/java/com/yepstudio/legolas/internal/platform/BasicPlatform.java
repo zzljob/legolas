@@ -16,7 +16,7 @@ import com.yepstudio.legolas.converter.GsonConverter;
 import com.yepstudio.legolas.httpsender.HttpClientHttpSender;
 import com.yepstudio.legolas.internal.log.Sl4fLog;
 
-public class BasePlatform extends Platform {
+public class BasicPlatform extends Platform {
 	private ExecutorService executor = Executors.newCachedThreadPool();
 	
 	@Override
