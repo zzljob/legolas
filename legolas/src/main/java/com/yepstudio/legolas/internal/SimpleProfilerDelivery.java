@@ -1,5 +1,6 @@
 package com.yepstudio.legolas.internal;
 
+import com.yepstudio.legolas.LegolasException;
 import com.yepstudio.legolas.Profiler;
 import com.yepstudio.legolas.ProfilerDelivery;
 import com.yepstudio.legolas.request.RequestWrapper;
@@ -31,11 +32,11 @@ public class SimpleProfilerDelivery implements ProfilerDelivery {
 	}
 
 	@Override
-	public void postAfterCall(RequestWrapper wrapper, Response response) {
+	public void postAfterCall(RequestWrapper wrapper, Response response, LegolasException exception) {
 		if (profiler == null) {
 			return;
 		}
-		profiler.afterCall(response, wrapper.getStartTime(), wrapper.getBeforeCallData());
+		profiler.afterCall(response, exception, wrapper.getStartTime(), wrapper.getBeforeCallData());
 	}
 
 	@Override

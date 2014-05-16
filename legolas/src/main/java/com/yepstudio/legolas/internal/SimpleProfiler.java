@@ -1,5 +1,6 @@
 package com.yepstudio.legolas.internal;
 
+import com.yepstudio.legolas.LegolasException;
 import com.yepstudio.legolas.LegolasLog;
 import com.yepstudio.legolas.Profiler;
 import com.yepstudio.legolas.request.Request;
@@ -22,9 +23,9 @@ public class SimpleProfiler implements Profiler<Request> {
 	}
 
 	@Override
-	public void afterCall(Response response, long startTime, Request request) {
+	public void afterCall(Response response, LegolasException exception, long startTime, Request request) {
 		long elapsedTime = System.currentTimeMillis();
-		log.d(String.format("afterCall, success:[%s], request:[%s], spend:[%s ms]", response != null, request.getUuid(), elapsedTime - startTime));
+		log.d(String.format("afterCall, success:[%s], request:[%s], spend:[%s ms]", exception == null, request.getUuid(), elapsedTime - startTime));
 	}
 
 	@Override

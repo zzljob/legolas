@@ -14,7 +14,7 @@ public interface ProfilerDelivery {
 
 	public void postBeforeCall(RequestWrapper wrapper);
 
-	public void postAfterCall(RequestWrapper wrapper, Response response);
+	public void postAfterCall(RequestWrapper wrapper, Response response, LegolasException exception);
 
 	public void postCancelCall(RequestWrapper wrapper);
 

@@ -106,7 +106,7 @@ public class BasicRequestExecutor implements RequestExecutor {
 						if (exception != null) {
 							executErrorListeners(wrapper, exception);
 						}
-						profilerDelivery.postAfterCall(wrapper, response);
+						profilerDelivery.postAfterCall(wrapper, response, exception);
 					}
 					futureMap.remove(future);
 				}
@@ -166,7 +166,6 @@ public class BasicRequestExecutor implements RequestExecutor {
 						throw new CancelException();
 					}
 					executResponseListeners(wrapper, response);
-					return null;
 				} catch (IOException e) {
 					throw new NetworkException(wrapper.getRequest().getUuid(), e);
 				} catch (LegolasException e) {
@@ -174,6 +173,7 @@ public class BasicRequestExecutor implements RequestExecutor {
 				} catch (CancelException e) {
 					throw e;
 				}
+				return response;
 			}
 
 		});
