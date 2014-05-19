@@ -25,7 +25,9 @@ import com.yepstudio.legolas.RequestExecutor;
 import com.yepstudio.legolas.ResponseDelivery;
 import com.yepstudio.legolas.ResponseParser;
 import com.yepstudio.legolas.exception.ConversionException;
+import com.yepstudio.legolas.exception.HttpException;
 import com.yepstudio.legolas.exception.NetworkException;
+import com.yepstudio.legolas.exception.ServiceException;
 import com.yepstudio.legolas.mime.ByteArrayBody;
 import com.yepstudio.legolas.mime.ResponseBody;
 import com.yepstudio.legolas.request.OnRequestListener;
@@ -134,33 +136,7 @@ public class BasicRequestExecutor implements RequestExecutor {
 						throw new CancelException();
 					}
 					
-					//Read Cache
-					Cache.Entry entry = cache.get(wrapper.getRequest().getCacheKey());
-					if (entry == null) {
-						response = httpSender.execute(request);
-						log.d("cache-miss");
-					} else{
-						//设置缓存
-						wrapper.getRequest().setCacheEntry(entry);
-						if (entry.etag != null) {//设置Etag
-							wrapper.getRequest().getHeaders().put("If-None-Match", entry.etag);
-						}
-						if (entry.serverDate > 0) {//设置Etag 的时间
-							Date refTime = new Date(entry.serverDate);
-							wrapper.getRequest().getHeaders().put("If-Modified-Since", DateUtils.formatDate(refTime));
-						}
-						
-						if (entry.isExpired() || entry.refreshNeeded()) {//缓存过期 或者 需要更新
-							log.d("cache-hit-expired");
-							response = httpSender.execute(request);
-						} else {
-							log.d("cache-hit-parsed");
-							ResponseBody body = new ByteArrayBody(null, entry.data);
-							response = new Response(wrapper.getRequest().getUuid(), HttpStatus.SC_OK, "OK", entry.responseHeaders, body);
-						}
-					}
-					
-					response = responseParser.doParse(request, response);
+					response = responseParser.doParse(request, getCacheOrNetworkResponse(wrapper.getRequest()));
 					
 					if (request.isCancel()) {
 						throw new CancelException();
@@ -178,6 +154,36 @@ public class BasicRequestExecutor implements RequestExecutor {
 
 		});
 		futureMap.put(future, wrapper);
+	}
+	
+	protected Response getCacheOrNetworkResponse(Request request) throws IOException {
+		Response response = null;
+		//Read Cache
+		Cache.Entry entry = cache.get(request.getCacheKey());
+		if (entry == null) {
+			response = httpSender.execute(request);
+			log.d("cache-miss");
+		} else {
+			// 设置缓存
+			request.setCacheEntry(entry);
+			if (entry.etag != null) {// 设置Etag
+				request.getHeaders().put("If-None-Match", entry.etag);
+			}
+			if (entry.serverDate > 0) {// 设置Etag 的时间
+				Date refTime = new Date(entry.serverDate);
+				request.getHeaders().put("If-Modified-Since", DateUtils.formatDate(refTime));
+			}
+
+			if (entry.isExpired() || entry.refreshNeeded()) {// 缓存过期 或者 需要更新
+				log.d("cache-hit-expired");
+				response = httpSender.execute(request);
+			} else {
+				log.d("cache-hit-parsed");
+				ResponseBody body = new ByteArrayBody(null, entry.data);
+				response = new Response(request.getUuid(), HttpStatus.SC_OK, "OK", entry.responseHeaders, body);
+			}
+		}
+		return response;
 	}
 	
 	private class CancelException extends Exception {
@@ -217,8 +223,8 @@ public class BasicRequestExecutor implements RequestExecutor {
 		Callable<Response> callable = new Callable<Response>() {
 
 			@Override
-			public Response call() throws IOException {
-				return httpSender.execute(wrapper.getRequest());
+			public Response call() throws IOException, NetworkException, HttpException, ServiceException {
+				return responseParser.doParse(wrapper.getRequest(), getCacheOrNetworkResponse(wrapper.getRequest()));
 			}
 			
 		};
@@ -228,7 +234,7 @@ public class BasicRequestExecutor implements RequestExecutor {
 		httpSenderExecutor.execute(task);
 		Response response = null;
 		try {
-			response = responseParser.doParse(wrapper.getRequest(), task.get());
+			response = task.get();
 			return wrapper.getConverter().fromBody(response.getBody(), wrapper.getResult());
 		} catch (InterruptedException e) {
 			log.e("syncRequest interrupted.", e);
@@ -237,13 +243,13 @@ public class BasicRequestExecutor implements RequestExecutor {
 			Throwable thr = e.getCause();
 			if (thr instanceof IOException) {
 				throw new NetworkException(wrapper.getRequest().getUuid(), thr);
+			} else if (thr instanceof LegolasException) {
+				throw (LegolasException) thr;
 			} else {
 				throw new LegolasException(wrapper.getRequest().getUuid(), thr);
 			}
 		} catch (ConversionException e) {
 			throw new ConversionException(wrapper.getRequest().getUuid(), e);
-		} catch (LegolasException e) {
-			throw e;
 		} finally {
 			profilerDelivery.postBeforeCall(wrapper);
 		}

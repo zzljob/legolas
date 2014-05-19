@@ -7,7 +7,6 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -95,6 +94,7 @@ public class RequestBuilder implements RequestInterceptorFace {
 	}
 	
 	public void parseArguments(Object[] arguments) throws UnsupportedEncodingException {
+		this.arguments = arguments;
 		List<ParameterDescription> list = request.getParameters();
 		for (int i = 0; i < list.size(); i++) {
 			ParameterDescription p = list.get(i);
@@ -179,17 +179,21 @@ public class RequestBuilder implements RequestInterceptorFace {
 		return rootPoint;
 	}
 	
-	public String getRequestUrl() {
-		StringBuilder builder = new StringBuilder();
-		builder.append(api.getApiPath());
-		if (!api.getApiPath().endsWith("/") && !request.getRequestPath().startsWith("/")) {
-			builder.append("/");
-		}
-		builder.append(request.getRequestPath());
-		try {
-			return applyEndpoint(builder.toString());
-		} catch (MalformedURLException e) {
-			throw new RuntimeException(e);
+	public String getRequestUrl(boolean original) {
+		if(original){
+			StringBuilder builder = new StringBuilder();
+			builder.append(api.getApiPath());
+			if (!api.getApiPath().endsWith("/") && !request.getRequestPath().startsWith("/")) {
+				builder.append("/");
+			}
+			builder.append(request.getRequestPath());
+			return builder.toString();
+		}else {
+			try {
+				return buildTargetUrl(false);
+			} catch (MalformedURLException e) {
+				return null;
+			}
 		}
 	}
 	
@@ -468,34 +472,38 @@ public class RequestBuilder implements RequestInterceptorFace {
 	}
 	
 	protected String encodeValue(String value) {
-		try {
-			String encodeValue = URLEncoder.encode(value, ENCODE);
-			if (encodeValue != null && encodeValue.contains("+")) {
-				log.v("encodeValue , replace [+] : [" + encodeValue + "]");
-				encodeValue = encodeValue.replace("+", "%20");
-			}
-			log.v("encodeValue: [" + value + "]=>[" + encodeValue + "]");
-			return encodeValue;
-		} catch (UnsupportedEncodingException e) {
-			log.e("UnsupportedEncodingException:[" + ENCODE + "]", e);
-			return value;
-		}
+		return value;
+//		try {
+//			String encodeValue = URLEncoder.encode(value, ENCODE);
+//			if (encodeValue != null && encodeValue.contains("+")) {
+//				log.v("encodeValue , replace [+] : [" + encodeValue + "]");
+//				encodeValue = encodeValue.replace("+", "%20");
+//			}
+//			log.v("encodeValue: [" + value + "]=>[" + encodeValue + "]");
+//			return encodeValue;
+//		} catch (UnsupportedEncodingException e) {
+//			log.e("UnsupportedEncodingException:[" + ENCODE + "]", e);
+//			return value;
+//		}
 	}
 	
-	protected String buildTargetUrl() throws MalformedURLException {
+	protected String buildTargetUrl(boolean appleQuery) throws MalformedURLException {
 		log.i("buildTargetUrl:");
 		StringBuilder targetUrl = new StringBuilder();
 		targetUrl.append(api.getApiPath());
 		log.v("API path : " + api.getApiPath());
 		String requestPath = buildRequestPath();
 		log.v("Request Path : " + requestPath);
-		if (!api.getApiPath().endsWith("/") 
+		if (!api.getApiPath().endsWith("/")
 				&& requestPath != null
 				&& requestPath.trim().length() > 0
 				&& !requestPath.startsWith("/")) {
 			targetUrl.append("/");
 		}
 		targetUrl.append(requestPath);
+		if (!appleQuery) {
+			return applyEndpoint(targetUrl.toString());
+		}
 		boolean hasQuery = false;
 		if (request.getRequestQuery() != null && request.getRequestQuery().trim().length() > 0) {
 			targetUrl.append("?");
@@ -544,8 +552,12 @@ public class RequestBuilder implements RequestInterceptorFace {
 		for (String key : header.keySet()) {
 			headers.put(key, converter.toParam(header.get(key), ParameterType.HEADER));
 		}
-		Request request = new Request(getRequestDescription(), getRequestMethod(), buildTargetUrl(), headers, body);
+		Request request = new Request(getRequestDescription(), getRequestMethod(), buildTargetUrl(true), headers, body);
 		return new RequestWrapper(request, this.request.getResponseType(), converter, onRequestListeners, onResponseListeners, onErrorListeners);
+	}
+
+	public Converter getConverter() {
+		return converter;
 	}
 	
 }

@@ -17,8 +17,22 @@ public interface Converter {
 
 	public Object fromBody(ResponseBody body, Type clazz) throws ConversionException;
 
+	/**
+	 * <ul>
+	 * <li>ParameterDescription.ParameterType.PART</li>
+	 * <li>ParameterDescription.ParameterType.BODY</li>
+	 * </ul>
+	 */
 	public RequestBody toBody(Object object);
 
+	/**
+	 * <ul>
+	 * <li>ParameterDescription.ParameterType.HEADER</li>
+	 * <li>ParameterDescription.ParameterType.PATH</li>
+	 * <li>ParameterDescription.ParameterType.QUERY</li>
+	 * <li>ParameterDescription.ParameterType.FIELD</li>
+	 * </ul>
+	 */
 	public String toParam(Object object, int type);
 
 }

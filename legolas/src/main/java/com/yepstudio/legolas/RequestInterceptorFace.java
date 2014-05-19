@@ -5,10 +5,11 @@ import java.util.Map;
 public interface RequestInterceptorFace {
 
 	/**
-	 * 获取请求的URL，已经应用过Endpoint，但是Path参数没有替换的，不过包括Query参数
+	 * 获取请求的URL
+	 * @param original 是否原始的请求地址，原始的地址就是Api的地址+Request的地址
 	 * @return
 	 */
-	public String getRequestUrl();
+	public String getRequestUrl(boolean original);
 
 	/**
 	 * 请求方式
@@ -27,17 +28,39 @@ public interface RequestInterceptorFace {
 	 */
 	public int getRequestType();
 
+	/**
+	 * 不包括在RequestInterceptor里边设置的
+	 * @return
+	 */
 	public Map<String, Object> getHeaders();
 
+	/**
+	 * 不包括在RequestInterceptor里边设置的
+	 * @return
+	 */
 	public Map<String, Object> getPathParams();
 
+	/**
+	 * 不包括在RequestInterceptor里边设置的
+	 * @return
+	 */
 	public Map<String, Object> getQueryParams();
 
+	/**
+	 * 不包括在RequestInterceptor里边设置的
+	 * @return
+	 */
 	public Map<String, Object> getFieldParams();
 
+	/**
+	 * 不包括在RequestInterceptor里边设置的
+	 * @return
+	 */
 	public Map<String, Object> getPartParams();
 
 	public Object getBodyParams();
+	
+	public Converter getConverter();
 
 	public void addHeader(String name, Object value);
 

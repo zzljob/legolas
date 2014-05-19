@@ -51,7 +51,8 @@ public class LegolasTest {
 
 			@Override
 			public void interceptor(RequestInterceptorFace face) {
-				logger.info(face.getRequestUrl());
+				logger.info(face.getRequestUrl(false));
+				logger.info(face.getRequestUrl(true));
 			}
 			
 		};

@@ -23,6 +23,9 @@ public class SimpleResponseParser implements ResponseParser {
 	
 	@Override
 	public Response doParse(Request request, Response response) throws NetworkException, HttpException, ServiceException {
+		if (response == null) {
+			throw new NetworkException("has no Response"); 
+		}
 		int status = response.getStatus();
 		try {
 			// 介绍HTTP状态码
