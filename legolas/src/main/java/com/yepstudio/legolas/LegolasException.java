@@ -10,12 +10,6 @@ public class LegolasException extends Exception {
 		this.uuid = uuid;
 	}
 
-	public LegolasException(String uuid, String message, Throwable cause,
-			boolean enableSuppression, boolean writableStackTrace) {
-		super(message, cause, enableSuppression, writableStackTrace);
-		this.uuid = uuid;
-	}
-
 	public LegolasException(String uuid, String message, Throwable cause) {
 		super(message, cause);
 		this.uuid = uuid;
