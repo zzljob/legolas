@@ -6,11 +6,21 @@ import java.util.concurrent.ExecutorService;
 import com.yepstudio.legolas.internal.SimpleProfiler;
 import com.yepstudio.legolas.internal.platform.BasicPlatform;
 
+/**
+ * 
+ * @author zzljob@gmail.com
+ * @create 2014年5月19日
+ * @version 2.0, 2014年5月19日
+ *
+ */
 public abstract class Platform {
 
 	private static Platform PLATFORM = null;
 
 	public static void initPlatform(Platform platform) {
+		if (PLATFORM != null) {
+			throw new IllegalArgumentException("had init Platform.");
+		}
 		PLATFORM = platform;
 	}
 	
