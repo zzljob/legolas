@@ -155,8 +155,11 @@
 						</goals>
 					</execution>
 				</executions>
-				<!-- <configuration> <excludePackageNames>org.acra.log,org.acra.util</excludePackageNames> 
-					</configuration> -->
+				<!-- 
+				<configuration> 
+						<excludePackageNames>org.acra.log,org.acra.util</excludePackageNames> 
+				</configuration> 
+				-->
 			</plugin>
 			<plugin>
 				<artifactId>maven-source-plugin</artifactId>
