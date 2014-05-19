@@ -5,6 +5,9 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
@@ -25,6 +28,12 @@ import com.yepstudio.legolas.internal.log.Sl4fLog;
 
 public class AndroidPlatform extends Platform {
 	private Handler handler = new Handler(Looper.getMainLooper());
+	private final Context context;
+
+	public AndroidPlatform(Context context) {
+		super();
+		this.context = context;
+	}
 
 	@Override
 	public Converter defaultConverter() {
@@ -93,5 +102,14 @@ public class AndroidPlatform extends Platform {
 			return new NoCache();
 		}
 	}
-
+	
+	public static NetworkInfo getNetworkType(Context context) {
+		ConnectivityManager manager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+		return manager.getActiveNetworkInfo();
+	}
+	
+	public boolean hasNetwork(){
+		return getNetworkType(context) != null;
+	}
+	
 }

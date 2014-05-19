@@ -3,31 +3,21 @@ package com.yepstudio.legolas;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 
-import android.os.Build;
-
 import com.yepstudio.legolas.internal.SimpleProfiler;
 import com.yepstudio.legolas.internal.platform.BasicPlatform;
 
 public abstract class Platform {
 
-	private static final Platform PLATFORM = findPlatform();
+	private static Platform PLATFORM = null;
 
-	private static Platform findPlatform() {
-		Platform p = null;
-		try {
-			Class.forName("android.os.Build");
-			if (Build.VERSION.SDK_INT != 0) {
-				return null;
-			}
-			//p = new AndroidPlatform();
-		} catch (ClassNotFoundException ignored) {
-			
-		}
-		p = new BasicPlatform();
-		return p;
+	public static void initPlatform(Platform platform) {
+		PLATFORM = platform;
 	}
-
+	
 	public static Platform get() {
+		if (PLATFORM == null) {
+			PLATFORM = new BasicPlatform();
+		}
 		return PLATFORM;
 	}
 
@@ -67,8 +57,8 @@ public abstract class Platform {
 		return new SimpleProfiler();
 	}
 
-	public boolean isDebug() {
-		return false;
+	public boolean hasNetwork() {
+		return true;
 	}
 
 }

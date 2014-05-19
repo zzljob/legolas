@@ -255,11 +255,7 @@ public class Legolas {
 			//如果没有找到该方法的请求描述RequestDescription 则直接返回类型的默认值
 			if(description == null || !description.isHttpRequest()) {
 				log.e("have not annotation whit @Http, is not http Request.");
-				if (Platform.get().isDebug()) {
-					throw new IllegalArgumentException("this method have not @GET @POST and so on, is not http Request.");
-				} else {
-					return null;
-				}
+				throw new IllegalArgumentException("this method have not @GET @POST and so on, is not http Request.");
 			}
 			
 			Class<?> clazz = apiDescription.getApiClazz();

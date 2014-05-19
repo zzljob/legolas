@@ -20,6 +20,7 @@ import com.yepstudio.legolas.Cache;
 import com.yepstudio.legolas.HttpSender;
 import com.yepstudio.legolas.LegolasException;
 import com.yepstudio.legolas.LegolasLog;
+import com.yepstudio.legolas.Platform;
 import com.yepstudio.legolas.ProfilerDelivery;
 import com.yepstudio.legolas.RequestExecutor;
 import com.yepstudio.legolas.ResponseDelivery;
@@ -157,6 +158,9 @@ public class BasicRequestExecutor implements RequestExecutor {
 	}
 	
 	protected Response getCacheOrNetworkResponse(Request request) throws IOException {
+		if (!Platform.get().hasNetwork()) {
+			return null;
+		}
 		Response response = null;
 		//Read Cache
 		Cache.Entry entry = cache.get(request.getCacheKey());
