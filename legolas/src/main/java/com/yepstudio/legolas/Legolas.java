@@ -92,6 +92,14 @@ public class Legolas {
 		return (T) proxy;
 	}
 	
+	public <T> T getInstanceByBindOrNew(Object bind, Class<T> clazz) {
+		try {
+			return getInstanceByBind(bind, clazz);
+		} catch (Throwable e) {
+			return newInstance(bind, clazz);
+		}
+	}
+	
 	/**
 	 * 获取一个已经绑定过的Api对象
 	 * @param bind 绑定的对象
