@@ -107,6 +107,7 @@ public class Legolas {
 	 * @return 返回一个JDK动态代理类
 	 * @throws IllegalArgumentException
 	 */
+	@Deprecated
 	@SuppressWarnings("unchecked")
 	public <T> T getInstanceByBind(Object bind, Class<T> clazz) {
 		if (bind == null || clazz == null) {

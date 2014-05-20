@@ -9,7 +9,7 @@ import com.yepstudio.legolas.description.RequestDescription;
 import com.yepstudio.legolas.response.OnErrorListener;
 import com.yepstudio.legolas.response.OnResponseListener;
 
-public class RequestWrapper {
+public class RequestWrapper implements Comparable<RequestWrapper> {
 	private final Request request;
 	private final List<OnRequestListener> onRequestListeners;
 	private final Map<Type, OnResponseListener<?>> onResponseListeners;
@@ -76,6 +76,11 @@ public class RequestWrapper {
 
 	public void setBeforeCallData(Object beforeCallData) {
 		this.beforeCallData = beforeCallData;
+	}
+
+	@Override
+	public int compareTo(RequestWrapper o) {
+		return 0;
 	}
 
 }

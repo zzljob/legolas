@@ -3,14 +3,9 @@ package com.yepstudio.legolas.internal;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.Date;
-import java.util.Map;
-import java.util.WeakHashMap;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 
 import org.apache.http.HttpStatus;
@@ -53,10 +48,6 @@ public class BasicRequestExecutor implements RequestExecutor {
 	private final ProfilerDelivery profilerDelivery;
 	private final Cache cache;
 	
-	private final CompletionService<Response> service;
-	private final Thread watchThread;
-	private final Map<Future<Response>, RequestWrapper> futureMap;
-
 	public BasicRequestExecutor(ExecutorService httpSenderExecutor, HttpSender httpSender, ResponseDelivery responseDelivery, ResponseParser responseParser, ProfilerDelivery profiler, Cache cache) {
 		this.httpSenderExecutor = httpSenderExecutor;
 		this.httpSender = httpSender;
@@ -64,97 +55,60 @@ public class BasicRequestExecutor implements RequestExecutor {
 		this.responseDelivery = responseDelivery;
 		this.profilerDelivery = profiler;
 		this.cache = cache;
-		
-		service = new ExecutorCompletionService<Response>(this.httpSenderExecutor);
-		futureMap = new WeakHashMap<Future<Response>, RequestWrapper>();
-		watchThread = new Thread() {
-
+	}
+	
+	protected void executeHttp(final RequestWrapper wrapper) {
+		httpSenderExecutor.execute(new Runnable() {
+			
 			@Override
 			public void run() {
-				super.run();
-				Future<Response> future;
-				while (true) {
-					try {
-						future = service.take();
-					} catch (InterruptedException e) {
-						//还没开始就被取消掉了，这个时候Listeners，和分析都还没调用
-						future = null;
+				Request request = wrapper.getRequest();
+				Response response = null;
+				LegolasException throwable = null;
+				try {
+					if (request.isCancel()) {
+						throw new CancelException(request.getUuid());
 					}
-					if (future == null) {
-						continue;
+					response = getCacheOrNetworkResponse(request);
+					if (request.isCancel()) {
+						throw new CancelException(request.getUuid());
 					}
-					RequestWrapper wrapper = futureMap.get(future);
-					if (wrapper == null) {
-						continue;
+					response = responseParser.doParse(request, response);
+					executResponseListeners(wrapper, response);
+				} catch (IOException e) {
+					throwable = new NetworkException(request.getUuid(), e);
+				} catch (NetworkException e) {
+					throwable = e;
+				} catch (HttpException e) {
+					throwable = e;
+				} catch (ServiceException e) {
+					throwable = e;
+				} catch (CancelException e) {
+					throwable = e;
+				} catch (ConversionException e) {
+					throwable = e;
+				} catch (Throwable e) {
+					throwable = new LegolasException(request.getUuid(), e);
+				}
+				
+				if (throwable instanceof CancelException || wrapper.getRequest().isCancel()) {//有异常，并且是取消了
+					profilerDelivery.postCancelCall(wrapper);
+				} else {
+					if (throwable != null) { //有异常
+						executErrorListeners(wrapper, throwable);
 					}
-					boolean isCancel = false;
-					LegolasException exception = null;
-					Response response = null;
-					try {
-						response = future.get();
-					} catch (InterruptedException e) {
-						isCancel = true;
-					} catch (ExecutionException e) {
-						if (e.getCause() instanceof CancelException) {
-							isCancel = true;
-						} else if (e.getCause() instanceof LegolasException) {
-							exception = (LegolasException) e.getCause();
-						} else {
-							throw new RuntimeException(e);
-						}
-					}
-					if (isCancel) {
-						profilerDelivery.postCancelCall(wrapper);
-					} else {
-						if (exception != null) {
-							executErrorListeners(wrapper, exception);
-						}
-						profilerDelivery.postAfterCall(wrapper, response, exception);
-					}
-					futureMap.remove(future);
+					profilerDelivery.postAfterCall(wrapper, response, throwable);
 				}
 			}
-			
-		};
-		watchThread.setName("WatchThreadForAsyncRequest");
-		watchThread.start();
+		});
 	}
 
 	@Override
 	public void asyncRequest(final RequestWrapper wrapper) {
 		log.i("asyncRequest execute ...");
-		Future<Response> future = service.submit(new Callable<Response>() {
-
-			@Override
-			public Response call() throws Exception {
-				executRequestListeners(wrapper);
-				profilerDelivery.postBeforeCall(wrapper);
-
-				Request request = wrapper.getRequest();
-				Response response = null;
-				try {
-					if (request.isCancel()) {
-						throw new CancelException();
-					}
-					
-					response = responseParser.doParse(request, getCacheOrNetworkResponse(wrapper.getRequest()));
-					
-					if (request.isCancel()) {
-						throw new CancelException();
-					}
-					executResponseListeners(wrapper, response);
-				} catch (IOException e) {
-					throw new NetworkException(wrapper.getRequest().getUuid(), e);
-				} catch (LegolasException e) {
-					throw e;
-				} catch (CancelException e) {
-					throw e;
-				}
-				return response;
-			}
-
-		});
-		futureMap.put(future, wrapper);
+		executRequestListeners(wrapper);
+		profilerDelivery.postBeforeCall(wrapper);
+		executeHttp(wrapper);
 	}
 	
 	protected Response getCacheOrNetworkResponse(Request request) throws IOException {
@@ -190,18 +144,39 @@ public class BasicRequestExecutor implements RequestExecutor {
 		return response;
 	}
 	
-	private class CancelException extends Exception {
-
-		private static final long serialVersionUID = -2595820862553291465L;
+	private class CancelException extends LegolasException {
 		
+		private static final long serialVersionUID = -2595820862553291465L;
+
+		public CancelException(String uuid, String message, Throwable cause) {
+			super(uuid, message, cause);
+		}
+
+		public CancelException(String uuid, String message) {
+			super(uuid, message);
+		}
+
+		public CancelException(String uuid, Throwable cause) {
+			super(uuid, cause);
+		}
+
+		public CancelException(String uuid) {
+			super(uuid);
+		}
+
 	}
 	
 	protected void executResponseListeners(RequestWrapper wrapper, Response response) throws ConversionException {
-		if (wrapper.getOnResponseListeners() != null) {
-			for (Type type : wrapper.getOnResponseListeners().keySet()) {
-				Object result = wrapper.getConverter().fromBody(response.getBody(), type);
-				responseDelivery.postResponse(wrapper.getOnResponseListeners().get(type), wrapper.getRequest(), result);
+		try{
+			if (wrapper.getOnResponseListeners() != null) {
+				for (Type type : wrapper.getOnResponseListeners().keySet()) {
+					Object result = wrapper.getConverter().fromBody(response.getBody(), type);
+					responseDelivery.postResponse(wrapper.getOnResponseListeners().get(type), wrapper.getRequest(), result);
+				}
 			}
+		} catch (ConversionException e) {
+			//因为Converter是获取不到Request的UUID的，所以在这个地方要故意转一下
+			throw new ConversionException(wrapper.getRequest().getUuid(), e.getMessage(), e.getCause());
 		}
 	}
 	
@@ -259,5 +234,5 @@ public class BasicRequestExecutor implements RequestExecutor {
 		}
 		return null;
 	}
-
+	
 }

@@ -44,6 +44,7 @@ public class LegolasTest {
 		logger.trace("tearDown");
 	}
 
+	@Test
 	public void testRequest1() throws InterruptedException, IOException {
 		logger.trace("---------------------------------testRequest1-----------------------------------");
 		
@@ -58,7 +59,7 @@ public class LegolasTest {
 		};
 		
 		Legolas legolas = new Legolas.Build()
-											.setDefaultEndpoint(Endpoints.newFixedEndpoint("http://rebirth.duapp.com"))
+											//.setDefaultEndpoint(Endpoints.newFixedEndpoint("http://rebirth.duapp.com"))
 											.create();
 		
 		HttpApi api = legolas.newInstance(HttpApi.class);
@@ -66,7 +67,6 @@ public class LegolasTest {
 		TimeUnit.SECONDS.sleep(10);
 	}
 	
-	@Test
 	public void testRequest2() throws InterruptedException {
 		logger.trace("---------------------------------testRequest2-----------------------------------");
 		MockHttpSender httpSender = new MockHttpSender();
