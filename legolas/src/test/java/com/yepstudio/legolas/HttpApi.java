@@ -23,7 +23,7 @@ import com.yepstudio.legolas.response.OnResponseListener;
 @Interceptors(HttpApiInterceptor.class)
 public interface HttpApi {
 
-	@GET(value = "/{check}")
+	@GET(value = "/{check}?xxx=qw")
 	@Headers({ 
 		@Item(key = "request", value = "GET"),
 		@Item(key = "user-agent", value = "getHuodong")

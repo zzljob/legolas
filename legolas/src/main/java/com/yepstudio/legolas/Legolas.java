@@ -146,7 +146,7 @@ public class Legolas {
 	 * @param clazz
 	 * @return
 	 */
-	public Endpoint getEndpoint(Class<?> clazz) {
+	public Endpoint getDynamicEndpoint(Class<?> clazz) {
 		log.d("getEndpoint for API : [" + clazz + "]");
 		if (dynamicEndpoint == null) {
 			return defaultEndpoint;
@@ -157,6 +157,10 @@ public class Legolas {
 		}
 		log.v("has set dynamicEndpoint for " + clazz + ", use it");
 		return endpoint;
+	}
+	
+	public Endpoint getDefaultEndpoint() {
+		return defaultEndpoint;
 	}
 	
 	private Map<Class<?>, Map<String, Object>> getOrNewDynamicHeadersMap() {
@@ -171,7 +175,7 @@ public class Legolas {
 	 * @param clazz
 	 * @param defaultHeaders
 	 */
-	public void setHeaders(Class<?> clazz, Map<String, Object> defaultHeaders) {
+	public void setDynamicHeaders(Class<?> clazz, Map<String, Object> defaultHeaders) {
 		getOrNewDynamicHeadersMap().put(clazz, defaultHeaders);
 	}
 	
@@ -183,7 +187,7 @@ public class Legolas {
 	 * <li> API类的{@link com.yepstudio.legolas.annotation.Headers }标签</li>
 	 * <li> API的方法的{@link com.yepstudio.legolas.annotation.Headers }标签</li>
 	 * <li> Legolas初始化是设置的defaultHeaders {@link com.yepstudio.legolas.Legolas.Build#setDefaultHeaders(Map) } </li>
-	 * <li> Legolas针对API设置的dynamicHeaders  {@link com.yepstudio.legolas.Legolas#setHeaders(Class, Map) } </li>
+	 * <li> Legolas针对API设置的dynamicHeaders  {@link com.yepstudio.legolas.Legolas#setDynamicHeaders(Class, Map) } </li>
 	 * <li> API的方法的{@link com.yepstudio.legolas.annotation.Header }标签 </li>
 	 * <li> 通过{@link com.yepstudio.legolas.RequestInterceptor#interceptor(RequestInterceptorFace) }设置的Header </li>
 	 * </ul>
@@ -191,7 +195,7 @@ public class Legolas {
 	 * @param clazz
 	 * @return
 	 */
-	public Map<String, Object> getHeaders(Class<?> clazz) {
+	public Map<String, Object> getDynamicHeaders(Class<?> clazz) {
 		Map<String, Object> headers = new LinkedHashMap<String, Object>();
 		if (defaultHeaders != null) {
 			headers.putAll(defaultHeaders);
@@ -200,6 +204,10 @@ public class Legolas {
 			headers.putAll(dynamicHeaders.get(clazz));
 		}
 		return headers;
+	}
+	
+	public Map<String, Object> getDefaultHeaders() {
+		return defaultHeaders;
 	}
 	
 	private static Map<Object, Legolas> getOrNewLegolasBindMap() {
@@ -268,7 +276,7 @@ public class Legolas {
 			}
 			
 			Class<?> clazz = apiDescription.getApiClazz();
-			RequestBuilder builder = new RequestBuilder(getEndpoint(clazz), getHeaders(clazz), apiDescription, description, defaultConverter);
+			RequestBuilder builder = new RequestBuilder(getDynamicEndpoint(clazz), getDynamicHeaders(clazz), apiDescription, description, defaultConverter);
 			RequestWrapper wrapper = null;
 			try {
 				builder.parseArguments(args);

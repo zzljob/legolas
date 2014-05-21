@@ -59,7 +59,7 @@ public class LegolasTest {
 		};
 		
 		Legolas legolas = new Legolas.Build()
-											//.setDefaultEndpoint(Endpoints.newFixedEndpoint("http://rebirth.duapp.com"))
+											.setDefaultEndpoint(Endpoints.newFixedEndpoint("http://rebirth.duapp.com"))
 											.create();
 		
 		HttpApi api = legolas.newInstance(HttpApi.class);
@@ -89,7 +89,7 @@ public class LegolasTest {
 		Map<String, Object> defaultHeaders = new HashMap<String, Object>();
 		defaultHeaders.put("own", "defaultHeaders");
 		defaultHeaders.put("defaultHeaders", "defaultHeadersxxxx");
-		legolas.setHeaders(HttpApi.class, defaultHeaders);
+		legolas.setDynamicHeaders(HttpApi.class, defaultHeaders);
 		
 		ToolHttpApi api = legolas.newInstance(ToolHttpApi.class);
 		
@@ -130,7 +130,7 @@ public class LegolasTest {
 		Map<String, Object> defaultHeaders = new HashMap<String, Object>();
 		defaultHeaders.put("own", "defaultHeaders");
 		defaultHeaders.put("defaultHeaders", "defaultHeadersxxxx");
-		legolas.setHeaders(HttpApi.class, defaultHeaders);
+		legolas.setDynamicHeaders(HttpApi.class, defaultHeaders);
 		
 		HttpApi api = legolas.newInstance(HttpApi.class);
 		

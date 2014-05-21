@@ -43,7 +43,7 @@ import com.yepstudio.legolas.response.OnResponseListener;
 public class RequestBuilder implements RequestInterceptorFace {
 	
 	private static LegolasLog log = LegolasLog.getClazz(RequestBuilder.class);
-	private static String ENCODE= "UTF-8";
+	//private static String ENCODE= "UTF-8";
 	
 	private static Map<Class<?>, List<Field>> fieldsCache;
 	private static Map<Class<?>, List<Method>> methodsCache;
@@ -55,8 +55,8 @@ public class RequestBuilder implements RequestInterceptorFace {
 	private Converter converter;
 	private Object[] arguments;
 	
-	private Map<String, Object> headerMap = new HashMap<String, Object>();
 	private Map<String, Object> pathMap = new HashMap<String, Object>();
+	private Map<String, Object> headerMap = new HashMap<String, Object>();
 	private Map<String, Object> queryMap = new HashMap<String, Object>();
 	
 	private final FormUrlEncodedRequestBody formBody;
@@ -180,7 +180,7 @@ public class RequestBuilder implements RequestInterceptorFace {
 	}
 	
 	public String getRequestUrl(boolean original) {
-		if(original){
+		if (original) {
 			StringBuilder builder = new StringBuilder();
 			builder.append(api.getApiPath());
 			if (!api.getApiPath().endsWith("/") && !request.getRequestPath().startsWith("/")) {
@@ -240,8 +240,16 @@ public class RequestBuilder implements RequestInterceptorFace {
 		return map;
 	}
 	
+	/**
+	 * 每次都是New 一个Map
+	 * @param paramType
+	 * @return
+	 */
 	private Map<String, Object> getParams(int paramType) {
 		Map<String, Object> map = new HashMap<String, Object>();
+		if (ParameterType.QUERY == paramType) {
+			fillRequestQueryToMap(map);
+		}
 		List<ParameterDescription> list = request.getParameters();
 		if (list != null) {
 			for (int i = 0; i < list.size(); i++) {
@@ -251,6 +259,22 @@ public class RequestBuilder implements RequestInterceptorFace {
 			}
 		}
 		return map;
+	}
+	
+	protected void fillRequestQueryToMap(Map<String, Object> map) {
+		String query = request.getRequestQuery();
+		if (query != null && query.trim().length() > 0) {
+			String[] params = query.split("&");
+			String[] p;
+			if (params != null) {
+				for (String param : params) {
+					p = param.split("=", 2);
+					if (p != null && p.length == 2) {
+						map.put(p[0], p[1]);
+					}
+				}
+			}
+		}
 	}
 	
 	public Map<String, Object> getPathParams() {

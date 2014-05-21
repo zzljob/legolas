@@ -8,7 +8,9 @@ public class HttpApiInterceptor implements RequestInterceptor {
 
 	@Override
 	public void interceptor(RequestInterceptorFace face) {
-		logger.info("interceptor");
+		logger.info(face.getRequestUrl(false));
+		logger.info(face.getRequestUrl(true));
+		logger.info(face.getQueryParams().toString());
 	}
 
 }
