@@ -8,6 +8,7 @@ import java.util.concurrent.Executors;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
@@ -54,7 +55,7 @@ public class AndroidPlatform extends Platform {
 
 	@Override
 	public HttpSender defaultHttpSender() {
-		if (android.os.Build.VERSION.SDK_INT >= 9) {
+		if (android.os.Build.VERSION.SDK_INT < Build.VERSION_CODES.GINGERBREAD) {
 			return new AndroidHttpClientHttpSender();
 		} else {
 			return new UrlConnectionHttpSender();

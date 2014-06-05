@@ -30,7 +30,6 @@ import com.yepstudio.legolas.mime.ResponseBody;
 import com.yepstudio.legolas.request.Request;
 import com.yepstudio.legolas.response.Response;
 
-/** A {@link HttpSender} which uses an implementation of Apache's {@link HttpClient}. */
 public class HttpClientHttpSender implements HttpSender {
 	
 	private static HttpClient createDefaultClient(int connectTimeout, int readTimeout) {
@@ -42,9 +41,8 @@ public class HttpClientHttpSender implements HttpSender {
 
 	private final HttpClient client;
 
-	/** Creates an instance backed by {@link DefaultHttpClient}. */
 	public HttpClientHttpSender() {
-		this(createDefaultClient(12 * 1000, 20 * 1000));
+		this(createDefaultClient(15 * 1000, 20 * 1000));
 	}
 	
 	public HttpClientHttpSender(int connectTimeout, int readTimeout) {
