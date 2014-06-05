@@ -1,26 +1,26 @@
 package com.yepstudio.legolas.exception;
 
-import com.yepstudio.legolas.LegolasException;
+import java.lang.reflect.Type;
 
-public class ConversionException extends LegolasException {
+import com.yepstudio.legolas.response.Response;
+
+public class ConversionException extends ServiceException {
 
 	private static final long serialVersionUID = -5439925901304555188L;
 
-	public ConversionException(String uuid, String message, Throwable cause) {
-		super(uuid, message, cause);
+	private final Type result;
+
+	public ConversionException(String uuid, Response response, Type result, Throwable cause) {
+		this(uuid, response, result, "", cause);
 	}
 
-	public ConversionException(String uuid, String message) {
-		super(uuid, message);
+	public ConversionException(String uuid, Response response, Type result, String message, Throwable cause) {
+		super(uuid, response, message, cause);
+		this.result = result;
 	}
 
-	public ConversionException(String uuid, Throwable cause) {
-		super(uuid, cause);
+	public Type getResult() {
+		return result;
 	}
-
-	public ConversionException(String uuid) {
-		super(uuid);
-	}
-
 
 }

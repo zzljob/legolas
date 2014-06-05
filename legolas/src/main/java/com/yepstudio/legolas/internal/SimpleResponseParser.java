@@ -24,7 +24,7 @@ public class SimpleResponseParser implements ResponseParser {
 	@Override
 	public Response doParse(Request request, Response response) throws NetworkException, HttpException, ServiceException {
 		if (response == null) {
-			throw new NetworkException("has no Response"); 
+			throw new NetworkException(request.getUuid(), "has no Response"); 
 		}
 		int status = response.getStatus();
 		try {
@@ -34,21 +34,21 @@ public class SimpleResponseParser implements ResponseParser {
 				if (status == HttpStatus.SC_OK || status == HttpStatus.SC_NO_CONTENT) {
 					return successfullRequest(response);
 				} else {
-					throw new HttpException("just http status code 200，204, 304 be Supported");
+					throw new HttpException(request.getUuid(), "just http status code 200，204, 304 be Supported", response);
 				}
 			} else if (status >= 300 && status < 400) { // 3xx重定向
 				if (status == HttpStatus.SC_NOT_MODIFIED) {
 					//读取缓存
 					return cachedRequest(request, response);
 				} else {
-					throw new HttpException("just http status code 200，204, 304 be Supported");
+					throw new HttpException(request.getUuid(), "just http status code 200，204, 304 be Supported", response);
 				}
 			} else if (status >= 400 && status < 500) { // 4xx请求错误
-				throw new HttpException(request.getUuid());
+				throw new HttpException(request.getUuid(), "request is not good", response);
 			} else if (status >= 500 && status < 600) { // 5xx服务器错误
-				throw new ServiceException(request.getUuid());
+				throw new HttpException(request.getUuid(), "server is not goog", response);
 			} else {
-				throw new HttpException(request.getUuid());
+				throw new HttpException(request.getUuid(), "server has Exception", response);
 			}
 		} catch (IOException e) {
 			throw new NetworkException(request.getUuid(), e);

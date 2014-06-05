@@ -78,6 +78,10 @@ public class BcsApiTest {
 			public void onError(LegolasException error) {
 				countDown.countDown();
 				logger.info("errorListener");
+				logger.info("isHttpException:{}", error.isHttpException());
+				logger.info("isNetworkException:{}", error.isNetworkException());
+				logger.info("isServiceException:{}", error.isServiceException());
+				logger.info("getResponseText:{}", error.getResponseText());
 			}
 
 		};

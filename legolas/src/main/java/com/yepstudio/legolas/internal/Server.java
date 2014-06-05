@@ -11,8 +11,12 @@ import com.yepstudio.legolas.Endpoint;
  */
 public class Server implements Endpoint {
 
-	private String name;
-	private String url;
+	private final String url;
+	private final String name;
+
+	public Server(String url) {
+		this("", url);
+	}
 
 	public Server(String name, String url) {
 		super();
@@ -24,16 +28,8 @@ public class Server implements Endpoint {
 		return name;
 	}
 
-	public void setName(String name) {
-		this.name = name;
-	}
-
 	public String getUrl() {
 		return url;
-	}
-
-	public void setUrl(String url) {
-		this.url = url;
 	}
 
 }

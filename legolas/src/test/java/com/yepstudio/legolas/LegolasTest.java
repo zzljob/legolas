@@ -59,7 +59,7 @@ public class LegolasTest {
 		};
 		
 		Legolas legolas = new Legolas.Build()
-											.setDefaultEndpoint(Endpoints.newFixedEndpoint("http://rebirth.duapp.com"))
+											.setDefaultEndpoint(Endpoints.newStaticIpServer("http://rebirth.duapp.com", "12312"))
 											.create();
 		
 		HttpApi api = legolas.newInstance(HttpApi.class);

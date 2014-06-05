@@ -9,7 +9,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParseException;
 import com.yepstudio.legolas.LegolasLog;
-import com.yepstudio.legolas.exception.ConversionException;
 import com.yepstudio.legolas.mime.JsonRequestBody;
 import com.yepstudio.legolas.mime.RequestBody;
 import com.yepstudio.legolas.mime.ResponseBody;
@@ -42,7 +41,7 @@ public class GsonConverter extends BasicConverter {
 	}
 
 	@Override
-	public Object fromBody(ResponseBody body, Type type) throws ConversionException {
+	public Object fromBody(ResponseBody body, Type type) throws Exception {
 		log.d("fromBody:[" + type + "]");
 		String charset = Response.parseCharset(body.mimeType(), encoding);
 		log.d("charset:[" + charset + "]");
@@ -51,11 +50,11 @@ public class GsonConverter extends BasicConverter {
 			isr = new InputStreamReader(body.read(), charset);
 			return gson.fromJson(isr, type);
 		} catch (IOException e) {
-			throw new ConversionException(null, e);
+			throw e;
 		} catch (JsonParseException e) {
-			throw new ConversionException(null, e);
-		} catch (Throwable e) {
-			throw new ConversionException(null, e);
+			throw e;
+		} catch (Exception e) {
+			throw e;
 		} finally {
 			if (isr != null) {
 				try {

@@ -2,7 +2,6 @@ package com.yepstudio.legolas;
 
 import java.lang.reflect.Type;
 
-import com.yepstudio.legolas.exception.ConversionException;
 import com.yepstudio.legolas.mime.RequestBody;
 import com.yepstudio.legolas.mime.ResponseBody;
 
@@ -15,7 +14,7 @@ import com.yepstudio.legolas.mime.ResponseBody;
  */
 public interface Converter {
 
-	public Object fromBody(ResponseBody body, Type clazz) throws ConversionException;
+	public Object fromBody(ResponseBody body, Type clazz) throws Exception;
 
 	/**
 	 * <ul>

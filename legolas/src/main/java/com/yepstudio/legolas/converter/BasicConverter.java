@@ -10,7 +10,6 @@ import java.lang.reflect.Type;
 import java.util.Date;
 
 import com.yepstudio.legolas.LegolasLog;
-import com.yepstudio.legolas.exception.ConversionException;
 import com.yepstudio.legolas.mime.FileBody;
 import com.yepstudio.legolas.mime.RequestBody;
 import com.yepstudio.legolas.mime.ResponseBody;
@@ -51,9 +50,9 @@ public class BasicConverter extends AbstractConverter {
 	 * </ul>
 	 */
 	@Override
-	public Object fromBody(ResponseBody body, Type clazz) throws ConversionException {
+	public Object fromBody(ResponseBody body, Type clazz) throws Exception {
 		if (body == null) {
-			new ConversionException(null, "ResponseBody can not be null");
+			new NullPointerException("ResponseBody can not be null");
 		}
 		log.d("fromBody => " + clazz);
 		if (clazz == RequestBody.class) {
@@ -67,11 +66,11 @@ public class BasicConverter extends AbstractConverter {
 		} else if (clazz == File.class) {
 			return writeToFile(body);
 		} else {
-			throw new ConversionException(null, "not supported this type : " + clazz);
+			throw new Exception("not supported this type : " + clazz);
 		}
 	}
 	
-	protected StringBuffer readToStringBuffer(ResponseBody body) throws ConversionException {
+	protected StringBuffer readToStringBuffer(ResponseBody body) throws Exception {
 		if (body == null) {
 			return null;
 		}
@@ -81,7 +80,7 @@ public class BasicConverter extends AbstractConverter {
 			inputStream = body.read();
 			buffer.append(Response.streamToBytes(inputStream));
 		} catch (IOException e) {
-			throw new ConversionException(null, e);
+			throw e;
 		} finally {
 			try {
 				inputStream.close();
@@ -91,7 +90,7 @@ public class BasicConverter extends AbstractConverter {
 		return buffer;
 	}
 	
-	protected StringBuilder readToStringBuilder(ResponseBody body) throws ConversionException {
+	protected StringBuilder readToStringBuilder(ResponseBody body) throws Exception {
 		if (body == null) {
 			return null;
 		}
@@ -101,7 +100,7 @@ public class BasicConverter extends AbstractConverter {
 			inputStream = body.read();
 			builder.append(Response.streamToBytes(inputStream));
 		} catch (IOException e) {
-			throw new ConversionException(null, e);
+			throw e;
 		} finally {
 			try {
 				inputStream.close();
@@ -111,7 +110,7 @@ public class BasicConverter extends AbstractConverter {
 		return builder;
 	}
 	
-	protected String readToString(ResponseBody body, String charset) throws ConversionException {
+	protected String readToString(ResponseBody body, String charset) throws Exception {
 		if (body == null) {
 			return null;
 		}
@@ -120,9 +119,9 @@ public class BasicConverter extends AbstractConverter {
 			inputStream = body.read();
 			return new String(Response.streamToBytes(inputStream), charset);
 		} catch (UnsupportedEncodingException e) {
-			throw new ConversionException(null, e);
+			throw e;
 		} catch (IOException e) {
-			throw new ConversionException(null, e);
+			throw e;
 		} finally {
 			try {
 				inputStream.close();
@@ -131,7 +130,7 @@ public class BasicConverter extends AbstractConverter {
 		}
 	}
 	
-	protected File writeToFile(ResponseBody body) throws ConversionException {
+	protected File writeToFile(ResponseBody body) throws Exception {
 		if (body == null) {
 			return null;
 		}
@@ -151,9 +150,9 @@ public class BasicConverter extends AbstractConverter {
 				}
 			}
 		} catch (FileNotFoundException e) {
-			throw new ConversionException(null, e);
+			throw e;
 		} catch (IOException e) {
-			throw new ConversionException(null, e);
+			throw e;
 		} finally {
 			if (outputStream != null) {
 				try {

@@ -12,7 +12,6 @@ import java.util.regex.Pattern;
 import org.apache.http.protocol.HTTP;
 
 import com.yepstudio.legolas.LegolasLog;
-import com.yepstudio.legolas.mime.ByteArrayBody;
 import com.yepstudio.legolas.mime.ResponseBody;
 
 /**
@@ -69,11 +68,15 @@ public class Response {
 		return responseBody;
 	}
 	
-	public String parseCharset() {
-		return parseCharset(this.headers);
+	public String parseCharset(String defaultCharset) {
+		return parseCharset(this.headers, defaultCharset);
 	}
 	
-	public static String parseCharset(Map<String, String> headers) {
+	public String parseCharset() {
+		return this.parseCharset(HTTP.DEFAULT_CONTENT_CHARSET);
+	}
+	
+	public static String parseCharset(Map<String, String> headers, String defaultCharset) {
 		String contentType = headers.get(HTTP.CONTENT_TYPE);
 		if (contentType != null) {
 			String[] params = contentType.split(";");
@@ -87,7 +90,7 @@ public class Response {
 			}
 		}
 
-		return HTTP.DEFAULT_CONTENT_CHARSET;
+		return defaultCharset;
 	}
 	
 	private static final Pattern CHARSET = Pattern.compile("\\Wcharset=([^\\s;]+)", CASE_INSENSITIVE);
@@ -103,31 +106,30 @@ public class Response {
 		return defaultCharset;
 	}
 	
+//	public static Response readBodyToBytesIfNecessary(Response response) throws IOException {
+//		ResponseBody body = response.getBody();
+//		if (body == null || body instanceof ByteArrayBody) {
+//			return response;
+//		}
+//
+//		String bodyMime = body.mimeType();
+//		InputStream is = body.read();
+//		try {
+//			byte[] bodyBytes = streamToBytes(is);
+//			body = new ByteArrayBody(bodyMime, bodyBytes);
+//
+//			return new Response(response.getUuid(), response.getStatus(), response.getMessage(), response.getHeaders(), body);
+//		} finally {
+//			if (is != null) {
+//				try {
+//					is.close();
+//				} catch (IOException ignored) {
+//				}
+//			}
+//		}
+//	}
+
 	private static final int BUFFER_SIZE = 0x1000;
-	
-	public static Response readBodyToBytesIfNecessary(Response response) throws IOException {
-		ResponseBody body = response.getBody();
-		if (body == null || body instanceof ByteArrayBody) {
-			return response;
-		}
-
-		String bodyMime = body.mimeType();
-		InputStream is = body.read();
-		try {
-			byte[] bodyBytes = streamToBytes(is);
-			body = new ByteArrayBody(bodyMime, bodyBytes);
-
-			return new Response(response.getUuid(), response.getStatus(), response.getMessage(), response.getHeaders(), body);
-		} finally {
-			if (is != null) {
-				try {
-					is.close();
-				} catch (IOException ignored) {
-				}
-			}
-		}
-	}
-
 	public static byte[] streamToBytes(InputStream stream) throws IOException {
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		if (stream != null) {
@@ -143,6 +145,4 @@ public class Response {
 	public String getUuid() {
 		return uuid;
 	}
-	
-
 }

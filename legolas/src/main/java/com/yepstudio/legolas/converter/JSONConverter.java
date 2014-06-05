@@ -8,7 +8,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.yepstudio.legolas.LegolasLog;
-import com.yepstudio.legolas.exception.ConversionException;
 import com.yepstudio.legolas.mime.JsonRequestBody;
 import com.yepstudio.legolas.mime.RequestBody;
 import com.yepstudio.legolas.mime.ResponseBody;
@@ -26,7 +25,7 @@ public class JSONConverter extends BasicConverter {
 	private static String DEFAULT_CHARSET = "UTF-8";
 
 	@Override
-	public Object fromBody(ResponseBody body, Type clazz) throws ConversionException {
+	public Object fromBody(ResponseBody body, Type clazz) throws Exception {
 		String charset = Response.parseCharset(body.mimeType(), DEFAULT_CHARSET);
 		log.v("fromBody, charset:" + charset);
 		String jsonText;
@@ -37,7 +36,7 @@ public class JSONConverter extends BasicConverter {
 			try {
 				return new JSONObject(jsonText);
 			} catch (JSONException e) {
-				throw new ConversionException(null, e);
+				throw e;
 			}
 		} else if (clazz == JSONArray.class) {
 			jsonText = (String) super.fromBody(body, String.class);
@@ -45,7 +44,7 @@ public class JSONConverter extends BasicConverter {
 			try {
 				return new JSONArray(jsonText);
 			} catch (JSONException e) {
-				throw new ConversionException(null, e);
+				throw e;
 			}
 		} else {
 			return super.fromBody(body, clazz);

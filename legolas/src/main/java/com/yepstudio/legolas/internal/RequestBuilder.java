@@ -6,7 +6,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -17,6 +16,7 @@ import com.yepstudio.legolas.Converter;
 import com.yepstudio.legolas.Endpoint;
 import com.yepstudio.legolas.LegolasLog;
 import com.yepstudio.legolas.LegolasOptions;
+import com.yepstudio.legolas.RemoteEndpoint;
 import com.yepstudio.legolas.RequestInterceptorFace;
 import com.yepstudio.legolas.description.ApiDescription;
 import com.yepstudio.legolas.description.ParameterDescription;
@@ -190,7 +190,7 @@ public class RequestBuilder implements RequestInterceptorFace {
 			return builder.toString();
 		}else {
 			try {
-				return buildTargetUrl(false);
+				return buildTargetUrl(false, false);
 			} catch (MalformedURLException e) {
 				return null;
 			}
@@ -328,7 +328,7 @@ public class RequestBuilder implements RequestInterceptorFace {
 		log.d("addMuitiParameter:");
 		if (value instanceof Map) {
 			log.v("is map, add Parameter for map");
-			Map map = (Map) value;
+			Map<?, ?> map = (Map<?, ?>) value;
 			for (Object key : map.keySet()) {
 				if (key != null) {
 					Object result = map.get(key);
@@ -511,7 +511,8 @@ public class RequestBuilder implements RequestInterceptorFace {
 //		}
 	}
 	
-	protected String buildTargetUrl(boolean appleQuery) throws MalformedURLException {
+	
+	protected String buildTargetUrl(boolean appleQuery, boolean applyIpIfRemote) throws MalformedURLException {
 		log.i("buildTargetUrl:");
 		StringBuilder targetUrl = new StringBuilder();
 		targetUrl.append(api.getApiPath());
@@ -526,7 +527,7 @@ public class RequestBuilder implements RequestInterceptorFace {
 		}
 		targetUrl.append(requestPath);
 		if (!appleQuery) {
-			return applyEndpoint(targetUrl.toString());
+			return applyEndpoint(targetUrl.toString(), applyIpIfRemote);
 		}
 		boolean hasQuery = false;
 		if (request.getRequestQuery() != null && request.getRequestQuery().trim().length() > 0) {
@@ -549,21 +550,29 @@ public class RequestBuilder implements RequestInterceptorFace {
 			}
 			targetUrl.deleteCharAt(targetUrl.length() - 1);
 		}
-		return applyEndpoint(targetUrl.toString());
+		return applyEndpoint(targetUrl.toString(), applyIpIfRemote);
 	}
 	
-	protected String applyEndpoint(String targetUrl) throws MalformedURLException {
-		URL url = null;
+	protected String applyEndpoint(String targetUrl, boolean applyIpIfRemote) throws MalformedURLException {
 		Endpoint endpoint = getEndpoint();
-		if (endpoint == null) {
-			log.w("endpoint is null, can switch HOST, targetUrl : " + targetUrl);
+		if (endpoint == null || endpoint.getUrl() == null) {
+			log.w("endpoint is null, can not switch HOST, targetUrl : " + targetUrl);
 			return targetUrl.toString();
 		} else {
 			log.d("endpoint find, use relative path of [" + endpoint.getUrl() + "]");
-			URL endpointURL = new URL(endpoint.getUrl());
-			url = new URL(endpointURL, targetUrl);
-			log.v("[" + targetUrl.toString() + "]=>[" + url.toString() + "]");
-			return url.toString();
+			StringBuilder builder = new StringBuilder();
+			if (applyIpIfRemote && endpoint instanceof RemoteEndpoint) {
+				RemoteEndpoint xx = (RemoteEndpoint) endpoint;
+				builder.append(xx.getRemoteUrl());
+			} else {
+				builder.append(endpoint.getUrl());
+			}
+			if (!endpoint.getUrl().endsWith("/") && !targetUrl.startsWith("/")) {
+				builder.append("/");
+			}
+			builder.append(targetUrl);
+			log.v("[" + targetUrl.toString() + "]=>[" + builder.toString() + "]");
+			return builder.toString();
 		}
 	}
 	
@@ -576,7 +585,12 @@ public class RequestBuilder implements RequestInterceptorFace {
 		for (String key : header.keySet()) {
 			headers.put(key, converter.toParam(header.get(key), ParameterType.HEADER));
 		}
-		Request request = new Request(getRequestDescription(), getRequestMethod(), buildTargetUrl(true), headers, body);
+		Endpoint endpoint = getEndpoint();
+		if (endpoint != null && endpoint instanceof RemoteEndpoint) {
+			RemoteEndpoint xx = (RemoteEndpoint) endpoint;
+			headers.put("Host", xx.getHost());
+		}
+		Request request = new Request(getRequestDescription(), getRequestMethod(), buildTargetUrl(true, true), headers, body);
 		return new RequestWrapper(request, this.request.getResponseType(), converter, onRequestListeners, onResponseListeners, onErrorListeners);
 	}
 

@@ -85,13 +85,11 @@ public class BasicRequestExecutor implements RequestExecutor {
 					throwable = e;
 				} catch (CancelException e) {
 					throwable = e;
-				} catch (ConversionException e) {
-					throwable = e;
 				} catch (Throwable e) {
-					throwable = new LegolasException(request.getUuid(), e);
+					throwable = new LegolasException(request.getUuid(), null, e);
 				}
 				
-				if (throwable instanceof CancelException || wrapper.getRequest().isCancel()) {//有异常，并且是取消了
+				if (throwable instanceof CancelException || wrapper.getRequest().isCancel()) {//有异常，或者 取消了
 					profilerDelivery.postCancelCall(wrapper);
 				} else {
 					if (throwable != null) { //有异常
@@ -113,7 +111,7 @@ public class BasicRequestExecutor implements RequestExecutor {
 	
 	protected Response getCacheOrNetworkResponse(Request request) throws IOException {
 		if (!Platform.get().hasNetwork()) {
-			return null;
+			throw new IOException("no network");
 		}
 		Response response = null;
 		//Read Cache
@@ -145,23 +143,23 @@ public class BasicRequestExecutor implements RequestExecutor {
 	}
 	
 	private class CancelException extends LegolasException {
-		
+
 		private static final long serialVersionUID = -2595820862553291465L;
 
 		public CancelException(String uuid, String message, Throwable cause) {
-			super(uuid, message, cause);
+			super(uuid, null, message, cause);
 		}
 
 		public CancelException(String uuid, String message) {
-			super(uuid, message);
+			super(uuid, null, message);
 		}
 
 		public CancelException(String uuid, Throwable cause) {
-			super(uuid, cause);
+			super(uuid, null, cause);
 		}
 
 		public CancelException(String uuid) {
-			super(uuid);
+			super(uuid, null);
 		}
 
 	}
@@ -174,9 +172,9 @@ public class BasicRequestExecutor implements RequestExecutor {
 					responseDelivery.postResponse(wrapper.getOnResponseListeners().get(type), wrapper.getRequest(), result);
 				}
 			}
-		} catch (ConversionException e) {
+		} catch (Exception e) {
 			//因为Converter是获取不到Request的UUID的，所以在这个地方要故意转一下
-			throw new ConversionException(wrapper.getRequest().getUuid(), e.getMessage(), e.getCause());
+			throw new ConversionException(wrapper.getRequest().getUuid(), response, wrapper.getResult(), e.getMessage(), e.getCause());
 		}
 	}
 	
@@ -225,10 +223,10 @@ public class BasicRequestExecutor implements RequestExecutor {
 			} else if (thr instanceof LegolasException) {
 				throw (LegolasException) thr;
 			} else {
-				throw new LegolasException(wrapper.getRequest().getUuid(), thr);
+				throw new LegolasException(wrapper.getRequest().getUuid(), null, thr);
 			}
-		} catch (ConversionException e) {
-			throw new ConversionException(wrapper.getRequest().getUuid(), e);
+		} catch (Exception e) {
+			throw new ConversionException(wrapper.getRequest().getUuid(), response, wrapper.getResult(), e.getMessage(), e);
 		} finally {
 			profilerDelivery.postBeforeCall(wrapper);
 		}
