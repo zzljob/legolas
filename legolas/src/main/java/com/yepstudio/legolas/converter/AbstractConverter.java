@@ -16,7 +16,6 @@ public abstract class AbstractConverter implements Converter {
 
 	@Override
 	public abstract RequestBody toBody(Object object);
-
 	
 	@Override
 	public String toParam(Object object, int type) {

@@ -58,7 +58,9 @@ public class BasicConverter extends AbstractConverter {
 		if (clazz == RequestBody.class) {
 			return body;
 		} else if (clazz == String.class) {
-			return readToString(body, defaultCharset);
+			String charset = Response.parseCharset(body.mimeType(), defaultCharset);
+			log.v("fromBody, charset:" + charset);
+			return readToString(body, charset);
 		} else if (clazz == StringBuilder.class) {
 			return readToStringBuilder(body);
 		} else if (clazz == StringBuffer.class) {
@@ -66,6 +68,7 @@ public class BasicConverter extends AbstractConverter {
 		} else if (clazz == File.class) {
 			return writeToFile(body);
 		} else {
+			log.d("BasicConverter is not supported this type : " + clazz);
 			throw new Exception("not supported this type : " + clazz);
 		}
 	}
@@ -184,7 +187,7 @@ public class BasicConverter extends AbstractConverter {
 	@Override
 	public RequestBody toBody(Object object) {
 		if (object == null) {
-			return null;
+			return new StringBody("");
 		}
 		if (object instanceof RequestBody) {
 			return (RequestBody) object;
@@ -195,7 +198,8 @@ public class BasicConverter extends AbstractConverter {
 		} else if (object instanceof String) {
 			return new StringBody((String) object);
 		} else {
-			return new StringBody(object.toString());
+			log.d("BasicConverter is not supported this type toBody : " + object.getClass());
+			return null;
 		}
 	}
 

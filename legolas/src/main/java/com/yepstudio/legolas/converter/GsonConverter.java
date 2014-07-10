@@ -21,7 +21,7 @@ import com.yepstudio.legolas.response.Response;
  * @version 2.0, 2014年5月5日
  *
  */
-public class GsonConverter extends BasicConverter {
+public class GsonConverter extends JSONConverter {
 	private static LegolasLog log = LegolasLog.getClazz(GsonConverter.class);
 
 	private final Gson gson;
@@ -42,9 +42,17 @@ public class GsonConverter extends BasicConverter {
 
 	@Override
 	public Object fromBody(ResponseBody body, Type type) throws Exception {
-		log.d("fromBody:[" + type + "]");
+		Object result = null;
+		try {
+			result = super.fromBody(body, type);
+			return result;
+		} catch (Exception e) {
+			
+		}
+		
 		String charset = Response.parseCharset(body.mimeType(), encoding);
 		log.d("charset:[" + charset + "]");
+		
 		InputStreamReader isr = null;
 		try {
 			isr = new InputStreamReader(body.read(), charset);
@@ -67,6 +75,10 @@ public class GsonConverter extends BasicConverter {
 
 	@Override
 	public RequestBody toBody(Object object) {
+		RequestBody body = super.toBody(object);
+		if (body != null) {
+			return body;
+		}
 		try {
 			return new JsonRequestBody(gson.toJson(object), encoding);
 		} catch (UnsupportedEncodingException e) {
