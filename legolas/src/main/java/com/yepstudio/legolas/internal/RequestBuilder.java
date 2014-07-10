@@ -253,8 +253,17 @@ public class RequestBuilder implements RequestInterceptorFace {
 		List<ParameterDescription> list = request.getParameters();
 		if (list != null) {
 			for (int i = 0; i < list.size(); i++) {
-				if (paramType == list.get(i).getParameterType()) {
-					map.put(list.get(i).getName(), arguments[i]);
+				ParameterDescription pd = list.get(i);
+				if (paramType == pd.getParameterType()) {
+					if (pd.isMuitiParameter()) {
+						try {
+							addMuitiParameter(map, arguments[i]);
+						} catch (Exception e) {
+							log.e("", e);
+						}
+					} else {
+						map.put(pd.getName(), arguments[i]);
+					}
 				}
 			}
 		}
