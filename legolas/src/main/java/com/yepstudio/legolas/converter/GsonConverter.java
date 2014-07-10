@@ -25,6 +25,7 @@ public class GsonConverter extends JSONConverter {
 	private static LegolasLog log = LegolasLog.getClazz(GsonConverter.class);
 
 	protected final Gson gson;
+	protected boolean debug;
 	protected String encoding;
 
 	public GsonConverter() {
@@ -34,10 +35,19 @@ public class GsonConverter extends JSONConverter {
 	public GsonConverter(Gson gson) {
 		this(gson, "UTF-8");
 	}
+	
+	public GsonConverter(String encoding, boolean debug) {
+		this(new GsonBuilder().create(), encoding, debug);
+	}
 
 	public GsonConverter(Gson gson, String encoding) {
+		this(gson, encoding, false);
+	}
+	
+	public GsonConverter(Gson gson, String encoding, boolean debug) {
 		this.gson = gson;
 		this.encoding = encoding;
+		this.debug = debug;
 	}
 
 	@Override
@@ -55,8 +65,14 @@ public class GsonConverter extends JSONConverter {
 		
 		InputStreamReader isr = null;
 		try {
-			isr = new InputStreamReader(body.read(), charset);
-			return gson.fromJson(isr, type);
+			if (debug) {
+				String bodyString = readToString(body, charset);
+				log.d(bodyString);
+				return gson.fromJson(bodyString, type);
+			} else {
+				isr = new InputStreamReader(body.read(), charset);
+				return gson.fromJson(isr, type);
+			}
 		} catch (IOException e) {
 			throw e;
 		} catch (JsonParseException e) {
