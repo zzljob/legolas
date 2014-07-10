@@ -24,8 +24,8 @@ import com.yepstudio.legolas.response.Response;
 public class GsonConverter extends JSONConverter {
 	private static LegolasLog log = LegolasLog.getClazz(GsonConverter.class);
 
-	private final Gson gson;
-	private String encoding;
+	protected final Gson gson;
+	protected String encoding;
 
 	public GsonConverter() {
 		this(new GsonBuilder().create(), "UTF-8");
