@@ -26,7 +26,6 @@ public class GsonConverter extends JSONConverter {
 
 	protected final Gson gson;
 	protected boolean debug;
-	protected String encoding;
 
 	public GsonConverter() {
 		this(new GsonBuilder().create(), "UTF-8");
@@ -45,8 +44,8 @@ public class GsonConverter extends JSONConverter {
 	}
 	
 	public GsonConverter(Gson gson, String encoding, boolean debug) {
+		super(encoding);
 		this.gson = gson;
-		this.encoding = encoding;
 		this.debug = debug;
 	}
 
@@ -60,7 +59,7 @@ public class GsonConverter extends JSONConverter {
 			
 		}
 		
-		String charset = Response.parseCharset(body.mimeType(), encoding);
+		String charset = Response.parseCharset(body.mimeType(), getDefaultCharset());
 		log.d("charset:[" + charset + "]");
 		
 		InputStreamReader isr = null;
@@ -96,7 +95,7 @@ public class GsonConverter extends JSONConverter {
 			return body;
 		}
 		try {
-			return new JsonRequestBody(gson.toJson(object), encoding);
+			return new JsonRequestBody(gson.toJson(object), getDefaultCharset());
 		} catch (UnsupportedEncodingException e) {
 			
 		}

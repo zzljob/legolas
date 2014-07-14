@@ -22,7 +22,14 @@ import com.yepstudio.legolas.response.Response;
 public class JSONConverter extends BasicConverter {
 	
 	private static LegolasLog log = LegolasLog.getClazz(JSONConverter.class);
-	private static String DEFAULT_CHARSET = "UTF-8";
+	
+	public JSONConverter() {
+		this("UTF-8");
+	}
+	
+	public JSONConverter(String defaultCharset) {
+		super(defaultCharset);
+	}
 
 	@Override
 	public Object fromBody(ResponseBody body, Type clazz) throws Exception {
@@ -37,7 +44,7 @@ public class JSONConverter extends BasicConverter {
 		String jsonText;
 		if (clazz == JSONObject.class) {
 			
-			String charset = Response.parseCharset(body.mimeType(), DEFAULT_CHARSET);
+			String charset = Response.parseCharset(body.mimeType(), getDefaultCharset());
 			log.v("fromBody, charset:" + charset);
 			
 			jsonText = readToString(body, charset);
@@ -54,7 +61,7 @@ public class JSONConverter extends BasicConverter {
 			
 		} else if (clazz == JSONArray.class) {
 			
-			String charset = Response.parseCharset(body.mimeType(), DEFAULT_CHARSET);
+			String charset = Response.parseCharset(body.mimeType(), getDefaultCharset());
 			log.v("fromBody, charset:" + charset);
 			
 			jsonText = readToString(body, charset);
@@ -98,13 +105,13 @@ public class JSONConverter extends BasicConverter {
 		if (object instanceof JSONObject) {
 			try {
 				jsonText = ((JSONObject) object).toString();
-				return new JsonRequestBody(DEFAULT_CHARSET, jsonText);
+				return new JsonRequestBody(getDefaultCharset(), jsonText);
 			} catch (UnsupportedEncodingException e) {
 			}
 		} else if (object instanceof JSONArray) {
 			try {
 				jsonText = ((JSONArray) object).toString();
-				return new JsonRequestBody(DEFAULT_CHARSET, jsonText);
+				return new JsonRequestBody(getDefaultCharset(), jsonText);
 			} catch (UnsupportedEncodingException e) {
 			}
 		}

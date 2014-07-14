@@ -26,7 +26,6 @@ import com.yepstudio.legolas.response.Response;
 public class BasicConverter extends AbstractConverter {
 	
 	private static LegolasLog log = LegolasLog.getClazz(BasicConverter.class);
-	private final String defaultCharset;
 
 	private static final int BUFFER_SIZE = 0x1000;
 	
@@ -35,8 +34,7 @@ public class BasicConverter extends AbstractConverter {
 	}
 	
 	public BasicConverter(String defaultCharset) {
-		super();
-		this.defaultCharset = defaultCharset;
+		super(defaultCharset);
 	}
 
 	/**
@@ -58,7 +56,7 @@ public class BasicConverter extends AbstractConverter {
 		if (clazz == RequestBody.class) {
 			return body;
 		} else if (clazz == String.class) {
-			String charset = Response.parseCharset(body.mimeType(), defaultCharset);
+			String charset = Response.parseCharset(body.mimeType(), getDefaultCharset());
 			log.v("fromBody, charset:" + charset);
 			return readToString(body, charset);
 		} else if (clazz == StringBuilder.class) {
