@@ -114,9 +114,6 @@ public class ParameterDescription {
 				muitiParameter = true;
 			} else if (Description.class == annotation.annotationType()) {
 				description = ((Description) annotation).value(); 
-			} 
-			if (muitiParameter == false && (name == null || name.trim().length() < 1)) {
-				throw new IllegalStateException("parameter with Annotation, name can not be empty.");
 			}
 		}
 	}
