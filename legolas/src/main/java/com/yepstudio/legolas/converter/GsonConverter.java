@@ -2,16 +2,15 @@ package com.yepstudio.legolas.converter;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Type;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParseException;
 import com.yepstudio.legolas.LegolasLog;
-import com.yepstudio.legolas.mime.JsonRequestBody;
 import com.yepstudio.legolas.mime.RequestBody;
 import com.yepstudio.legolas.mime.ResponseBody;
+import com.yepstudio.legolas.mime.StringBody;
 import com.yepstudio.legolas.response.Response;
 
 /**
@@ -94,12 +93,8 @@ public class GsonConverter extends JSONConverter {
 		if (body != null) {
 			return body;
 		}
-		try {
-			return new JsonRequestBody(gson.toJson(object), getDefaultCharset());
-		} catch (UnsupportedEncodingException e) {
-			
-		}
-		return null;
+		
+		return new StringBody(object.toString());
 	}
 
 }
