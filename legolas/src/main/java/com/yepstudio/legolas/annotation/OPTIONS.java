@@ -7,11 +7,11 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * 进行OPTIONS请求，允许客户端查看服务器的性能
+ * 进行OPTIONS请求，请求查询服务器的性能，或查询与资源相关的选项和需求
  * 
  * @author zzljob@gmail.com
  * @create 2014年1月6日
- * @version 2.0, 2014年4月23日
+ * @version 2.0, 2014年10月27日
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)

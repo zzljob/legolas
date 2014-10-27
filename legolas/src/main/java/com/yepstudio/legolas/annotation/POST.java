@@ -7,11 +7,11 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * 进行POST请求
+ * 进行POST请求，在Request-URI所标识的资源后附加新的数据
  * 
  * @author zzljob@gmail.com
  * @create 2014年1月6日
- * @version 2.0, 2014年4月23日
+ * @version 2.0, 2014年10月27日
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
@@ -21,6 +21,6 @@ public @interface POST {
 	/**
 	 * 请求地址
 	 */
-	public String value();
+	public abstract String value();
 
 }

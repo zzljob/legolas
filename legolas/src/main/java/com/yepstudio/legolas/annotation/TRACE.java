@@ -16,8 +16,8 @@ import java.lang.annotation.Target;
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
-@Http(value = "PATCH", supportBody = true)
-public @interface PATCH {
+@Http(value = "TRACE", supportBody = true)
+public @interface TRACE {
 	/**
 	 * 请求地址
 	 */

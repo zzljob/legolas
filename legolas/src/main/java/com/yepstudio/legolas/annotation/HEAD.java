@@ -7,7 +7,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * 进行HEAD请求，只请求页面的首部。
+ * 进行HEAD请求，只请求页面的首部。请求获取由Request-URI所标识的资源的响应消息报头。
  * 
  * @author zzljob@gmail.com
  * @create 2014年1月6日

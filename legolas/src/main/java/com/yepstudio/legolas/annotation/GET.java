@@ -7,11 +7,11 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * 进行GET请求
+ * 进行GET请求，请求获取由Request-URI所标识的资源
  * 
  * @author zzljob@gmail.com
  * @create 2014年1月6日
- * @version 2.0, 2014年4月23日
+ * @version 2.1, 2014年10月27日
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
