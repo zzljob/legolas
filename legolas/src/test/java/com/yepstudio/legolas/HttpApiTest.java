@@ -14,6 +14,8 @@ import org.slf4j.LoggerFactory;
 import com.yepstudio.legolas.LegolasOptions.CachePolicy;
 import com.yepstudio.legolas.LegolasOptions.RecoveryPolicy;
 import com.yepstudio.legolas.cache.disk.BasicDiskCache;
+import com.yepstudio.legolas.converter.BasicConverter;
+import com.yepstudio.legolas.httpsender.UrlConnectionHttpSender;
 import com.yepstudio.legolas.internal.NoneLog;
 import com.yepstudio.legolas.listener.LegolasListener;
 import com.yepstudio.legolas.request.Request;
@@ -26,7 +28,7 @@ public class HttpApiTest {
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
-		Endpoint endpoint = Endpoints.newFixedEndpoint("http://jrsj1.data.fund123.cnv", "金融数据1");
+		Endpoint endpoint = Endpoints.newFixedEndpoint("http://jrsj1.data.fund123.cn", "金融数据1");
 		LegolasOptions defaultHttpRequestOptions = new LegolasOptions.Builder()
 				.cacheConverterResult(false)
 				.cacheInMemory(true)
@@ -37,8 +39,10 @@ public class HttpApiTest {
 		BasicDiskCache diskCache = new BasicDiskCache(new File("D:/cache"));
 		LegolasConfiguration config = new LegolasConfiguration.Builder()
 				.defaultEndpoints(endpoint)
-				.defaultHttpRequestOptions(defaultHttpRequestOptions)
+				.defaultOptions(defaultHttpRequestOptions)
 				.diskCache(diskCache)
+				.defaultConverter(new BasicConverter())
+				.httpSender(new UrlConnectionHttpSender())
 				.legolasLog(new NoneLog())
 				.build();
 		Legolas.getInstance().init(config);
@@ -56,6 +60,20 @@ public class HttpApiTest {
 	public void tearDown() throws Exception {
 	}
 
+	@Test
+	public void testSyncGetCss() throws InterruptedException {
+		HttpApi api = Legolas.getInstance().getApi(HttpApi.class);
+		try {
+			String response = api.getBaseCss();
+			logger.debug("response:{}", response);
+		} catch (Exception e) {
+			e.getCause();
+			logger.error("", e);
+		}
+		
+		TimeUnit.SECONDS.sleep(10);
+	}
+	
 	@Test
 	public void testSyncApi() throws InterruptedException {
 		HttpApi api = Legolas.getInstance().getApi(HttpApi.class);

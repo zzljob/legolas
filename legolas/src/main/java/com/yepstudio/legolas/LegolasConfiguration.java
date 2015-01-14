@@ -109,6 +109,7 @@ public class LegolasConfiguration {
 		private Converter defaultConverter;
 		private Map<Class<?>, Converter> defaultConverterForApi;
 
+		private String UserAgent;
 		private Map<String, String> defaultHeaders;
 
 		private Map<String, RequestInterceptor> requestInterceptors;
@@ -162,21 +163,23 @@ public class LegolasConfiguration {
 			return this;
 		}
 
+		public Builder requestUserAgent(String UserAgent) {
+			this.UserAgent = UserAgent;
+			return this;
+		}
+		
 		public Builder httpSender(HttpSender httpSender) {
 			this.httpSender = httpSender;
 			return this;
 		}
 
-		public Builder defaultHttpRequestOptions(LegolasOptions defaultHttpRequestOptions) {
-			this.defaultHttpRequestOptions = defaultHttpRequestOptions;
+		public Builder defaultConverter(Converter converter) {
+			this.defaultConverter = converter;
 			return this;
 		}
-
-		public Builder defaultHttpRequestOptionsForApi(Class<?> apiClass, LegolasOptions defaultHttpRequestOptions) {
-			if (defaultHttpRequestOptionsForApi == null) {
-				defaultHttpRequestOptionsForApi = new HashMap<Class<?>, LegolasOptions>();
-			}
-			defaultHttpRequestOptionsForApi.put(apiClass, defaultHttpRequestOptions);
+		
+		public Builder defaultOptions(LegolasOptions defaultHttpRequestOptions) {
+			this.defaultHttpRequestOptions = defaultHttpRequestOptions;
 			return this;
 		}
 
@@ -184,8 +187,24 @@ public class LegolasConfiguration {
 			this.defaultEndpoints = defaultEndpoints;
 			return this;
 		}
+		
+		public Builder requestApiConverter(Class<?> apiClass, Converter converter) {
+			if (defaultConverterForApi == null) {
+				defaultConverterForApi = new HashMap<Class<?>, Converter>();
+			}
+			this.defaultConverterForApi.put(apiClass, converter);
+			return this;
+		}
+		
+		public Builder requestApiOptions(Class<?> apiClass, LegolasOptions defaultHttpRequestOptions) {
+			if (defaultHttpRequestOptionsForApi == null) {
+				defaultHttpRequestOptionsForApi = new HashMap<Class<?>, LegolasOptions>();
+			}
+			defaultHttpRequestOptionsForApi.put(apiClass, defaultHttpRequestOptions);
+			return this;
+		}
 
-		public Builder defaultEndpointsForApi(Class<?> apiClass, Endpoint defaultEndpoints) {
+		public Builder requestApiEndpoints(Class<?> apiClass, Endpoint defaultEndpoints) {
 			if (defaultEndpointsForApi == null) {
 				defaultEndpointsForApi = new HashMap<Class<?>, Endpoint>();
 			}
@@ -193,19 +212,19 @@ public class LegolasConfiguration {
 			return this;
 		}
 
+		public Builder requestHeader(String name, String value) {
+			if (defaultHeaders == null) {
+				defaultHeaders = defaultHeaders();
+			}
+			defaultHeaders.put(name, value);
+			return this;
+		}
+		
 		public Builder registerRequestInterceptors(String alias, RequestInterceptor interceptor) {
 			if (requestInterceptors == null) {
 				requestInterceptors = new HashMap<String, RequestInterceptor>();
 			}
 			requestInterceptors.put(alias, interceptor);
-			return this;
-		}
-
-		public Builder defaultHeader(String name, String value) {
-			if (defaultHeaders == null) {
-				defaultHeaders = new HashMap<String, String>();
-			}
-			defaultHeaders.put(name, value);
 			return this;
 		}
 
@@ -216,6 +235,17 @@ public class LegolasConfiguration {
 			
 			if (legolasLog == null) {
 				legolasLog = platform.defaultLog();
+			}
+			
+			if (UserAgent == null) {
+				//默认UserAgent
+				StringBuilder ua = new StringBuilder();
+				ua.append(Legolas.LOG_TAG).append("_");
+				ua.append(Legolas.getVersion());
+				this.UserAgent = ua.toString();
+			}
+			if (defaultHeaders == null) {
+				defaultHeaders = defaultHeaders();
 			}
 			
 			// Cache
@@ -261,10 +291,6 @@ public class LegolasConfiguration {
 				defaultConverterForApi = null;
 			}
 			
-			if (defaultHeaders == null) {
-				defaultHeaders = new HashMap<String, String>();
-			}
-			
 			if (requestInterceptors == null) {
 				requestInterceptors = null;
 			}
@@ -290,6 +316,14 @@ public class LegolasConfiguration {
 				engine = new BasicLegolasEngine(taskExecutorForHttp, httpSender, cacheDispatcher, responseDelivery, profilerDelivery);
 			}
 			return new LegolasConfiguration(this);
+		}
+		
+		private Map<String, String> defaultHeaders() {
+			Map<String, String> headers = new HashMap<String, String>();
+			headers.put("Accept-Encoding", "gzip,deflate");
+			headers.put("Cache-Control", "max-age=0");
+			headers.put("User-Agent", UserAgent);
+			return headers;
 		}
 		
 		private Platform defaultPlatform() {

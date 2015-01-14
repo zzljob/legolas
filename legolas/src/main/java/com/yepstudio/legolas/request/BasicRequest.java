@@ -28,7 +28,6 @@ public abstract class BasicRequest extends Request {
 	private final CacheKeyGenerater cacheKeyGenerater;
 	
 	private Object lock = new Object();
-	private final Date birthTime = new Date();
 	/*** 开始请求的时候，如果缓存命中则为空 ***/
 	private Date startRequestTime;
 	/*** 完成时间，一定不为空 ***/
@@ -100,10 +99,6 @@ public abstract class BasicRequest extends Request {
 		return finishTime;
 	}
 
-	public Date getBirthTime() {
-		return birthTime;
-	}
-
 	public void startRequest() {
 		synchronized (lock) {
 			startRequestTime = new Date();
@@ -152,12 +147,12 @@ public abstract class BasicRequest extends Request {
 	public long getReadyTime() {
 		synchronized (lock) {
 			if (allFinished.get()) {
-				return finishTime.getTime() - birthTime.getTime() - getSpendTime();
+				return finishTime.getTime() - getBirthTime().getTime() - getSpendTime();
 			} 
 			if (startRequestTime == null) {
 				return -1;
 			} else {
-				return startRequestTime.getTime() - birthTime.getTime();
+				return startRequestTime.getTime() - getBirthTime().getTime();
 			}
 		}
 	}

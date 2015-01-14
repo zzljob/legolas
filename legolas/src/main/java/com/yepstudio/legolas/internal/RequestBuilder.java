@@ -133,6 +133,7 @@ public class RequestBuilder implements RequestInterceptorFace {
 		builder.append("Headers : \n");
 		for (String key : defaultHeaders.keySet()) {
 			builder.append(key).append("=").append(defaultHeaders.get(key));
+			builder.append("\n");
 		}
 	}
 	
@@ -265,6 +266,9 @@ public class RequestBuilder implements RequestInterceptorFace {
 		}
 		
 		appendLogForStartParameter(requestBuildLog);
+		if (arguments == null || arguments.length < 1) {
+			return ;
+		}
 		for (int i = 0; i < arguments.length; i++) {
 			ParameterDescription pd = list.get(i);
 			Object objArg = arguments[i];
@@ -455,22 +459,27 @@ public class RequestBuilder implements RequestInterceptorFace {
 		return builder.toString();
 	}
 	
-	public SyncRequest buildSyncRequest() {
-		String url = applyQuery(getRequestUrl());
-		String method = getRequestMethod();
-		String description = makeRequestDescription();
-		
+	private Map<String, String> aggregationHeader() {
 		Map<String, String> header = new ConcurrentHashMap<String, String>();
 		if (defaultHeaders != null) {
 			for (String key : defaultHeaders.keySet()) {
-				header.put(encodeValue(key), encodeValue(defaultHeaders.get(key)));
+				header.put(key, defaultHeaders.get(key));
 			}
 		}
 		if (headerMap != null) {
 			for (String key : headerMap.keySet()) {
-				header.put(encodeValue(key), encodeValue(headerMap.get(key)));
+				header.put(key, headerMap.get(key));
 			}
 		}
+		header.put("Host", endpoint.getHost());
+		return header;
+	}
+	
+	public SyncRequest buildSyncRequest() {
+		String url = applyQuery(getRequestUrl());
+		String method = getRequestMethod();
+		String description = makeRequestDescription();
+		Map<String, String> header = aggregationHeader();
 		
 		SyncRequest request = null;
 		if (requestDescription.isSynchronous()) {
@@ -490,18 +499,7 @@ public class RequestBuilder implements RequestInterceptorFace {
 		String url = applyQuery(getRequestUrl());
 		String method = getRequestMethod();
 		String description = makeRequestDescription();
-		
-		Map<String, String> header = new ConcurrentHashMap<String, String>();
-		if (defaultHeaders != null) {
-			for (String key : defaultHeaders.keySet()) {
-				header.put(encodeValue(key), encodeValue(defaultHeaders.get(key)));
-			}
-		}
-		if (headerMap != null) {
-			for (String key : headerMap.keySet()) {
-				header.put(encodeValue(key), encodeValue(headerMap.get(key)));
-			}
-		}
+		Map<String, String> header = aggregationHeader();
 		
 		return new AsyncRequest(url, method, description, header, body,
 				this.options, this.converter, onRequestListeners,

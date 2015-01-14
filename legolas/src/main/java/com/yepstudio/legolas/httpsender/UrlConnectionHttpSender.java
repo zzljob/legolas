@@ -12,7 +12,6 @@ import java.util.Map;
 
 import com.yepstudio.legolas.HttpSender;
 import com.yepstudio.legolas.Legolas;
-import com.yepstudio.legolas.LegolasLog;
 import com.yepstudio.legolas.mime.RequestBody;
 import com.yepstudio.legolas.mime.ResponseBody;
 import com.yepstudio.legolas.request.Request;
@@ -20,7 +19,6 @@ import com.yepstudio.legolas.response.Response;
 
 /** Network that uses {@link HttpURLConnection} for communication. */
 public class UrlConnectionHttpSender implements HttpSender {
-	private static LegolasLog log = Legolas.getLog();
 
 	private static final int CHUNK_SIZE = 4096; //4K
 	private final Field methodField;
@@ -44,7 +42,7 @@ public class UrlConnectionHttpSender implements HttpSender {
 
 	@Override
 	public Response execute(Request request) throws IOException {
-		log.v("execute");
+		Legolas.getLog().v("execute");
 		HttpURLConnection connection = openConnection(request);
 		prepareRequest(connection, request);
 		return readResponse(request, connection);
@@ -54,12 +52,12 @@ public class UrlConnectionHttpSender implements HttpSender {
 		HttpURLConnection connection = (HttpURLConnection) new URL(request.getUrl()).openConnection();
 		connection.setConnectTimeout(connectTimeout);
 		connection.setReadTimeout(readTimeout);
-		log.v(String.format("openConnection, ConnectTimeout:%s s, ReadTimeout:%s s", connectTimeout / 1000, readTimeout / 1000));
+		Legolas.getLog().v(String.format("openConnection, ConnectTimeout:%s s, ReadTimeout:%s s", connectTimeout / 1000, readTimeout / 1000));
 		return connection;
 	}
 	
 	protected void prepareRequest(HttpURLConnection connection, Request request) throws IOException {
-		log.v(String.format("prepareRequest, setRequestMethod:%s", request.getMethod()));
+		Legolas.getLog().v(String.format("prepareRequest, setRequestMethod:%s", request.getMethod()));
 		// HttpURLConnection artificially restricts request method
 		try {
 			connection.setRequestMethod(request.getMethod());
@@ -75,7 +73,7 @@ public class UrlConnectionHttpSender implements HttpSender {
 
 		Map<String, String> headers = request.getHeaders();
 		for (String key : headers.keySet()) {
-			log.v(String.format("addRequestProperty, %s=>%s", key, headers.get(key)));
+			Legolas.getLog().v(String.format("addRequestProperty, %s=>%s", key, headers.get(key)));
 			connection.addRequestProperty(key, headers.get(key));
 		}
 
@@ -95,7 +93,7 @@ public class UrlConnectionHttpSender implements HttpSender {
 	}
 
 	Response readResponse(Request request, HttpURLConnection connection) throws IOException {
-		log.v(String.format("readResponse"));
+		Legolas.getLog().v(String.format("readResponse"));
 		int status = connection.getResponseCode();
 		String reason = connection.getResponseMessage();
 

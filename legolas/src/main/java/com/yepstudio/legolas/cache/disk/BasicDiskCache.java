@@ -30,6 +30,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import com.yepstudio.legolas.Legolas;
 import com.yepstudio.legolas.cache.CacheEntry;
 import com.yepstudio.legolas.mime.ByteArrayResponseBody;
 import com.yepstudio.legolas.mime.ResponseBody;
@@ -54,7 +55,7 @@ public class BasicDiskCache implements DiskCache {
     private final int mMaxCacheSizeInBytes;
 
     /** Default maximum disk usage in bytes. */
-    private static final int DEFAULT_DISK_USAGE_BYTES = 1 * 50 * 1024 * 1024;
+    private static final int DEFAULT_DISK_USAGE_BYTES = 1 * 100 * 1024 * 1024;
 
     /** High water mark percentage for the cache */
     private static final float HYSTERESIS_FACTOR = 0.9f;
@@ -94,7 +95,7 @@ public class BasicDiskCache implements DiskCache {
         }
         mEntries.clear();
         mTotalSize = 0;
-       // log.d("Cache cleared.");
+        Legolas.getLog().d("Cache cleared.");
     }
 
     /**
@@ -116,7 +117,7 @@ public class BasicDiskCache implements DiskCache {
             byte[] data = streamToBytes(cis, (int) (file.length() - cis.bytesRead));
             return entry.toCacheEntry(data);
         } catch (IOException e) {
-        	//log.d(String.format("%s: %s", file.getAbsolutePath(), e.toString()));
+        	Legolas.getLog().d(String.format("%s: %s", file.getAbsolutePath(), e.toString()));
             remove(key);
             return null;
         } finally {
@@ -257,7 +258,7 @@ public class BasicDiskCache implements DiskCache {
         if ((mTotalSize + neededSpace) < mMaxCacheSizeInBytes) {
             return;
         }
-       // log.v("Pruning old cache entries.");
+        Legolas.getLog().v("Pruning old cache entries.");
 
         long before = mTotalSize;
         int prunedFiles = 0;
@@ -271,7 +272,7 @@ public class BasicDiskCache implements DiskCache {
             if (deleted) {
                 mTotalSize -= e.size;
             } else {
-            	//log.d(String.format("Could not delete cache entry for key=%s, filename=%s", e.key, getFilenameForKey(e.key)));
+            	Legolas.getLog().d(String.format("Could not delete cache entry for key=%s, filename=%s", e.key, getFilenameForKey(e.key)));
             }
             iterator.remove();
             prunedFiles++;
@@ -281,7 +282,7 @@ public class BasicDiskCache implements DiskCache {
             }
         }
 
-       // log.v(String.format("pruned %d files, %d bytes, %d ms", prunedFiles, (mTotalSize - before), System.currentTimeMillis() - startTime));
+        Legolas.getLog().v(String.format("pruned %d files, %d bytes, %d ms", prunedFiles, (mTotalSize - before), System.currentTimeMillis() - startTime));
     }
 
     /**

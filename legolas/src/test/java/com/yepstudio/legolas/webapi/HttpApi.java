@@ -16,6 +16,10 @@ import com.yepstudio.legolas.request.Request;
 @Api("/News")
 public interface HttpApi {
 
+	@Description("获得一个CSS文件")
+	@GET(value = "http://assets.imedao.com/style/common/base-1481b7.css", isAbsolute = true)
+	public String getBaseCss();
+	
 	@Description("获得新闻标题")
 	@GET("NewsTitle.ashx")
 	public String syncGetNewsTitle(
