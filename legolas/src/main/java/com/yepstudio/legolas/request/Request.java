@@ -1,14 +1,10 @@
 package com.yepstudio.legolas.request;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import java.lang.reflect.Type;
+import java.util.Date;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.yepstudio.legolas.Cache;
-import com.yepstudio.legolas.LegolasLog;
-import com.yepstudio.legolas.mime.ByteArrayBody;
 import com.yepstudio.legolas.mime.RequestBody;
 
 /**
@@ -16,35 +12,44 @@ import com.yepstudio.legolas.mime.RequestBody;
  * @author zzljob@gmail.com
  * @createDate 2014年1月9日
  */
-public class Request {
+public abstract class Request implements Comparable<Request> {
 
-	private static LegolasLog log = LegolasLog.getClazz(Request.class);
-
-	private final String uuid;
-	private final String description;
 	private final String url;
 	private final String method;
+	private final String description;
 	private final Map<String, String> headers;
 	private final RequestBody body;
 	
-	private Cache.Entry cacheEntry;
-	private AtomicBoolean cancel = new AtomicBoolean(false);
-
-	public Request(String description, String method, String url, Map<String, String> headers, RequestBody body) {
+	private final Date birthTime = new Date();
+	/**** 初始化的时间 ***/
+	private final StringBuffer log = new StringBuffer();
+	private final AtomicBoolean cancel = new AtomicBoolean(false);
+	
+	public Request(String url, String method, String description, Map<String, String> headers, RequestBody body) {
 		super();
-		uuid = UUID.randomUUID().toString();
-		this.description = description;
-		this.method = method;
 		this.url = url;
+		this.method = method;
+		this.description = description;
 		this.headers = headers;
 		this.body = body;
-		log.i(String.format("new Request:[%s], method:%s, url:%s, headers:%s, body:%s", uuid, method, url, headers, body));
 	}
 
-	public void cancel() {
-		cancel.set(true);
+	@Override
+	public int compareTo(Request o) {
+		if (o == null) {
+			return 1;
+		}
+		Date time1 = getBirthTime();
+		Date time2 = getBirthTime();
+		if (time1 == null && time2 == null) {
+			return 0;
+		}
+		if (time1 == null || time2 == null) {
+			return time1 == null ? -1 : 1;
+		}
+		return (int) (time1.getTime() - time2.getTime());
 	}
-	
+
 	public String getMethod() {
 		return method;
 	}
@@ -61,43 +66,56 @@ public class Request {
 		return body;
 	}
 
-	@Deprecated
-	public static Request readBodyToBytesIfNecessary(Request request) throws IOException {
-		RequestBody body = request.getBody();
-		if (body == null || body instanceof ByteArrayBody) {
-			return request;
-		}
-
-		String bodyMime = body.mimeType();
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		body.writeTo(baos);
-		body = new ByteArrayBody(bodyMime, baos.toByteArray());
-
-		return new Request("", request.getMethod(), request.getUrl(), request.getHeaders(), body);
-	}
-
 	public String getDescription() {
 		return description;
 	}
-
-	public String getUuid() {
-		return uuid;
+	
+	public String getRequestLog() {
+		return log.toString();
 	}
-
-	public boolean isCancel() {
+	
+	
+	
+	public synchronized void cancel() {
+		cancel.set(true);
+	}
+	
+	public synchronized boolean isCancel() {
 		return cancel.get();
 	}
-	
-	public String getCacheKey() {
-		return String.format("%s:%s", getMethod(), getUrl());
+
+	public Request appendLog(String logText) {
+		log.append(logText);
+		return this;
 	}
 	
-	public void setCacheEntry(Cache.Entry entry) {
-		cacheEntry = entry;
+	public abstract String getCharset();
+	
+	public abstract String getCacheKey();
+
+	public abstract String getCacheKey(Type type);
+	
+	public abstract boolean isFinished();
+	
+	public abstract boolean isRequestFinished();
+	
+	public abstract boolean isRequestStarted();
+	
+	public abstract boolean isRequesting();
+	
+	public abstract Date getRequestStartTime();
+
+	public abstract Date getRequestFinishTime();
+
+	public abstract Date getFinishTime();
+	
+	public abstract long getSpendTime();
+	
+	public abstract long getReadyTime();
+
+	public Date getBirthTime() {
+		return birthTime;
 	}
 
-	public Cache.Entry getCacheEntry() {
-		return cacheEntry;
-	}
 
 }

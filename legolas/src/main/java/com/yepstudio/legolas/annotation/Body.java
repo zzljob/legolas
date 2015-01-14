@@ -8,7 +8,8 @@ import java.lang.annotation.Target;
 
 /**
  * multipart 和 form 之外的请求参数， 将被设置到body<br/>
- * 不能和@FormUrlEncoded 、@Multipart一块使用
+ * 不能和@FormUrlEncoded 、@Multipart一块使用<br/>
+ * 该请求只能有这一个参数
  * 
  * @author zzljob@gmail.com
  * @create 2014年1月6日
@@ -19,8 +20,4 @@ import java.lang.annotation.Target;
 @Target({ ElementType.PARAMETER })
 public @interface Body {
 
-	/**
-	 * 参数名
-	 */
-	public abstract String value();
 }

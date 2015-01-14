@@ -2,8 +2,8 @@ package com.yepstudio.legolas;
 
 import java.lang.reflect.Type;
 
-import com.yepstudio.legolas.mime.RequestBody;
-import com.yepstudio.legolas.mime.ResponseBody;
+import com.yepstudio.legolas.exception.ConversionException;
+import com.yepstudio.legolas.response.Response;
 
 /**
  * 请求和相应内容的转换接口
@@ -14,24 +14,8 @@ import com.yepstudio.legolas.mime.ResponseBody;
  */
 public interface Converter {
 
-	public Object fromBody(ResponseBody body, Type clazz) throws Exception;
-
-	/**
-	 * <ul>
-	 * <li>ParameterDescription.ParameterType.PART</li>
-	 * <li>ParameterDescription.ParameterType.BODY</li>
-	 * </ul>
-	 */
-	public RequestBody toBody(Object object);
-
-	/**
-	 * <ul>
-	 * <li>ParameterDescription.ParameterType.HEADER</li>
-	 * <li>ParameterDescription.ParameterType.PATH</li>
-	 * <li>ParameterDescription.ParameterType.QUERY</li>
-	 * <li>ParameterDescription.ParameterType.FIELD</li>
-	 * </ul>
-	 */
-	public String toParam(Object object, int type);
+	public Object convert(Response response, Type type) throws ConversionException;
+	
+	public boolean isSupport(Type type);
 
 }

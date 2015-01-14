@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.yepstudio.legolas.HttpSender;
+import com.yepstudio.legolas.Legolas;
 import com.yepstudio.legolas.LegolasLog;
 import com.yepstudio.legolas.mime.RequestBody;
 import com.yepstudio.legolas.mime.ResponseBody;
@@ -19,7 +20,7 @@ import com.yepstudio.legolas.response.Response;
 
 /** Network that uses {@link HttpURLConnection} for communication. */
 public class UrlConnectionHttpSender implements HttpSender {
-	private static LegolasLog log = LegolasLog.getClazz(UrlConnectionHttpSender.class);
+	private static LegolasLog log = Legolas.getLog();
 
 	private static final int CHUNK_SIZE = 4096; //4K
 	private final Field methodField;
@@ -115,7 +116,7 @@ public class UrlConnectionHttpSender implements HttpSender {
 			stream = connection.getInputStream();
 		}
 		ResponseBody responseBody = new StreamResponseBody(mimeType, length, stream);
-		return new Response(request.getUuid(), status, reason, headers, responseBody);
+		return new Response(status, reason, headers, responseBody);
 	}
 
 	private static class StreamResponseBody implements ResponseBody {

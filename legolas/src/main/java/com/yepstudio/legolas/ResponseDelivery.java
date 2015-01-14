@@ -1,9 +1,6 @@
 package com.yepstudio.legolas;
 
-import com.yepstudio.legolas.request.OnRequestListener;
-import com.yepstudio.legolas.request.Request;
-import com.yepstudio.legolas.response.OnErrorListener;
-import com.yepstudio.legolas.response.OnResponseListener;
+import com.yepstudio.legolas.request.AsyncRequest;
 
 /**
  * Response投递
@@ -14,11 +11,10 @@ import com.yepstudio.legolas.response.OnResponseListener;
  */
 public interface ResponseDelivery {
 
-	public void submitRequest(OnRequestListener onRequestListener, Request request);
+	public void postAsyncRequest(AsyncRequest wrapper);
+	
+	public void postAsyncResponse(AsyncRequest wrapper);
 
-	public void postResponse(OnResponseListener<?> onResponseListener, Request request, Object result);
+	public void postAsyncError(AsyncRequest wrapper, LegolasException exception);
 
-	public void postResponse(OnResponseListener<?> onResponseListener, Request request, Object result, Runnable runnable);
-
-	public void postError(OnErrorListener onErrorListener, Request request, LegolasException error);
 }

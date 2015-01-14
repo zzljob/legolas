@@ -16,12 +16,14 @@ import java.lang.annotation.Target;
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
-@Http(value = "GET", httpValue = "value", supportBody = false)
+@Http(value = "GET", supportBody = false, pathMethod = "value", absoluteMethod = "isAbsolute")
 public @interface GET {
 
 	/**
 	 * 请求地址
 	 */
 	public abstract String value();
+
+	public abstract boolean isAbsolute() default false;
 
 }

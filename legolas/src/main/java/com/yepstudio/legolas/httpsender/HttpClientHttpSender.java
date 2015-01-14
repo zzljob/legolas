@@ -24,7 +24,7 @@ import org.apache.http.params.HttpParams;
 import org.apache.http.util.EntityUtils;
 
 import com.yepstudio.legolas.HttpSender;
-import com.yepstudio.legolas.mime.ByteArrayBody;
+import com.yepstudio.legolas.mime.ByteArrayResponseBody;
 import com.yepstudio.legolas.mime.RequestBody;
 import com.yepstudio.legolas.mime.ResponseBody;
 import com.yepstudio.legolas.request.Request;
@@ -85,14 +85,14 @@ public class HttpClientHttpSender implements HttpSender {
 			headers.put(name, value);
 		}
 
-		ByteArrayBody body = null;
+		ByteArrayResponseBody body = null;
 		HttpEntity entity = response.getEntity();
 		if (entity != null) {
 			byte[] bytes = EntityUtils.toByteArray(entity);
-			body = new ByteArrayBody(contentType, bytes);
+			body = new ByteArrayResponseBody(contentType, bytes);
 		}
 
-		return new Response(request.getUuid(), status, reason, headers, body);
+		return new Response(status, reason, headers, body);
 	}
 
 	private static class GenericHttpRequest extends HttpEntityEnclosingRequestBase {

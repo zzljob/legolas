@@ -22,5 +22,7 @@ public @interface Http {
 
 	public boolean supportBody() default false;
 
-	public String httpValue() default "value";
+	public String pathMethod() default "value";
+
+	public String absoluteMethod() default "isAbsolute";
 }

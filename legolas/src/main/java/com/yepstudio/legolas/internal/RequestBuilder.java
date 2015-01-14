@@ -1,37 +1,41 @@
 package com.yepstudio.legolas.internal;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
-import java.net.MalformedURLException;
-import java.util.ArrayList;
+import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.yepstudio.legolas.Converter;
 import com.yepstudio.legolas.Endpoint;
-import com.yepstudio.legolas.LegolasLog;
 import com.yepstudio.legolas.LegolasOptions;
-import com.yepstudio.legolas.RemoteEndpoint;
+import com.yepstudio.legolas.ParameterType;
 import com.yepstudio.legolas.RequestInterceptorFace;
+import com.yepstudio.legolas.RequestType;
 import com.yepstudio.legolas.description.ApiDescription;
 import com.yepstudio.legolas.description.ParameterDescription;
-import com.yepstudio.legolas.description.ParameterDescription.ParameterType;
+import com.yepstudio.legolas.description.ParameterItemDescription;
 import com.yepstudio.legolas.description.RequestDescription;
-import com.yepstudio.legolas.description.RequestDescription.RequestType;
+import com.yepstudio.legolas.listener.LegolasListener;
+import com.yepstudio.legolas.listener.LegolasListenerWrapper;
+import com.yepstudio.legolas.mime.FileRequestBody;
 import com.yepstudio.legolas.mime.FormUrlEncodedRequestBody;
 import com.yepstudio.legolas.mime.MultipartRequestBody;
 import com.yepstudio.legolas.mime.RequestBody;
-import com.yepstudio.legolas.mime.StringBody;
+import com.yepstudio.legolas.mime.StringRequestBody;
 import com.yepstudio.legolas.request.OnRequestListener;
-import com.yepstudio.legolas.request.Request;
-import com.yepstudio.legolas.request.RequestWrapper;
+import com.yepstudio.legolas.request.AsyncRequest;
+import com.yepstudio.legolas.request.SyncRequest;
 import com.yepstudio.legolas.response.OnErrorListener;
 import com.yepstudio.legolas.response.OnResponseListener;
+import com.yepstudio.legolas.response.ResponseListenerWrapper;
 
 /**
  * 
@@ -42,44 +46,55 @@ import com.yepstudio.legolas.response.OnResponseListener;
  */
 public class RequestBuilder implements RequestInterceptorFace {
 	
-	private static LegolasLog log = LegolasLog.getClazz(RequestBuilder.class);
-	//private static String ENCODE= "UTF-8";
-	
-	private static Map<Class<?>, List<Field>> fieldsCache;
-	private static Map<Class<?>, List<Method>> methodsCache;
-
 	private final Endpoint endpoint;
-	private final Map<String, Object> legolasHeaders;
-	private final ApiDescription api;
-	private final RequestDescription request;
-	private Converter converter;
-	private Object[] arguments;
+	private final ApiDescription apiDescription;
+	private final RequestDescription requestDescription;
+	private final Converter converter;
+	private final Map<String, String> defaultHeaders;
 	
-	private Map<String, Object> pathMap = new HashMap<String, Object>();
-	private Map<String, Object> headerMap = new HashMap<String, Object>();
-	private Map<String, Object> queryMap = new HashMap<String, Object>();
+	private final Map<String, String> headerMap = new HashMap<String, String>();
+	private final Map<String, String> pathMap = new HashMap<String, String>();
+	private final Map<String, String> queryMap = new HashMap<String, String>();
+	
+	private final List<OnRequestListener> onRequestListeners = new LinkedList<OnRequestListener>();
+	private final List<ResponseListenerWrapper> onResponseListeners = new LinkedList<ResponseListenerWrapper>();
+	private final List<OnErrorListener> onErrorListeners = new LinkedList<OnErrorListener>();
+	private final List<LegolasListenerWrapper> onLegolasListeners = new LinkedList<LegolasListenerWrapper>();
 	
 	private final FormUrlEncodedRequestBody formBody;
 	private final MultipartRequestBody multipartBody;
+	
+	private final Object[] arguments;
+	
+	private final StringBuilder requestBuildLog = new StringBuilder();
+	
+	private String requestPath;
 	private RequestBody body;
+	private LegolasOptions options;
 	
-	private final List<OnRequestListener> onRequestListeners;
-	private final Map<Type, OnResponseListener<?>> onResponseListeners;
-	private final List<OnErrorListener> onErrorListeners;
+	/**被解析过的URL，也就是请求时候的URL，但是不带Query参数**/
+	private String requestFullUrl;
 	
-	public RequestBuilder(Endpoint endpoint, Map<String, Object> headers, ApiDescription api, RequestDescription request, Converter converter) {
+	public RequestBuilder(Endpoint endpoint, ApiDescription apiDescription, Method method, Converter converter, LegolasOptions options, Map<String, String> defaultHeaders, Object[] arguments) {
 		super();
-		this.endpoint = endpoint;
-		this.legolasHeaders = headers;
-		this.api = api;
-		this.request = request;
-		this.converter = converter;
 		
-		if (request.getRequestType() == RequestType.FORM_URL_ENCODED) {
+		this.endpoint = endpoint;
+		this.apiDescription = apiDescription;
+		this.requestDescription = apiDescription.getRequestDescription(method);
+		this.defaultHeaders = defaultHeaders;
+		this.converter = converter;
+		this.options = options;
+		this.arguments = arguments;
+		
+		if (endpoint == null || options == null) {
+			throw new NullPointerException("endpoint null, options null");
+		}
+		
+		if (requestDescription.getRequestType() == RequestType.FORM_URL_ENCODED) {
 			formBody = new FormUrlEncodedRequestBody();
 			body = formBody;
 			multipartBody = null;
-		} else if (request.getRequestType() == RequestType.MULTIPART) {
+		} else if (requestDescription.getRequestType() == RequestType.MULTIPART) {
 			formBody = null;
 			multipartBody = new MultipartRequestBody();
 			body = multipartBody;
@@ -88,523 +103,429 @@ public class RequestBuilder implements RequestInterceptorFace {
 			multipartBody = null;
 		}
 		
-		onRequestListeners = new LinkedList<OnRequestListener>();
-		onResponseListeners = new HashMap<Type, OnResponseListener<?>>();
-		onErrorListeners = new LinkedList<OnErrorListener>();
+		queryMap.putAll(requestDescription.getRequestQueryMap());
+		
+		appendLogForGlobal(requestBuildLog);
+		
+		appendLogForRequest(requestBuildLog);
+		try {
+			parseArguments();
+		} catch (Throwable th) {
+			throw new IllegalArgumentException("parseArguments fail", th);
+		}
+		
+		appendLogForLegolasOptions(requestBuildLog, options);
+		
+		parseRequestPath();
+		parseRequestUrl();
 	}
 	
-	public void parseArguments(Object[] arguments) throws UnsupportedEncodingException {
-		this.arguments = arguments;
-		List<ParameterDescription> list = request.getParameters();
-		for (int i = 0; i < list.size(); i++) {
-			ParameterDescription p = list.get(i);
-			switch (p.getParameterType()) {
-			case ParameterType.HEADER:
-				addHeader(p.getName(), arguments[i]);
-				break;
-			case ParameterType.PATH:
-				addPathParam(p.getName(), arguments[i]);
-				break;
-			case ParameterType.QUERY:
-				if (p.isMuitiParameter()) {
-					addQuerysParam(p.getType(), arguments[i]);
-				} else {
-					addQueryParam(p.getName(), arguments[i]);
+	private boolean isEmpty(String string) {
+		return string == null || "".equalsIgnoreCase(string.trim());
+	}
+	
+	private void appendLogForGlobal(StringBuilder builder) {
+		builder.append("\n-------------------Global>>-------------------\n");
+		if (defaultHeaders == null || defaultHeaders.isEmpty()) {
+			builder.append("Headers : none \n");
+			return ;
+		}
+		builder.append("Headers : \n");
+		for (String key : defaultHeaders.keySet()) {
+			builder.append(key).append("=").append(defaultHeaders.get(key));
+		}
+	}
+	
+	private void appendLogForLegolasOptions(StringBuilder builder, LegolasOptions options) {
+		builder.append("[LegolasOptions] : \n");
+		builder.append(this.options.toString());
+		if (this.options != options) {
+			builder.append("[").append("from Arguments").append("]");
+		} else {
+			builder.append("[").append("from Configuration").append("]");
+		}
+		builder.append("\n");
+	}
+	
+	private void appendLogForRequest(StringBuilder builder) {
+		builder.append("-------------------Init>>-------------------\n");
+		builder.append("Endpoint：").append(endpoint.getUrl());
+		if (!isEmpty(endpoint.getName())) {
+			builder.append("(").append(endpoint.getName()).append(")");
+		}
+		
+		builder.append("\n");
+		
+		builder.append("Api：").append(apiDescription.getApiPath());
+		if (!isEmpty(apiDescription.getDescription())) {
+			builder.append("(").append(apiDescription.getDescription()).append(")");
+		}
+		
+		builder.append("\n");
+		
+		builder.append("Request：").append(getRequestMethod()).append("==>");
+		builder.append(requestDescription.getRequestPath());
+		if (!isEmpty(requestDescription.getDescription())) {
+			builder.append("(").append(requestDescription.getDescription()).append(")");
+		}
+		builder.append("\n");
+	}
+	
+	private void parseRequestPath() {
+		String fullPath = requestDescription.getRequestUrl();
+		Set<String> pathNames = requestDescription.getRequestPathParamNames();
+		if (pathNames == null || pathNames.isEmpty()) {
+			//do nothing
+		} else {
+			for (String pathName : pathNames) {
+				if (isEmpty(pathName) || !pathMap.containsKey(pathName)) {
+					continue;
 				}
-				break;
-			case ParameterType.PART:
-				if (p.isMuitiParameter()) {
-					addPartsParam(p.getType(), arguments[i]);
-				} else {
-					addPartParam(p.getName(), arguments[i]);
+				String value = object2String(pathMap.get(pathName));
+				String encodeValue = encodeValue(value);
+				fullPath = fullPath.replaceAll("{" + pathName + "}", encodeValue);
+			}
+		}
+		requestPath = fullPath;
+	}
+	
+	private String object2String(Object obj) {
+		if (obj == null) {
+			return "";
+		}
+		return obj.toString();
+	}
+	
+	private String object2String(Type type, Object object) {
+		return object2String(object);
+	}
+	
+	private RequestBody object2body(Type type, Object object) throws IOException {
+		if (object == null) {
+			return new StringRequestBody("", options.getRequestCharset());
+		}
+		if (type == null) {
+			return new StringRequestBody(object2String(object), options.getRequestCharset());
+		}
+		Class<?> clazz = TypesHelper.getRawType(type);
+		if (clazz.isAssignableFrom(RequestBody.class)) {
+			return (RequestBody) object;
+		} else if (clazz.isAssignableFrom(File.class)) {
+			return new FileRequestBody((File) object);
+		} else {
+			return new StringRequestBody(object2String(type, object), options.getRequestCharset());
+		}
+	}
+	
+	private void parseClassParameter(ParameterDescription pd, Object obj) throws IOException {
+		List<ParameterItemDescription> itemList = pd.getParameterItems();
+		if (itemList != null && !itemList.isEmpty()) {
+			for (ParameterItemDescription itemDescription : itemList) {
+				if (itemDescription == null || itemDescription.isIgnore()) {
+					continue;
 				}
-				break;
-			case ParameterType.FIELD:
-				if (p.isMuitiParameter()) {
-					addFieldsParam(p.getType(), arguments[i]);
-				} else {
-					addFieldParam(p.getName(), arguments[i]);
+				String value = "";
+				if (itemDescription.getParameterType() == ParameterType.HEADER) {
+					value = object2String(itemDescription.getValueType(), itemDescription.getValue(obj));
+					headerMap.put(itemDescription.getName(), object2String(itemDescription.getValueType(), itemDescription.getValue(obj)));
+				} else if (itemDescription.getParameterType() == ParameterType.QUERY) {
+					value = object2String(itemDescription.getValueType(), itemDescription.getValue(obj));
+					queryMap.put(itemDescription.getName(), value);
+				} else if (itemDescription.getParameterType() == ParameterType.PATH) {
+					value = object2String(itemDescription.getValueType(), itemDescription.getValue(obj));
+					pathMap.put(pd.getName(), value);
+				} else if (itemDescription.getParameterType() == ParameterType.PART) {
+					RequestBody partBody = object2body(itemDescription.getValueType(), itemDescription.getValue(obj));
+					if (multipartBody != null) {
+						value = getRequestBodyDescription(partBody);
+						multipartBody.addPart(pd.getName(), partBody);
+					}
+				} else if (itemDescription.getParameterType() == ParameterType.FIELD) {
+					if (formBody != null) {
+						value = object2String(itemDescription.getValueType(), itemDescription.getValue(obj));
+						formBody.addOrReplaceField(itemDescription.getName(), value);
+					}
 				}
-				break;
-			case ParameterType.BODY:
-				setBodyParam(p.getName(), arguments[i]);
-				break;
-			case ParameterType.NONE:
-				if (p.isOptions() && arguments[i] != null) {
-					parseArgumentsOptions((LegolasOptions) arguments[i]);
-				} else if (p.isListener() && arguments[i] != null) {
-					parseArgumentsListener(p, arguments[i]);
-				} 
-				break;
-			default:
-				
-				break;
+				appendLogForParameter(requestBuildLog, pd, itemDescription, value);
 			}
 		}
 	}
 	
-	private void parseArgumentsOptions(LegolasOptions options) {
-		if (options.getConverter() != null) {
-			converter = options.getConverter();
+	private void parseArguments() throws IOException {
+		//先把LegolasOptions参数处理了，因为这个会涉及到解析参数的配置
+		List<ParameterDescription> list = requestDescription.getParameters();
+		for (int i = 0; i < list.size(); i++) {
+			ParameterDescription pd = list.get(i);
+			//如果LegolasOptions被加上了@Header@Path@Query@Part@Field@Body的注释，则会被当做参数处理
+			if (pd.getParameterType() == ParameterType.NONE 
+					&& pd.isOptions()
+					&& arguments[i] != null) {
+				this.options = (LegolasOptions) arguments[i];
+			}
+		}
+		
+		appendLogForStartParameter(requestBuildLog);
+		for (int i = 0; i < arguments.length; i++) {
+			ParameterDescription pd = list.get(i);
+			Object objArg = arguments[i];
+			
+			if (pd.getParameterType() == ParameterType.HEADER) {
+				String value = object2String(pd.getResponseType(), objArg);
+				headerMap.put(pd.getName(), value);
+				appendLogForParameter(requestBuildLog, pd, value);
+			} else if (pd.getParameterType() == ParameterType.PATH) {
+				String value = object2String(pd.getResponseType(), objArg);
+				pathMap.put(pd.getName(), value);
+				appendLogForParameter(requestBuildLog, pd, value);
+			} else if (pd.getParameterType() == ParameterType.QUERY) {
+				String value = object2String(pd.getResponseType(), objArg);
+				queryMap.put(pd.getName(), value);
+				appendLogForParameter(requestBuildLog, pd, value);
+			} else if (pd.getParameterType() == ParameterType.PART) {
+				RequestBody partBody = object2body(pd.getResponseType(), objArg);
+				if (multipartBody != null && partBody !=null) {
+					String value = getRequestBodyDescription(partBody);
+					appendLogForParameter(requestBuildLog, pd, value);
+					multipartBody.addPart(pd.getName(), partBody);
+				}
+			} else if (pd.getParameterType() == ParameterType.FIELD) {
+				if (formBody != null) {
+					String value = object2String(pd.getResponseType(), objArg);
+					multipartBody.addPart(pd.getName(), body);
+					formBody.addOrReplaceField(pd.getName(), value);
+					appendLogForParameter(requestBuildLog, pd, value);
+				}
+			} else if (pd.getParameterType() == ParameterType.BODY) {
+				body = object2body(pd.getResponseType(), objArg);
+				String value = getRequestBodyDescription(body);
+				appendLogForParameter(requestBuildLog, pd, value);
+			} else {
+				//处理一些没有注释的参数
+				//首先就是一些带有@MuitiParameters的参数
+				if (pd.isClassParameter()) {
+					parseClassParameter(pd, objArg);
+				}
+				
+				//处理Listener
+				if (pd.isLegolasListener()) {
+					Type resultType = pd.getResponseType();
+					Type errorType = pd.getErrorType();
+					LegolasListener<?, ?> listener = (LegolasListener<?, ?>) objArg;
+					LegolasListenerWrapper wrapper = new LegolasListenerWrapper(listener, resultType, errorType);
+					onLegolasListeners.add(wrapper);
+				}
+				if (pd.isErrorListener()) {
+					onErrorListeners.add((OnErrorListener) objArg);
+				}
+				if (pd.isRequestListener()) {
+					onRequestListeners.add((OnRequestListener) objArg);
+				}
+				if (pd.isResponseListener()) {
+					OnResponseListener<?> listener = (OnResponseListener<?>)objArg;
+					Type response = pd.getResponseType();
+					ResponseListenerWrapper wrapper = new ResponseListenerWrapper(listener, response); 
+					onResponseListeners.add(wrapper);
+				}
+			}
 		}
 	}
 	
-	private void parseArgumentsListener(ParameterDescription p, Object obj) {
-		if (p.isErrorListener()) {
-			onErrorListeners.add((OnErrorListener) obj);
-		} else if (p.isRequestListener()) {
-			onRequestListeners.add((OnRequestListener) obj);
-		} else if (p.isResponseListener()) {
-			onResponseListeners.put(p.getResponseType(), (OnResponseListener<?>) obj);
-		}
+	private void appendLogForStartParameter(StringBuilder builder) {
+		builder.append("Params：\n");
 	}
 	
-	private LegolasOptions getLegolasOptions() {
-		int index = request.getIndexOfOptions();
-		if (index < 0 || arguments[index] == null) {
-			return null;
+	private void appendLogForParameter(StringBuilder builder, ParameterDescription pd, ParameterItemDescription itemDescription, String value) {
+		builder.append("[").append(itemDescription.getParameterType()).append("]");
+		builder.append("[").append(pd.getType()).append("]");
+		builder.append(itemDescription.getName());
+		if (!isEmpty(itemDescription.getDescription())) {
+			builder.append("(").append(itemDescription.getDescription()).append(")");
 		}
-		return (LegolasOptions) arguments[index];
+		builder.append("=").append(value);
+		builder.append("\n");
 	}
 	
-	protected Endpoint getEndpoint() {
-		Endpoint rootPoint;
-		LegolasOptions options = getLegolasOptions();
-		if (options != null && options.getEndpoint() != null) {
-			log.d("find LegolasOptions in param and Endpoint of LegolasOptions is not null, so use it");
-			rootPoint = options.getEndpoint();
+	private void appendLogForParameter(StringBuilder builder, ParameterDescription pd, String value) {
+		builder.append("[").append(pd.getParameterType()).append("]");
+		builder.append(pd.getName());
+		if (!isEmpty(pd.getDescription())) {
+			builder.append("(").append(pd.getDescription()).append(")");
+		}
+		builder.append("=").append(value);
+		builder.append("\n");
+	}
+	
+	private String getRequestBodyDescription(RequestBody body) {
+		if(body == null){
+			return "";
+		}
+		StringBuilder value = new StringBuilder();
+		if (body instanceof StringRequestBody) {
+			StringRequestBody stringBody = (StringRequestBody) body;
+			value.append(stringBody.getString());
+			value.append("[").append(stringBody.getCharset()).append("]");
+		} else if (body instanceof FileRequestBody) {
+			FileRequestBody fileBody = (FileRequestBody) body;
+			value.append(fileBody.fileName());
 		} else {
-			rootPoint = endpoint;
+			value.append(body.toString());
 		}
-		return rootPoint;
+		return value.toString();
 	}
 	
-	public String getRequestUrl(boolean original) {
-		if (original) {
-			StringBuilder builder = new StringBuilder();
-			builder.append(api.getApiPath());
-			if (!api.getApiPath().endsWith("/") && !request.getRequestPath().startsWith("/")) {
+	private void parseRequestUrl() {
+		StringBuilder builder = new StringBuilder();
+		if (requestDescription.isAbsolutePath()) {
+			builder.append(requestPath);
+		} else {
+			if(apiDescription.isAbsoluteApiPath()){
+				builder.append(apiDescription.getApiPath());
+			} else {
+				builder.append(endpoint.getUrl());
+				if ((endpoint != null && endpoint.getUrl() != null && endpoint.getUrl().endsWith("/"))
+						|| (apiDescription.getApiPath() != null && apiDescription.getApiPath().startsWith("/"))) {
+					//都不需要加/
+				} else {
+					builder.append("/");
+				}
+				builder.append(apiDescription.getApiPath());
+			}
+			if (!requestPath.startsWith("/") && !builder.toString().endsWith("/")) {
 				builder.append("/");
 			}
-			builder.append(request.getRequestPath());
-			return builder.toString();
-		}else {
-			try {
-				return buildTargetUrl(false, false);
-			} catch (MalformedURLException e) {
-				return null;
-			}
+			builder.append(requestPath);
 		}
+		
+		requestFullUrl = builder.toString();
 	}
 	
-	public String getRequestDescription() {
-		StringBuilder builder = new StringBuilder();
-		if (api.getDescription() != null
-				&& api.getDescription().trim().length() >0) {
-			builder.append(api.getDescription());
-			builder.append("-");
+	private String applyQuery(String requestUrl) {
+		if (queryMap.isEmpty()) {
+			return requestUrl;
 		}
-		builder.append(request.getDescription());
-		Endpoint rootPoint = getEndpoint();
-		if (rootPoint != null) {
-			builder.append("(");
-			builder.append(rootPoint.getName());
-			builder.append(")");
+		// 添加Query参数
+		StringBuilder builder = new StringBuilder(requestUrl);
+		builder.append("?");
+		for (String key : queryMap.keySet()) {
+			builder.append(encodeValue(key));
+			builder.append("=");
+			builder.append(encodeValue(queryMap.get(key)));
+			builder.append("&");
 		}
-		return request.getMethod();
+		builder.deleteCharAt(builder.length() - 1);
+		return builder.toString();
+	}
+	
+	public String getRequestUrl() {
+		return requestFullUrl;
 	}
 	
 	public String getRequestMethod() {
-		return request.getMethod();
+		return requestDescription.getMethod();
 	}
 	
-	public int getRequestType() {
-		return request.getRequestType();
+	public RequestType getRequestType() {
+		return requestDescription.getRequestType();
 	}
 	
-	public Map<String, Object> getHeaders() {
-		Map<String, Object> map = new HashMap<String, Object>();
-		map.putAll(api.getHeaders());
-		map.putAll(request.getHeaders());
-		if (legolasHeaders != null && legolasHeaders.size() > 0) {
-			map.putAll(legolasHeaders);
+	protected String encodeValue(String string) {
+		if (isEmpty(string)) {
+			return "";
 		}
-		List<ParameterDescription> list = request.getParameters();
-		if (list != null) {
-			for (int i = 0; i < list.size(); i++) {
-				if (ParameterType.HEADER == list.get(i).getParameterType()) {
-					map.put(list.get(i).getName(), arguments[i]);
-				}
-			}
-		}
-		return map;
-	}
-	
-	/**
-	 * 每次都是New 一个Map
-	 * @param paramType
-	 * @return
-	 */
-	private Map<String, Object> getParams(int paramType) {
-		Map<String, Object> map = new HashMap<String, Object>();
-		if (ParameterType.QUERY == paramType) {
-			fillRequestQueryToMap(map);
-		}
-		List<ParameterDescription> list = request.getParameters();
-		if (list != null) {
-			for (int i = 0; i < list.size(); i++) {
-				ParameterDescription pd = list.get(i);
-				if (paramType == pd.getParameterType()) {
-					if (pd.isMuitiParameter()) {
-						try {
-							addMuitiParameter(map, arguments[i]);
-						} catch (Exception e) {
-							log.e("", e);
-						}
-					} else {
-						map.put(pd.getName(), arguments[i]);
-					}
-				}
-			}
-		}
-		return map;
-	}
-	
-	protected void fillRequestQueryToMap(Map<String, Object> map) {
-		String query = request.getRequestQuery();
-		if (query != null && query.trim().length() > 0) {
-			String[] params = query.split("&");
-			String[] p;
-			if (params != null) {
-				for (String param : params) {
-					p = param.split("=", 2);
-					if (p != null && p.length == 2) {
-						map.put(p[0], p[1]);
-					}
-				}
-			}
-		}
-	}
-	
-	public Map<String, Object> getPathParams() {
-		return getParams(ParameterType.PATH);
-	}
-
-	public Map<String, Object> getQueryParams() {
-		return getParams(ParameterType.QUERY);
-	}
-	
-	public Map<String, Object> getFieldParams() {
-		return getParams(ParameterType.FIELD);
-	}
-
-	public Map<String, Object> getPartParams() {
-		return getParams(ParameterType.PART);
-	}
-
-	public Object getBodyParams() {
-		List<ParameterDescription> list = request.getParameters();
-		if (list != null) {
-			for (int i = 0; i < list.size(); i++) {
-				if (ParameterType.BODY == list.get(i).getParameterType()) {
-					return arguments[i];
-				}
-			}
-		}
-		return null;
-	}
-	
-	public void addHeader(String name, Object value) {
-		headerMap.put(name, value);
-	}
-	
-	public void addPathParam(String name, Object value) {
-		pathMap.put(name, value);
-	}
-	
-	protected void addQuerysParam(Type type, Object value) {
 		try {
-			addMuitiParameter(queryMap, value);
-		} catch (Throwable th) {
-			throw new RuntimeException(th);
-		}
-	}
-	
-	private void addMuitiParameter(Map<String, Object> target, Object value) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException {
-		if (value == null) {
-			return ;
-		}
-		log.d("addMuitiParameter:");
-		if (value instanceof Map) {
-			log.v("is map, add Parameter for map");
-			Map<?, ?> map = (Map<?, ?>) value;
-			for (Object key : map.keySet()) {
-				if (key != null) {
-					Object result = map.get(key);
-					log.v("Map:" + key.toString() + "=>" + result);
-					target.put(key.toString(), result);
-				}
-			}
-		} else {
-			Class<?> clazz = value.getClass();
-			log.v("is Object, add Parameter for Object");
-			cacheAllPublicFieldsAndMethods(clazz);
-			List<Field> fieldList = fieldsCache.get(clazz);
-			if (fieldList != null && !fieldList.isEmpty()) {
-				for (Field field : fieldList) {
-					Object result = field.get(value);
-					log.v("Field:" + field.getName() + "=>" + result);
-					target.put(field.getName(), result);	
-				}
-			}
+			return URLEncoder.encode(string, getEncode());
+		} catch (UnsupportedEncodingException e) {
 			
-			List<Method> methodList = methodsCache.get(clazz);
-			if (methodList != null && !methodList.isEmpty()) {
-				for (Method method : methodList) {
-					String name = method.getName();
-					String paramName = method2Param(name);
-					if (paramName != null) {
-						Object result = method.invoke(value);
-						log.v("Method: [" + method.getName() + "] " + paramName + "=>" + result);
-						target.put(paramName, result);
-					}
-				}
-			}
 		}
+		return string;
 	}
 	
-	private String method2Param(String name) {
-		String paramName = null;
-		if ("getClass".equals(name)) {
+	private String makeRequestDescription() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("Api : ");
+		builder.append(apiDescription.getApiPath());
+		if (!isEmpty(apiDescription.getDescription())) {
+			builder.append("(").append(apiDescription.getDescription()).append(")");
+		}
+		builder.append("->");
+		builder.append(requestDescription.getRequestPath());
+		if (!isEmpty(requestDescription.getDescription())) {
+			builder.append("(").append(requestDescription.getDescription()).append(")");
+		}
+		return builder.toString();
+	}
+	
+	public SyncRequest buildSyncRequest() {
+		String url = applyQuery(getRequestUrl());
+		String method = getRequestMethod();
+		String description = makeRequestDescription();
+		
+		Map<String, String> header = new ConcurrentHashMap<String, String>();
+		if (defaultHeaders != null) {
+			for (String key : defaultHeaders.keySet()) {
+				header.put(encodeValue(key), encodeValue(defaultHeaders.get(key)));
+			}
+		}
+		if (headerMap != null) {
+			for (String key : headerMap.keySet()) {
+				header.put(encodeValue(key), encodeValue(headerMap.get(key)));
+			}
+		}
+		
+		SyncRequest request = null;
+		if (requestDescription.isSynchronous()) {
+			Type result = requestDescription.getResultType();
+			Type error = requestDescription.getExceptionType();
+			request = new SyncRequest(url, method, description, header, body, this.options, this.converter, result, error);
+			request.appendLog(requestBuildLog.toString());
+		}
+		return request;
+	}
+	
+	public AsyncRequest buildAsyncRequest() {
+		if (requestDescription.isSynchronous()) {
 			return null;
 		}
-		if (name.startsWith("get") && name.length() > 3) {
-			paramName = "";
-			if (name.length() > 4) {
-				paramName = name.substring(4);
-			}
-			paramName = name.substring(3, 4).toLowerCase() + paramName;
-		} else if (name.startsWith("is") && name.length() > 2) {
-			paramName = "";
-			if (name.length() > 3) {
-				paramName = name.substring(2);
-			}
-			paramName = name.substring(2, 3).toLowerCase() + paramName;
-		}
-		return paramName;
-	}
-	
-	private static void cacheAllPublicFieldsAndMethods(Class<?> clazz) {
-		if (fieldsCache == null) {
-			fieldsCache = new HashMap<Class<?>, List<Field>>();
-		}
-		if (methodsCache == null) {
-			methodsCache = new HashMap<Class<?>, List<Method>>();
-		}
-		if (fieldsCache.containsKey(clazz) || methodsCache.containsKey(clazz)) {
-			return ;
-		}
-		Field[] fields = clazz.getFields();
-		List<Field> fieldList = null;
-		if (fields != null && fields.length > 0) {
-			fieldList = new ArrayList<Field>(fields.length);
-			for (Field field : fields) {
-				fieldList.add(field);
-			}
-		}
-		fieldsCache.put(clazz, fieldList);
 		
-		Method[] methods = clazz.getMethods();
-		List<Method> methodList = null;
-		if (methods != null && methods.length > 0) {
-			methodList = new ArrayList<Method>(methods.length);
-			for (Method method : methods) {
-				
-				methodList.add(method);
+		String url = applyQuery(getRequestUrl());
+		String method = getRequestMethod();
+		String description = makeRequestDescription();
+		
+		Map<String, String> header = new ConcurrentHashMap<String, String>();
+		if (defaultHeaders != null) {
+			for (String key : defaultHeaders.keySet()) {
+				header.put(encodeValue(key), encodeValue(defaultHeaders.get(key)));
 			}
 		}
-		methodsCache.put(clazz, methodList);
-	}
-	
-	public void addQueryParam(String name, Object value) {
-		queryMap.put(name, value);
-	}
-	
-	protected void addFieldsParam(Type type, Object value) {
-		try {
-			Map<String, Object> fieldsMap = new HashMap<String, Object>();
-			addMuitiParameter(fieldsMap, value);
-			for (String key : fieldsMap.keySet()) {
-				addFieldParam(key, fieldsMap.get(key));
-			}
-		} catch (Throwable th) {
-			throw new RuntimeException(th);
-		}
-	}
-	
-	public void addFieldParam(String name, Object target) {
-		formBody.addField(name, converter.toParam(target, ParameterType.FIELD));
-	}
-	
-	protected void addPartsParam(Type type, Object value) {
-		try {
-			Map<String, Object> partsMap = new HashMap<String, Object>();
-			addMuitiParameter(partsMap, value);
-			for (String key : partsMap.keySet()) {
-				addPartParam(key, partsMap.get(key));
-			}
-		} catch (Throwable th) {
-			throw new RuntimeException(th);
-		}
-	}
-	
-	public void addPartParam(String name, Object target) {
-		if (target != null) { // Skip null values.
-			if (target instanceof RequestBody) {
-				multipartBody.addPart(name, (RequestBody) target);
-			} else if (target instanceof String) {
-				multipartBody.addPart(name, new StringBody((String) target));
-			} else {
-				multipartBody.addPart(name, converter.toBody(target));
+		if (headerMap != null) {
+			for (String key : headerMap.keySet()) {
+				header.put(encodeValue(key), encodeValue(headerMap.get(key)));
 			}
 		}
-	}
-	
-	public void setBodyParam(String name, Object target) {
-		if (target instanceof RequestBody) {
-			body = (RequestBody) target;
-		} else {
-			body = converter.toBody(target);
-		}
-	}
-	
-	protected String buildRequestPath() {
-		String path = request.getRequestPath();
-		String value;
-		List<ParameterDescription> parameters = request.getParameters();
-		for (String name : request.getRequestPathParamNames()) {
-			value = null;
-			if (pathMap.containsKey(name)) {
-				value = converter.toParam(pathMap.get(name), ParameterType.PATH);
-			} else {
-				for (int i = 0; i < parameters.size(); i++) {
-					ParameterDescription description = parameters.get(i);
-					if (description.getName().equals(name)
-							&& description.getParameterType() == ParameterType.PATH) {
-						value = converter.toParam(arguments[i], ParameterType.PATH);
-					}
-				}
-			}
-			if (value == null) {
-				throw new IllegalArgumentException("request lost [PATH] params : " + name);
-			}
-			path = path.replace(String.format("{%s}", name), encodeValue(value));
-		}
-		log.d("buildRequestPath : " + path);
-		return path;
-	}
-	
-	protected String encodeValue(String value) {
-		return value;
-//		try {
-//			String encodeValue = URLEncoder.encode(value, ENCODE);
-//			if (encodeValue != null && encodeValue.contains("+")) {
-//				log.v("encodeValue , replace [+] : [" + encodeValue + "]");
-//				encodeValue = encodeValue.replace("+", "%20");
-//			}
-//			log.v("encodeValue: [" + value + "]=>[" + encodeValue + "]");
-//			return encodeValue;
-//		} catch (UnsupportedEncodingException e) {
-//			log.e("UnsupportedEncodingException:[" + ENCODE + "]", e);
-//			return value;
-//		}
-	}
-	
-	
-	protected String buildTargetUrl(boolean appleQuery, boolean applyIpIfRemote) throws MalformedURLException {
-		log.i("buildTargetUrl:");
-		StringBuilder targetUrl = new StringBuilder();
-		targetUrl.append(api.getApiPath());
-		log.v("API path : " + api.getApiPath());
-		String requestPath = buildRequestPath();
-		log.v("Request Path : " + requestPath);
-		if (!api.getApiPath().endsWith("/")
-				&& requestPath != null
-				&& requestPath.trim().length() > 0
-				&& !requestPath.startsWith("/")) {
-			targetUrl.append("/");
-		}
-		targetUrl.append(requestPath);
-		if (!appleQuery) {
-			return applyEndpoint(targetUrl.toString(), applyIpIfRemote);
-		}
-		boolean hasQuery = false;
-		if (request.getRequestQuery() != null && request.getRequestQuery().trim().length() > 0) {
-			targetUrl.append("?");
-			targetUrl.append(request.getRequestQuery());
-			hasQuery = true;
-			log.v("hasQuery : " + request.getRequestQuery());
-		}
-		if (queryMap != null && queryMap.size() > 0) {
-			if (hasQuery) {
-				targetUrl.append("&");
-			} else {
-				targetUrl.append("?");
-			}
-			for (String name : queryMap.keySet()) {
-				targetUrl.append(encodeValue(name));
-				targetUrl.append("=");
-				targetUrl.append(encodeValue(converter.toParam(queryMap.get(name), ParameterType.QUERY)));
-				targetUrl.append("&");
-			}
-			targetUrl.deleteCharAt(targetUrl.length() - 1);
-		}
-		return applyEndpoint(targetUrl.toString(), applyIpIfRemote);
-	}
-	
-	protected String applyEndpoint(String targetUrl, boolean applyIpIfRemote) throws MalformedURLException {
-		Endpoint endpoint = getEndpoint();
-		if (endpoint == null || endpoint.getUrl() == null) {
-			log.w("endpoint is null, can not switch HOST, targetUrl : " + targetUrl);
-			return targetUrl.toString();
-		} else {
-			log.d("endpoint find, use relative path of [" + endpoint.getUrl() + "]");
-			StringBuilder builder = new StringBuilder();
-			if (applyIpIfRemote && endpoint instanceof RemoteEndpoint) {
-				RemoteEndpoint xx = (RemoteEndpoint) endpoint;
-				builder.append(xx.getRemoteUrl());
-			} else {
-				builder.append(endpoint.getUrl());
-			}
-			if (!endpoint.getUrl().endsWith("/") && !targetUrl.startsWith("/")) {
-				builder.append("/");
-			}
-			builder.append(targetUrl);
-			log.v("[" + targetUrl.toString() + "]=>[" + builder.toString() + "]");
-			return builder.toString();
-		}
-	}
-	
-	public RequestWrapper build() throws Exception {
-		if (multipartBody != null && multipartBody.getPartCount() <= 0) {
-			throw new IllegalStateException("Multipart requests must contain at least one part.");
-		}
-		Map<String, Object> header = getHeaders();
-		Map<String, String> headers = new HashMap<String, String>();
-		for (String key : header.keySet()) {
-			headers.put(key, converter.toParam(header.get(key), ParameterType.HEADER));
-		}
-		Endpoint endpoint = getEndpoint();
-		if (endpoint != null && endpoint instanceof RemoteEndpoint) {
-			RemoteEndpoint xx = (RemoteEndpoint) endpoint;
-			headers.put("Host", xx.getHost());
-		}
-		Request request = new Request(getRequestDescription(), getRequestMethod(), buildTargetUrl(true, true), headers, body);
-		return new RequestWrapper(request, this.request.getResponseType(), converter, onRequestListeners, onResponseListeners, onErrorListeners);
+		
+		return new AsyncRequest(url, method, description, header, body,
+				this.options, this.converter, onRequestListeners,
+				onResponseListeners, onErrorListeners, onLegolasListeners);
 	}
 
-	public Converter getConverter() {
-		return converter;
+	@Override
+	public String getEncode() {
+		return options.getRequestCharset();
+	}
+
+	@Override
+	public RequestBody getBody() {
+		return body;
+	}
+
+	@Override
+	public Map<String, String> getHeaders() {
+		return headerMap;
+	}
+
+	@Override
+	public Map<String, String> getQuerys() {
+		return queryMap;
 	}
 	
 }

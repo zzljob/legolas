@@ -7,9 +7,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 import com.yepstudio.legolas.HttpSender;
+import com.yepstudio.legolas.Legolas;
 import com.yepstudio.legolas.LegolasLog;
 import com.yepstudio.legolas.mime.ResponseBody;
-import com.yepstudio.legolas.mime.StringBody;
+import com.yepstudio.legolas.mime.StringResponseBody;
 import com.yepstudio.legolas.request.Request;
 import com.yepstudio.legolas.response.Response;
 
@@ -22,7 +23,7 @@ import com.yepstudio.legolas.response.Response;
  */
 public class MockHttpSender implements HttpSender {
 
-	private static LegolasLog log = LegolasLog.getClazz(MockHttpSender.class);
+	private static LegolasLog log = Legolas.getLog();
 	
 	private final int waitSeconds;
 	private final HttpSender httpSender;
@@ -68,8 +69,8 @@ public class MockHttpSender implements HttpSender {
 		String reason = "Ok";
 		Map<String, String> headers = new HashMap<String, String>();
 		log.d(String.format("execute finished, response:%s", text));
-		ResponseBody body = new StringBody(text);
-		return new Response(request.getUuid(), status, reason, headers, body);
+		ResponseBody body = new StringResponseBody(text);
+		return new Response(status, reason, headers, body);
 	}
 
 	protected String makeKey(String method, String url) {

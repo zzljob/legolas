@@ -20,11 +20,16 @@ import com.yepstudio.legolas.RequestInterceptor;
 @Target({ ElementType.TYPE, ElementType.METHOD })
 public @interface Interceptors {
 
+	public abstract Class<? extends RequestInterceptor>[] value() default {};
+
+	public abstract String[] className() default {};
+
 	/**
+	 * 要使用这个需要先在LegolasConfiguration里边注册
 	 * 
 	 * @return
 	 */
-	public abstract Class<? extends RequestInterceptor>[] value();
+	public abstract String[] alias() default {};
 
 	/**
 	 * 是否把上一层的拦截器也扩展过来

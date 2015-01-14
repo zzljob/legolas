@@ -27,7 +27,7 @@ public interface Profiler<T> {
 	 * @param elapsedTime 请求结束的时间
 	 * @param beforeCallData 请求前调用返回的对象
 	 */
-	public void afterCall(Response response, LegolasException exception, long startTime, T beforeCallData);
+	public void afterCall(Response response, LegolasException exception, T beforeCallData);
 	
 	/**
 	 * 请求被取消时被调用

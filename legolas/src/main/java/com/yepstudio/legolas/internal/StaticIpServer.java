@@ -1,6 +1,7 @@
 package com.yepstudio.legolas.internal;
 
-import com.yepstudio.legolas.RemoteEndpoint;
+import java.net.MalformedURLException;
+import java.net.URL;
 
 /**
  * 服务端，{@link com.yepstudio.legolas.Endpoint} 的一个实现
@@ -9,21 +10,27 @@ import com.yepstudio.legolas.RemoteEndpoint;
  * @create 2014年1月6日
  * @version 2.0，2014年4月23日
  */
-public class StaticIpServer extends Server implements RemoteEndpoint {
-
-	private final String host;
-	private final String targetUrl;
+public class StaticIpServer extends Server {
 
 	public StaticIpServer(String url, String ip) {
-		this("", url, ip);
+		this("", url, ip, 80);
 	}
 	
-	public StaticIpServer(String name, String url, String ip) {
-		this(name, url, ip, 80);
+	public StaticIpServer(String url, String ip, int port) {
+		this("", url, ip, port);
 	}
 	
 	public StaticIpServer(String name, String url, String ip, int port) {
-		super(name, url);
+		super(name, replaceHost(url, ip, port));
+		try {
+			host = new URL(url).getHost();
+		} catch (MalformedURLException e) {
+			throw new IllegalStateException("不是一个合法的URL");
+		}
+	}
+	
+	private static String replaceHost(String url, String ip, int port) {
+		String target = "";
 		if (url.indexOf("://") < 0) {
 			throw new IllegalStateException("url需要带上协议");
 		}
@@ -35,21 +42,11 @@ public class StaticIpServer extends Server implements RemoteEndpoint {
 		int len = temp.indexOf("/");
 		if (len > 0) {
 			builder.append(temp.substring(len));
-			host = temp.substring(0, len);
+			target = temp.substring(0, len);
 		} else {
-			host = temp;
+			target = temp;
 		}
-		targetUrl = builder.toString();
+		return target;
 	}
 
-	@Override
-	public String getRemoteUrl() {
-		return targetUrl;
-	}
-
-	@Override
-	public String getHost() {
-		return host;
-	}
-	
 }

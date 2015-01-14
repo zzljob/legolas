@@ -15,12 +15,12 @@ import java.lang.annotation.Target;
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.PARAMETER)
+@Target({ ElementType.PARAMETER, ElementType.FIELD })
 public @interface Query {
 
 	/**
 	 * 参数名
 	 */
-	public abstract String value();
+	public abstract String value() default "";
 
 }

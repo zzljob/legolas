@@ -11,7 +11,6 @@ import java.util.regex.Pattern;
 
 import org.apache.http.protocol.HTTP;
 
-import com.yepstudio.legolas.LegolasLog;
 import com.yepstudio.legolas.mime.ResponseBody;
 
 /**
@@ -20,10 +19,8 @@ import com.yepstudio.legolas.mime.ResponseBody;
  * @create 2014年1月14日
  * @version 2.0，2014年4月30日
  */
-public class Response {
+public final class Response {
 	
-	private static LegolasLog log = LegolasLog.getClazz(Response.class);
-
 	/** The HTTP status code. */
 	private final int statusCode;
 
@@ -36,20 +33,26 @@ public class Response {
 	/** Response Body. */
 	private final ResponseBody responseBody;
 	
-	private final String uuid;
+	private final boolean fromMemoryCache;
+	private final boolean fromDiskCache;
 
-	public Response(String uuid, int statusCode, String message, Map<String, String> headers) {
-		this(uuid, statusCode, message, headers, null);
+	public Response(int statusCode, String message, Map<String, String> headers) {
+		this(statusCode, message, headers, null, false, false);
 	}
 	
-	public Response(String uuid, int statusCode, String message, Map<String, String> headers, ResponseBody responseBody) {
+	public Response(int statusCode, String message, Map<String, String> headers, ResponseBody responseBody) {
+		this(statusCode, message, headers, responseBody, false, false);
+	}
+	
+	public Response(int statusCode, String message, Map<String, String> headers, ResponseBody responseBody, boolean fromMemoryCache, boolean fromDiskCache) {
 		super();
-		this.uuid = uuid;
 		this.statusCode = statusCode;
 		this.message = message;
 		this.headers = headers;
 		this.responseBody = responseBody;
-		log.v(String.format("statusCode:%s, message:%s, headers:%s, responseBody:%s", statusCode, message, headers, responseBody));
+		this.fromMemoryCache = fromMemoryCache;
+		this.fromDiskCache = fromDiskCache;
+		//log.v(String.format("statusCode:%s, message:%s, headers:%s, responseBody:%s", statusCode, message, headers, responseBody));
 	}
 
 	public int getStatus() {
@@ -76,6 +79,20 @@ public class Response {
 		return this.parseCharset(HTTP.DEFAULT_CONTENT_CHARSET);
 	}
 	
+	public boolean isFromCache() {
+		return fromMemoryCache || fromDiskCache;
+	}
+
+	public boolean isFromMemoryCache() {
+		return fromMemoryCache;
+	}
+
+	public boolean isFromDiskCache() {
+		return fromDiskCache;
+	}
+	
+	private static final Pattern CHARSET = Pattern.compile("\\Wcharset=([^\\s;]+)", CASE_INSENSITIVE);
+	
 	public static String parseCharset(Map<String, String> headers, String defaultCharset) {
 		String contentType = headers.get(HTTP.CONTENT_TYPE);
 		if (contentType != null) {
@@ -92,8 +109,6 @@ public class Response {
 
 		return defaultCharset;
 	}
-	
-	private static final Pattern CHARSET = Pattern.compile("\\Wcharset=([^\\s;]+)", CASE_INSENSITIVE);
 
 	public static String parseCharset(String mimeType, String defaultCharset) {
 		if (mimeType == null || mimeType.trim().length() < 1) {
@@ -105,29 +120,6 @@ public class Response {
 		}
 		return defaultCharset;
 	}
-	
-//	public static Response readBodyToBytesIfNecessary(Response response) throws IOException {
-//		ResponseBody body = response.getBody();
-//		if (body == null || body instanceof ByteArrayBody) {
-//			return response;
-//		}
-//
-//		String bodyMime = body.mimeType();
-//		InputStream is = body.read();
-//		try {
-//			byte[] bodyBytes = streamToBytes(is);
-//			body = new ByteArrayBody(bodyMime, bodyBytes);
-//
-//			return new Response(response.getUuid(), response.getStatus(), response.getMessage(), response.getHeaders(), body);
-//		} finally {
-//			if (is != null) {
-//				try {
-//					is.close();
-//				} catch (IOException ignored) {
-//				}
-//			}
-//		}
-//	}
 
 	private static final int BUFFER_SIZE = 0x1000;
 	public static byte[] streamToBytes(InputStream stream) throws IOException {
@@ -142,7 +134,4 @@ public class Response {
 		return baos.toByteArray();
 	}
 
-	public String getUuid() {
-		return uuid;
-	}
 }

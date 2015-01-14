@@ -14,14 +14,27 @@ package com.yepstudio.legolas;
  */
 public interface Endpoint {
 
-	static String DEFAUL_TNAME = "";
+	public static String DEFAUL_TNAME = "";
 
 	/**
-	 * API 请求的 Base URL.
+	 * API 请求的 URL.
+	 * 
+	 * @return
 	 */
-	String getUrl();
+	public String getUrl();
 
-	/** A name for differentiating between multiple API URLs. */
-	String getName();
+	/**
+	 * Api 的HOST
+	 * 
+	 * @return
+	 */
+	public String getHost();
+
+	/**
+	 * A name for differentiating between multiple API URLs.
+	 * 
+	 * @return
+	 */
+	public String getName();
 
 }

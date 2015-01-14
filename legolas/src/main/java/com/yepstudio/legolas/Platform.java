@@ -1,10 +1,9 @@
 package com.yepstudio.legolas;
 
 import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
 
-import com.yepstudio.legolas.internal.SimpleProfiler;
-import com.yepstudio.legolas.internal.platform.BasicPlatform;
+import com.yepstudio.legolas.cache.disk.DiskCache;
+import com.yepstudio.legolas.cache.memory.MemoryCache;
 
 /**
  * 
@@ -15,60 +14,39 @@ import com.yepstudio.legolas.internal.platform.BasicPlatform;
  */
 public abstract class Platform {
 
-	private static Platform PLATFORM = null;
-
-	public static void initPlatform(Platform platform) {
-		if (PLATFORM != null) {
-			throw new IllegalArgumentException("had init Platform.");
-		}
-		PLATFORM = platform;
-	}
-	
-	public static Platform get() {
-		if (PLATFORM == null) {
-			PLATFORM = new BasicPlatform();
-		}
-		return PLATFORM;
+	public String defaultCharset() {
+		return "UTF-8";
 	}
 
-	/**
-	 * 转换器
-	 * 
-	 * @return
-	 */
+	public abstract LegolasLog defaultLog();
+
 	public abstract Converter defaultConverter();
-	
-	public abstract Cache defaultCache();
 
-	/**
-	 * 默认的Http请求器
-	 * 
-	 * @return
-	 */
 	public abstract HttpSender defaultHttpSender();
 
-	/**
-	 * 默认的Http的执行器，也就是Http请求的执行线程
-	 * 
-	 * @return
-	 */
-	public abstract ExecutorService defaultHttpExecutor();
-	
-	/**
-	 * 默认的投递的执行器，也就是Listener的执行线程
-	 * 
-	 * @return
-	 */
-	public abstract Executor defaultResponseDeliveryExecutor();
+	public abstract Executor defaultTaskExecutorForHttp();
 
-	public abstract Class<? extends LegolasLog> defaultLog();
+	public abstract Executor defaultTaskExecutorForListener();
 
-	public Profiler<?> defaultProfiler() {
-		return new SimpleProfiler();
-	}
+	public abstract DiskCache defaultDiskCache();
 
-	public boolean hasNetwork() {
-		return true;
+	public abstract MemoryCache defaultMemoryCache();
+
+	public abstract Executor defaultTaskExecutorForCache();
+
+	public abstract Profiler<?> defaultProfiler();
+
+	public abstract Executor defaultTaskExecutorForProfiler();
+
+	protected boolean hasClass(String className) {
+		try {
+			Class<?> clazz = Class.forName(className);
+			if (clazz != null) {
+				return true;
+			}
+		} catch (Throwable th) {
+		}
+		return false;
 	}
 
 }

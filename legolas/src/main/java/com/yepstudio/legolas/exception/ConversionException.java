@@ -2,25 +2,47 @@ package com.yepstudio.legolas.exception;
 
 import java.lang.reflect.Type;
 
-import com.yepstudio.legolas.response.Response;
-
-public class ConversionException extends ServiceException {
+/**
+ * 转换数据出错
+ * 
+ * @author zzljob@gmail.com
+ * @create 2015年1月4日
+ * @version 1.0，2015年1月4日
+ *
+ */
+public class ConversionException extends ResponseException {
 
 	private static final long serialVersionUID = -5439925901304555188L;
 
-	private final Type result;
+	private Type conversionType;
 
-	public ConversionException(String uuid, Response response, Type result, Throwable cause) {
-		this(uuid, response, result, "", cause);
+	public ConversionException() {
+		super();
 	}
 
-	public ConversionException(String uuid, Response response, Type result, String message, Throwable cause) {
-		super(uuid, response, message, cause);
-		this.result = result;
+	public ConversionException(String message) {
+		super(message);
 	}
 
-	public Type getResult() {
-		return result;
+	public ConversionException(Throwable cause) {
+		super(cause);
+	}
+
+	public ConversionException(String message, Throwable cause) {
+		super(message, cause);
+	}
+
+	public ConversionException(String message, Throwable cause,
+			boolean enableSuppression, boolean writableStackTrace) {
+		super(message, cause, enableSuppression, writableStackTrace);
+	}
+
+	public Type getConversionType() {
+		return conversionType;
+	}
+
+	public void setConversionType(Type conversionType) {
+		this.conversionType = conversionType;
 	}
 
 }

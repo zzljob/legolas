@@ -1,5 +1,8 @@
 package com.yepstudio.legolas.internal;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+
 import com.yepstudio.legolas.Endpoint;
 
 /**
@@ -13,6 +16,7 @@ public class Server implements Endpoint {
 
 	private final String url;
 	private final String name;
+	protected String host;
 
 	public Server(String url) {
 		this("", url);
@@ -22,6 +26,13 @@ public class Server implements Endpoint {
 		super();
 		this.name = name;
 		this.url = url;
+		URL obj = null;
+		try {
+			obj = new URL(url);
+			host = obj.getHost();
+		} catch (MalformedURLException e) {
+			throw new IllegalStateException("不是一个合法的URL");
+		}
 	}
 
 	public String getName() {
@@ -30,6 +41,11 @@ public class Server implements Endpoint {
 
 	public String getUrl() {
 		return url;
+	}
+
+	@Override
+	public String getHost() {
+		return host;
 	}
 
 }

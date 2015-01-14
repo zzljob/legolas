@@ -18,8 +18,16 @@ public @interface Api {
 
 	/**
 	 * 注册整个API的根路径Path
+	 * 
 	 * @return
 	 */
 	public abstract String value() default "";
+
+	/**
+	 * 是否是绝对路径
+	 * 
+	 * @return
+	 */
+	public abstract boolean absolute() default false;
 
 }
