@@ -1,13 +1,6 @@
 package com.yepstudio.legolas.response;
 
-import static java.util.regex.Pattern.CASE_INSENSITIVE;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.apache.http.protocol.HTTP;
 
@@ -91,8 +84,6 @@ public final class Response {
 		return fromDiskCache;
 	}
 	
-	private static final Pattern CHARSET = Pattern.compile("\\Wcharset=([^\\s;]+)", CASE_INSENSITIVE);
-	
 	public static String parseCharset(Map<String, String> headers, String defaultCharset) {
 		String contentType = headers.get(HTTP.CONTENT_TYPE);
 		if (contentType != null) {
@@ -100,7 +91,7 @@ public final class Response {
 			for (int i = 1; i < params.length; i++) {
 				String[] pair = params[i].trim().split("=");
 				if (pair.length == 2) {
-					if (pair[0].equals("charset")) {
+					if (pair[0].equalsIgnoreCase("charset")) {
 						return pair[1];
 					}
 				}
@@ -108,30 +99,6 @@ public final class Response {
 		}
 
 		return defaultCharset;
-	}
-
-	public static String parseCharset(String mimeType, String defaultCharset) {
-		if (mimeType == null || mimeType.trim().length() < 1) {
-			return defaultCharset;
-		}
-		Matcher match = CHARSET.matcher(mimeType);
-		if (match.find()) {
-			return match.group(1).replaceAll("[\"\\\\]", "");
-		}
-		return defaultCharset;
-	}
-
-	private static final int BUFFER_SIZE = 0x1000;
-	public static byte[] streamToBytes(InputStream stream) throws IOException {
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		if (stream != null) {
-			byte[] buf = new byte[BUFFER_SIZE];
-			int r;
-			while ((r = stream.read(buf)) != -1) {
-				baos.write(buf, 0, r);
-			}
-		}
-		return baos.toByteArray();
 	}
 
 }

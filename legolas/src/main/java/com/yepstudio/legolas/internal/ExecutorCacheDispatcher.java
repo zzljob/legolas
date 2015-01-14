@@ -1,9 +1,14 @@
 package com.yepstudio.legolas.internal;
 
 import java.lang.reflect.Type;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutionException;
@@ -14,9 +19,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.http.impl.cookie.DateParseException;
-import org.apache.http.impl.cookie.DateUtils;
-
 import com.yepstudio.legolas.CacheDispatcher;
 import com.yepstudio.legolas.Legolas;
 import com.yepstudio.legolas.LegolasOptions;
@@ -25,8 +27,8 @@ import com.yepstudio.legolas.cache.CacheEntry;
 import com.yepstudio.legolas.cache.disk.DiskCache;
 import com.yepstudio.legolas.cache.memory.MemoryCache;
 import com.yepstudio.legolas.listener.LegolasListenerWrapper;
-import com.yepstudio.legolas.request.BasicRequest;
 import com.yepstudio.legolas.request.AsyncRequest;
+import com.yepstudio.legolas.request.BasicRequest;
 import com.yepstudio.legolas.request.SyncRequest;
 import com.yepstudio.legolas.response.Response;
 import com.yepstudio.legolas.response.ResponseListenerWrapper;
@@ -47,6 +49,18 @@ public class ExecutorCacheDispatcher implements CacheDispatcher {
 	private final MemoryCache memoryCache;
 	private final DiskCache diskCache;
 	private final CompletionService<Boolean> service;
+	
+	private static final Date DEFAULT_TWO_DIGIT_YEAR_START;
+
+	public static final TimeZone GMT = TimeZone.getTimeZone("GMT");
+
+	static {
+		Calendar calendar = Calendar.getInstance();
+		calendar.setTimeZone(GMT);
+		calendar.set(2000, Calendar.JANUARY, 1, 0, 0, 0);
+		calendar.set(Calendar.MILLISECOND, 0);
+		DEFAULT_TWO_DIGIT_YEAR_START = calendar.getTime();
+	}
 	
 	public ExecutorCacheDispatcher(Executor executor, MemoryCache memoryCache, DiskCache diskCache, long converterResultMaxExpired) {
 		super();
@@ -391,14 +405,23 @@ public class ExecutorCacheDispatcher implements CacheDispatcher {
 	
 	public static long parseDateAsEpoch(String dateStr) {
 		Legolas.getLog().d("parseDateAsEpoch:" + dateStr);
-        try {
-            // Parse date in RFC1123 format if this header contains one
-            return DateUtils.parseDate(dateStr).getTime();
-        } catch (DateParseException e) {
-            // Date in invalid format, fallback to 0
-            return 0;
-        }
-    }
+
+		//RFC1036=EEE, dd MMM yyyy HH:mm:ss zzz
+		//RFC1123=EEEE, dd-MMM-yy HH:mm:ss zzz
+		//ASCTIME=EEE MMM d HH:mm:ss yyyy
+		String[] patterns = new String[] { "EEE, dd MMM yyyy HH:mm:ss zzz", "EEEE, dd-MMM-yy HH:mm:ss zzz", "EEE MMM d HH:mm:ss yyyy" };
+		for (String string : patterns) {
+			SimpleDateFormat dateParser = new SimpleDateFormat(string);
+			dateParser.set2DigitYearStart(DEFAULT_TWO_DIGIT_YEAR_START);
+			try {
+				// Parse date in RFC1123 format if this header contains one
+				return dateParser.parse(dateStr).getTime();
+			} catch (ParseException e) {
+				// Date in invalid format, fallback to 0
+			}
+		}
+		return 0;
+	}
 	
 	public CacheEntry<Response> getRequestCacheEntry(BasicRequest wrapper) {
 		Legolas.getLog().d("getRequestCacheEntry");
