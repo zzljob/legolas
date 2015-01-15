@@ -471,7 +471,9 @@ public class RequestBuilder implements RequestInterceptorFace {
 				header.put(key, headerMap.get(key));
 			}
 		}
-		header.put("Host", endpoint.getHost());
+		if (!requestDescription.isAbsolutePath()) {
+			header.put("Host", endpoint.getHost());
+		}
 		return header;
 	}
 	

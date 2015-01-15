@@ -59,7 +59,6 @@ public class AndroidPlatform extends BasicPlatform {
 				&& !Environment.MEDIA_MOUNTED_READ_ONLY.equals(Environment.getExternalStorageState())) {
 			File file = Environment.getExternalStorageDirectory();
 			DiskCache cache = new BasicDiskCache(new File(file, "legolas"));
-			cache.initialize();
 			return cache;
 		} else {
 			return new NoDiskCache();
@@ -68,7 +67,7 @@ public class AndroidPlatform extends BasicPlatform {
 
 	@Override
 	public MemoryCache defaultMemoryCache() {
-		return new AndroidLruMemoryCache(50);
+		return new AndroidLruMemoryCache();
 	}
 
 }

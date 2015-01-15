@@ -18,6 +18,10 @@ public class AndroidLruMemoryCache implements MemoryCache {
 	
 	private final LruCache<String, CacheEntry<?>> cache;
 
+	public AndroidLruMemoryCache() {
+		this(200);
+	}
+	
 	public AndroidLruMemoryCache(int maxSize) {
 		cache = new LruCache<String, CacheEntry<?>>(maxSize);
 	}
