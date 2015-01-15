@@ -28,17 +28,17 @@ public abstract class BasicRequest extends Request {
 	private final Converter converter;
 	private final CacheKeyGenerater cacheKeyGenerater;
 
-	private Object lock = new Object();
+	protected Object lock = new Object();
 	/*** 开始请求的时候，如果缓存命中则为空 ***/
-	private Date startRequestTime;
+	protected Date startRequestTime;
 	/*** 完成时间，一定不为空 ***/
-	private Date finishRequestTime;
+	protected Date finishRequestTime;
 	/*** 所有都完成的时间 **/
-	private Date finishTime;
-	private AtomicBoolean allFinished = new AtomicBoolean(false);
+	protected Date finishTime;
+	protected AtomicBoolean allFinished = new AtomicBoolean(false);
 
 	// 统计分析的扩展
-	private Object profilerExpansion;
+	protected Object profilerExpansion;
 
 	public BasicRequest(String url, String method, String description,
 			Map<String, String> headers, RequestBody body,

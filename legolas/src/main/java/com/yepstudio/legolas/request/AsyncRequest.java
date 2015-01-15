@@ -2,8 +2,10 @@ package com.yepstudio.legolas.request;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.yepstudio.legolas.Converter;
+import com.yepstudio.legolas.Legolas;
 import com.yepstudio.legolas.LegolasOptions;
 import com.yepstudio.legolas.listener.LegolasListenerWrapper;
 import com.yepstudio.legolas.mime.RequestBody;
@@ -24,6 +26,7 @@ public final class AsyncRequest extends BasicRequest  {
 	private final List<ResponseListenerWrapper> onResponseListeners;
 	private final List<OnErrorListener> onErrorListeners;
 	private final List<LegolasListenerWrapper> onLegolasListeners;
+	protected final AtomicBoolean retry = new AtomicBoolean(false);
 	
 	public AsyncRequest(String url,
 			String method, 
@@ -82,6 +85,25 @@ public final class AsyncRequest extends BasicRequest  {
 				}
 			}
 		}
+		return true;
+	}
+	
+	public synchronized boolean isRetry() {
+		return retry.get();
+	}
+	
+	public synchronized boolean retry() {
+		if (!isFinished()) {
+			return false;
+		}
+		retry.set(true);
+		cancel.set(false);
+		startRequestTime = null;
+		finishRequestTime = null;
+		finishTime = null;
+		allFinished.set(false);
+		profilerExpansion = null;
+		Legolas.getInstance().asyncRequest(this);
 		return true;
 	}
 

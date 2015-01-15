@@ -59,5 +59,14 @@ public final class SyncRequest extends BasicRequest {
 	public Type getErrorType() {
 		return errorType;
 	}
+	
+	public boolean isRetry() {
+		return false;
+	}
+
+	@Override
+	public boolean retry() {
+		return false;
+	}
 
 }
