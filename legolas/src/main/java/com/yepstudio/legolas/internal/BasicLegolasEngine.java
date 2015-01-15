@@ -11,6 +11,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.http.impl.cookie.DateUtils;
 
@@ -50,6 +51,7 @@ public class BasicLegolasEngine implements LegolasEngine {
 	private final CacheDispatcher cacheDispatcher;
 	private final ResponseDelivery responseDelivery;
 	private final ProfilerDelivery profilerDelivery;
+	private final AtomicBoolean pause = new AtomicBoolean(false);
 
 	public BasicLegolasEngine(Executor executor, HttpSender httpSender, CacheDispatcher cacheDispatcher, ResponseDelivery responseDelivery, ProfilerDelivery profilerDelivery) {
 		super();
@@ -573,16 +575,16 @@ public class BasicLegolasEngine implements LegolasEngine {
 
 	@Override
 	public void pause() {
-		
+		pause.set(true);
 	}
 
 	@Override
 	public void resume() {
-		
+		pause.set(false);
 	}
 
 	@Override
-	public void stop() {
+	public void destroy() {
 		
 	}
 

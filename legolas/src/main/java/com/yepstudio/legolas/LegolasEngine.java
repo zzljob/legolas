@@ -20,6 +20,6 @@ public interface LegolasEngine {
 
 	public void resume();
 
-	public void stop();
+	public void destroy();
 
 }

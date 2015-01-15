@@ -8,6 +8,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+
 import com.yepstudio.legolas.exception.ConversionException;
 import com.yepstudio.legolas.mime.ByteArrayResponseBody;
 import com.yepstudio.legolas.response.Response;
@@ -33,6 +36,8 @@ public class AndroidConverter extends BasicConverter {
 			return true;
 		} else if (JSONArray.class.equals(type)) {
 			return true;
+		} else if (Bitmap.class.equals(type)) {
+			return true;
 		} else {
 			return super.isSupport(type);
 		}
@@ -52,6 +57,8 @@ public class AndroidConverter extends BasicConverter {
 				String jsonText = getJsonText(response);
 				jsonText = subString(jsonText, "[", "]");
 				return new JSONArray(jsonText);
+			} else if (Bitmap.class.equals(type)) {
+				return BitmapFactory.decodeStream(response.getBody().read());
 			} else {
 				return super.convert(response, type);
 			}

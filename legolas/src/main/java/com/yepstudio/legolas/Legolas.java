@@ -220,36 +220,25 @@ public class Legolas {
 		configuration.profilerDelivery.enableProfiler(enable);
 	}
 	
-	public void pause() {
+	private void pause() {
 		checkConfiguration();
 		configuration.legolasEngine.pause();
 	}
 
 	/** Resumes waiting "load&display" tasks */
-	public void resume() {
+	private void resume() {
 		checkConfiguration();
 		configuration.legolasEngine.resume();
 	}
 
-	/**
-	 * Cancels all running and scheduled display image tasks.<br />
-	 * <b>NOTE:</b> This method doesn't shutdown
-	 * {@linkplain com.nostra13.universalimageloader.core.ImageLoaderConfiguration.Builder#taskExecutor(java.util.concurrent.Executor)
-	 * custom task executors} if you set them.<br />
-	 * ImageLoader still can be used after calling this method.
-	 */
-	public void stop() {
-		checkConfiguration();
-		configuration.legolasEngine.stop();
-	}
-	
 	public synchronized void destroy() {
 		if (configuration != null) {
 			getLog().i("Destroy Legolas");
-			configuration.legolasEngine.stop();
+			configuration.legolasEngine.destroy();
 			configuration.memoryCache.clear();
 			configuration.diskCache.close();
 			configuration = null;
+			proxyCache.clear();
 		}
 		inited.set(false);
 	}

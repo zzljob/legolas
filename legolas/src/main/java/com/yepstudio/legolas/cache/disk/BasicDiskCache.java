@@ -682,7 +682,7 @@ public class BasicDiskCache implements DiskCache {
 
 	@Override
 	public void close() {
-		
+		mEntries.clear();
 	}
 
 
