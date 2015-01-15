@@ -67,7 +67,7 @@ public class LegolasOptions {
 		/** 不进行任何恢复策略 **/
 		NONE,
 		/** 服务器没有任何相应的时候，有三种状况：1、服务器宕机了 2、客户端网络连不上服务器 3、连接超时了。这几种状况都将被使用缓存恢复**/
-		RESPONSE_NONE,
+		RESPONSE_ERROR,
 	}
 
 	public static class Builder {
@@ -77,7 +77,7 @@ public class LegolasOptions {
 
 		private long delayBeforeRequest = 0;// 请求前等待几毫秒
 		private boolean cacheInMemory = false;
-		private boolean cacheOnDisk = false;
+		private boolean cacheOnDisk = true;
 		private boolean cacheConverterResult = false;
 		private CacheKeyGenerater cacheKeyGenerater;
 		private CachePolicy cachePolicy = CachePolicy.SERVER_CACHE_CONTROL;

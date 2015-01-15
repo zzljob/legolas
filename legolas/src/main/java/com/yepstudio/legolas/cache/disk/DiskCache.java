@@ -60,6 +60,11 @@ public interface DiskCache {
      * Empties the cache.
      */
     public void clear();
+    
+    /**
+     * Destroy the cache.
+     */
+    public void close();
 
 
 }

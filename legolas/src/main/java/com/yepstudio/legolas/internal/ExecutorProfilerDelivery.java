@@ -34,7 +34,6 @@ public class ExecutorProfilerDelivery implements ProfilerDelivery {
 
 	@Override
 	public void postRequestStart(final BasicRequest wrapper) {
-		Legolas.getLog().d("postRequestStart");
 		if (!enableProfiler) {
 			return ;
 		}
@@ -61,7 +60,6 @@ public class ExecutorProfilerDelivery implements ProfilerDelivery {
 
 	@Override
 	public void postRequestEnd(final BasicRequest wrapper, final Response response, final LegolasException exception) {
-		Legolas.getLog().d("postRequestEnd");
 		if (!enableProfiler) {
 			return ;
 		}

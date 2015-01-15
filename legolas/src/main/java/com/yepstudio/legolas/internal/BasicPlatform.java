@@ -37,7 +37,7 @@ public class BasicPlatform extends Platform {
 		}
 	}
 	
-	private Executor executorxxx = Executors.newCachedThreadPool();
+	private Executor executor = Executors.newCachedThreadPool();
 	
 	@Override
 	public HttpSender defaultHttpSender() {
@@ -50,7 +50,7 @@ public class BasicPlatform extends Platform {
 	
 	@Override
 	public Executor defaultTaskExecutorForHttp() {
-		return executorxxx;
+		return executor;
 	}
 
 	@Override
@@ -69,7 +69,7 @@ public class BasicPlatform extends Platform {
 	
 	@Override
 	public Executor defaultTaskExecutorForCache() {
-		return executorxxx;
+		return executor;
 	}
 	
 	public Profiler<?> defaultProfiler() {
@@ -78,7 +78,7 @@ public class BasicPlatform extends Platform {
 	
 	@Override
 	public Executor defaultTaskExecutorForProfiler() {
-		return executorxxx;
+		return executor;
 	}
 
 	@Override

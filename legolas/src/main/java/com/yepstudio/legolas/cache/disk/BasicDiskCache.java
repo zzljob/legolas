@@ -16,14 +16,17 @@
 
 package com.yepstudio.legolas.cache.disk;
 
+import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -33,6 +36,7 @@ import java.util.Map;
 import com.yepstudio.legolas.Legolas;
 import com.yepstudio.legolas.cache.CacheEntry;
 import com.yepstudio.legolas.mime.ByteArrayResponseBody;
+import com.yepstudio.legolas.mime.FileResponseBody;
 import com.yepstudio.legolas.mime.ResponseBody;
 import com.yepstudio.legolas.response.Response;
 
@@ -41,6 +45,8 @@ import com.yepstudio.legolas.response.Response;
  * directory. The default disk usage size is 5MB, but is configurable.
  */
 public class BasicDiskCache implements DiskCache {
+	
+	private static final int DEFAULT_BUFFER_SIZE = 4096;
 	
     /** Map of the Key, CacheHeader pairs */
     private final Map<String, CacheHeader> mEntries = new LinkedHashMap<String, CacheHeader>(16, .75f, true);
@@ -97,7 +103,7 @@ public class BasicDiskCache implements DiskCache {
         mTotalSize = 0;
         Legolas.getLog().d("Cache cleared.");
     }
-
+    
     /**
      * Returns the cache entry with the specified key if it exists, null otherwise.
      */
@@ -110,27 +116,83 @@ public class BasicDiskCache implements DiskCache {
         }
 
         File file = getFileForKey(key);
-        CountingInputStream cis = null;
+        File configFile = getConfigFileForFile(file);
+        FileInputStream configInput = null;
+        FileInputStream input = null;
         try {
-            cis = new CountingInputStream(new FileInputStream(file));
-            CacheHeader.readHeader(cis); // eat header
-            byte[] data = streamToBytes(cis, (int) (file.length() - cis.bytesRead));
-            return entry.toCacheEntry(data);
+        	configInput = new FileInputStream(configFile);
+        	CacheHeader header = CacheHeader.readHeader(configInput);//load config
+        	
+        	Map<String, String> responseHeaders = header.responseHeaders;
+        	String mimeType = "application/octet-stream";
+			if (responseHeaders != null) {
+				mimeType = responseHeaders.get(ResponseBody.Content_Type);
+			}
+        	
+        	long length = 0;
+			if (file != null && file.exists()) {
+				length = file.length();
+			}
+			
+			//计算MD5值
+        	MessageDigest mdInst = MessageDigest.getInstance("MD5");
+			
+			//加载一个缓存文件
+			ResponseBody body;
+			input = new FileInputStream(file);
+			if (length < ByteArrayResponseBody.MAX_LIMIT_SIZE) {
+				byte[] data = readStreamToBytes(input, DEFAULT_BUFFER_SIZE);
+				body = new ByteArrayResponseBody(mimeType, data);
+				mdInst.update(data);
+			} else {
+				body = new FileResponseBody(mimeType, length, file);
+				
+				byte[] buffer = new byte[DEFAULT_BUFFER_SIZE];
+				int read;
+				while ((read = input.read(buffer)) != -1) {
+					mdInst.update(buffer, 0, read);
+				}
+			}
+			
+			BigInteger bigInt = new BigInteger(1, mdInst.digest());
+			StringBuilder hashtext = new StringBuilder(bigInt.toString(16));
+			while (hashtext.length() < 32) {
+				hashtext.insert(0, "0");
+			}
+			String md5 = hashtext.toString();
+			if (header.MD5 == null || md5 == null || !md5.equalsIgnoreCase(header.MD5)) {
+				// 文件被篡改或者损坏
+				Legolas.getLog().d(String.format("%s: %s", file.getAbsolutePath(), "md5 is not same"));
+				remove(key);
+				return null;
+			}
+			
+        	Response response = new Response(200, "OK", responseHeaders, body, false, true);
+        	return new CacheEntry<Response>(response, responseHeaders, header.etag, header.serverDate, header.serverModified, header.softTtl, header.ttl);
         } catch (IOException e) {
         	Legolas.getLog().d(String.format("%s: %s", file.getAbsolutePath(), e.toString()));
             remove(key);
             return null;
-        } finally {
-            if (cis != null) {
+        } catch (NoSuchAlgorithmException e) {
+        	Legolas.getLog().d(String.format("%s: %s", file.getAbsolutePath(), e.toString()));
+            remove(key);
+            return null;
+		} finally {
+            if (configInput != null) {
                 try {
-                    cis.close();
+                	configInput.close();
                 } catch (IOException ioe) {
-                    return null;
                 }
+            }
+            if (input != null) {
+            	try {
+            		input.close();
+            	} catch (IOException ioe) {
+            	}
             }
         }
     }
-
+    
     /**
      * Initializes the DiskBasedCache by scanning for all files currently in the
      * specified root directory. Creates the root directory if necessary.
@@ -139,7 +201,7 @@ public class BasicDiskCache implements DiskCache {
     public synchronized void initialize() {
         if (!mRootDirectory.exists()) {
             if (!mRootDirectory.mkdirs()) {
-            	//log.e(String.format("Unable to create cache dir %s", mRootDirectory.getAbsolutePath()));
+            	Legolas.getLog().e(String.format("Unable to create cache dir %s", mRootDirectory.getAbsolutePath()));
             }
             return;
         }
@@ -149,6 +211,9 @@ public class BasicDiskCache implements DiskCache {
             return;
         }
         for (File file : files) {
+			if (!isConfigFile(file)) {
+				continue;
+			}
             FileInputStream fis = null;
             try {
                 fis = new FileInputStream(file);
@@ -178,44 +243,104 @@ public class BasicDiskCache implements DiskCache {
     public synchronized void invalidate(String key, boolean fullExpire) {
     	CacheEntry<Response> entry = get(key);
         if (entry != null) {
-            entry.setSoftTtl(0);
-            if (fullExpire) {
-                entry.setTtl(0);
-            }
+            entry.makeExpired(fullExpire);
             put(key, entry);
         }
 
     }
+    
+	private boolean canCache(CacheEntry<Response> entry) {
+		if (entry == null || entry.getData() == null) {
+			return false;
+		}
+		return true;
+		
+//		ResponseBody body = entry.getData().getBody();
+//		if (body instanceof ByteArrayResponseBody) {
+//			return true;
+//		} else if (body instanceof FileResponseBody) {
+//			return true;
+//		}
+//		return false;
+	}
 
     /**
      * Puts the entry with the specified key into the cache.
      */
     @Override
     public synchronized void put(String key, CacheEntry<Response> entry) {
-		if (entry.getData() == null) {
+		if (!canCache(entry)) {
 			return;
 		}
 		ResponseBody body = entry.getData().getBody();
-		if (body == null || !(body instanceof ByteArrayResponseBody)) {
-			return ;
-		}
+		Legolas.getLog().d("DiskCache put " + key);
 		
-		ByteArrayResponseBody byteBody = (ByteArrayResponseBody) body;
-		pruneIfNeeded((int) byteBody.length());
+		pruneIfNeeded((int) body.length());
         File file = getFileForKey(key);
+        File configFile = getConfigFileForKey(key);
+        FileOutputStream configFileOut = null;
+        FileOutputStream fileOut = null;
+        InputStream inputStream = null;
         try {
-            FileOutputStream fos = new FileOutputStream(file);
-            CacheHeader e = new CacheHeader(key, entry);
-            e.writeHeader(fos);
-            fos.write(byteBody.getBytes());
-            fos.close();
+        	//计算MD5值
+        	MessageDigest mdInst = MessageDigest.getInstance("MD5");
+            
+			// writeFile
+        	inputStream = body.read();
+			fileOut = new FileOutputStream(file, false);
+			// 写流
+			byte[] buffer = new byte[4096];
+			int read;
+			while ((read = inputStream.read(buffer)) != -1) {
+				fileOut.write(buffer, 0, read);
+				mdInst.update(buffer, 0, read);
+			}
+			fileOut.flush();
+			
+			BigInteger bigInt = new BigInteger(1, mdInst.digest());
+			StringBuilder hashtext = new StringBuilder(bigInt.toString(16));
+			while (hashtext.length() < 32) {
+				hashtext.insert(0, "0");
+			}
+			String md5 = hashtext.toString();
+			
+			//writeConfigFile
+			configFileOut = new FileOutputStream(configFile, false);
+			CacheHeader e = new CacheHeader(key, entry, md5);
+			e.writeHeader(configFileOut);
+			configFileOut.flush();
+            
             putEntry(key, e);
             return;
         } catch (IOException e) {
-        }
+		} catch (NoSuchAlgorithmException e1) {
+		} finally {
+			if (configFileOut != null) {
+				try {
+					configFileOut.close();
+					configFileOut = null;
+				} catch (IOException e) {
+				}
+			}
+			if (fileOut != null) {
+				try {
+					fileOut.close();
+					fileOut = null;
+				} catch (IOException e) {
+				}
+			}
+			if (inputStream != null) {
+				try {
+					inputStream.close();
+					inputStream = null;
+				} catch (IOException e) {
+				}
+			}
+			
+		}
         boolean deleted = file.delete();
         if (!deleted) {
-        	//log.d(String.format("Could not clean up file %s", file.getAbsolutePath()));
+        	Legolas.getLog().d(String.format("Could not clean up file %s", file.getAbsolutePath()));
         }
     }
 
@@ -227,7 +352,7 @@ public class BasicDiskCache implements DiskCache {
         boolean deleted = getFileForKey(key).delete();
         removeEntry(key);
         if (!deleted) {
-        	//log.d(String.format("Could not delete cache entry for key=%s, filename=%s", key, getFilenameForKey(key)));
+        	Legolas.getLog().d(String.format("Could not delete cache entry for key=%s, filename=%s", key, getFilenameForKey(key)));
         }
     }
 
@@ -248,6 +373,22 @@ public class BasicDiskCache implements DiskCache {
      */
     public File getFileForKey(String key) {
         return new File(mRootDirectory, getFilenameForKey(key));
+    }
+
+    public File getConfigFileForKey(String key) {
+		return new File(getFileForKey(key).getAbsolutePath() + ".config");
+    }
+    
+    public File getConfigFileForFile(File file) {
+		return new File(file.getAbsolutePath() + ".config");
+    }
+
+    public boolean isConfigFile(String fileName) {
+    	return fileName != null && fileName.endsWith(".config");
+    }
+    
+    public boolean isConfigFile(File file) {
+    	return file != null && file.getName().endsWith(".config");
     }
 
     /**
@@ -310,7 +451,7 @@ public class BasicDiskCache implements DiskCache {
             mEntries.remove(key);
         }
     }
-
+    
     /**
      * Reads the contents of an InputStream into a byte[].
      * */
@@ -325,6 +466,21 @@ public class BasicDiskCache implements DiskCache {
             throw new IOException("Expected " + length + " bytes, read " + pos + " bytes");
         }
         return bytes;
+    }
+
+    /**
+     * Reads the contents of an InputStream into a byte[].
+     * */
+    private static byte[] readStreamToBytes(InputStream in, int bufferSize) throws IOException {
+    	ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		if (in != null) {
+			byte[] buf = new byte[bufferSize];
+			int r;
+			while ((r = in.read(buf)) != -1) {
+				baos.write(buf, 0, r);
+			}
+		}
+		return baos.toByteArray();
     }
 
     /**
@@ -344,6 +500,8 @@ public class BasicDiskCache implements DiskCache {
 
         /** Date of this response as reported by the server. */
         public long serverDate;
+        
+        public long serverModified;
 
         /** TTL for this record. */
         public long ttl;
@@ -353,6 +511,8 @@ public class BasicDiskCache implements DiskCache {
 
         /** Headers from the response resulting in this cache entry. */
         public Map<String, String> responseHeaders;
+        
+        public String MD5;
 
         private CacheHeader() { }
 
@@ -361,7 +521,7 @@ public class BasicDiskCache implements DiskCache {
          * @param key The key that identifies the cache entry
          * @param entry The cache entry.
          */
-        public CacheHeader(String key, CacheEntry<Response> entry) {
+        public CacheHeader(String key, CacheEntry<Response> entry, String md5) {
             this.key = key;
 			if (entry.getData() != null && entry.getData().getBody() != null) {
 				this.size = entry.getData().getBody().length();
@@ -370,9 +530,11 @@ public class BasicDiskCache implements DiskCache {
 			}
             this.etag = entry.getEtag();
             this.serverDate = entry.getServerDate();
+            this.serverModified = entry.getServerModified();
             this.ttl = entry.getTtl();
             this.softTtl = entry.getSoftTtl();
             this.responseHeaders = entry.getResponseHeaders();
+            this.MD5 = md5;
         }
 
         /**
@@ -389,73 +551,37 @@ public class BasicDiskCache implements DiskCache {
             }
             entry.key = readString(is);
             entry.etag = readString(is);
-            if (entry.etag.equals("")) {
+            if ("".equals(entry.etag)) {
                 entry.etag = null;
             }
             entry.serverDate = readLong(is);
+            entry.serverModified = readLong(is);
             entry.ttl = readLong(is);
             entry.softTtl = readLong(is);
+            entry.MD5 = readString(is);
+			if ("".equals(entry.MD5)) {
+				entry.MD5 = null;
+			}
             entry.responseHeaders = readStringStringMap(is);
             return entry;
         }
 
         /**
-         * Creates a cache entry for the specified data.
-         */
-        public CacheEntry<Response> toCacheEntry(byte[] data) {
-        	String mimeType = responseHeaders.get(ByteArrayResponseBody.Content_Type);
-        	ByteArrayResponseBody body = new ByteArrayResponseBody(mimeType, data);
-        	Response response = new Response(200, "OK", responseHeaders, body, false, true);
-        	return new CacheEntry<Response>(response, responseHeaders, etag, serverDate, softTtl, ttl);
-        }
-
-
-        /**
          * Writes the contents of this CacheHeader to the specified OutputStream.
          */
-        public boolean writeHeader(OutputStream os) {
-            try {
-                writeInt(os, CACHE_MAGIC);
-                writeString(os, key);
-                writeString(os, etag == null ? "" : etag);
-                writeLong(os, serverDate);
-                writeLong(os, ttl);
-                writeLong(os, softTtl);
-                writeStringStringMap(responseHeaders, os);
-                os.flush();
-                return true;
-            } catch (IOException e) {
-            	//log.e(String.format("%s", e.toString()));
-                return false;
-            }
-        }
+		public void writeHeader(OutputStream os) throws IOException {
+			writeInt(os, CACHE_MAGIC);
+			writeString(os, key);
+			writeString(os, etag == null ? "" : etag);
+			writeLong(os, serverDate);
+			writeLong(os, serverModified);
+			writeLong(os, ttl);
+			writeLong(os, softTtl);
+			writeString(os, MD5);
+			writeStringStringMap(responseHeaders, os);
+			os.flush();
+		}
 
-    }
-
-    private static class CountingInputStream extends FilterInputStream {
-        private int bytesRead = 0;
-
-        private CountingInputStream(InputStream in) {
-            super(in);
-        }
-
-        @Override
-        public int read() throws IOException {
-            int result = super.read();
-            if (result != -1) {
-                bytesRead++;
-            }
-            return result;
-        }
-
-        @Override
-        public int read(byte[] buffer, int offset, int count) throws IOException {
-            int result = super.read(buffer, offset, count);
-            if (result != -1) {
-                bytesRead += result;
-            }
-            return result;
-        }
     }
 
     /*
@@ -533,8 +659,8 @@ public class BasicDiskCache implements DiskCache {
         if (map != null) {
             writeInt(os, map.size());
             for (Map.Entry<String, String> entry : map.entrySet()) {
-                writeString(os, entry.getKey());
-                writeString(os, entry.getValue());
+                writeString(os, entry.getKey() == null ? "" : entry.getKey());
+                writeString(os, entry.getValue() == null ? "" : entry.getValue());
             }
         } else {
             writeInt(os, 0);
@@ -553,6 +679,11 @@ public class BasicDiskCache implements DiskCache {
         }
         return result;
     }
+
+	@Override
+	public void close() {
+		
+	}
 
 
 }

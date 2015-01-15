@@ -16,8 +16,9 @@ import com.yepstudio.legolas.LegolasOptions.RecoveryPolicy;
 import com.yepstudio.legolas.cache.disk.BasicDiskCache;
 import com.yepstudio.legolas.converter.BasicConverter;
 import com.yepstudio.legolas.httpsender.UrlConnectionHttpSender;
-import com.yepstudio.legolas.internal.NoneLog;
+import com.yepstudio.legolas.internal.Sl4fLog;
 import com.yepstudio.legolas.listener.LegolasListener;
+import com.yepstudio.legolas.mime.ResponseBody;
 import com.yepstudio.legolas.request.Request;
 import com.yepstudio.legolas.webapi.HttpApi;
 import com.yepstudio.legolas.webapi.HttpApi.NewsTitleEntity;
@@ -31,9 +32,10 @@ public class HttpApiTest {
 		Endpoint endpoint = Endpoints.newFixedEndpoint("http://jrsj1.data.fund123.cn", "金融数据1");
 		LegolasOptions defaultHttpRequestOptions = new LegolasOptions.Builder()
 				.cacheConverterResult(false)
-				.cacheInMemory(true)
+				.cacheInMemory(false)
+				.cacheOnDisk(true)
 				.cachePolicy(CachePolicy.SERVER_CACHE_CONTROL)
-				.recoveryPolicy(RecoveryPolicy.RESPONSE_NONE)
+				.recoveryPolicy(RecoveryPolicy.RESPONSE_ERROR)
 				.build(); 
 		
 		BasicDiskCache diskCache = new BasicDiskCache(new File("D:/cache"));
@@ -43,7 +45,7 @@ public class HttpApiTest {
 				.diskCache(diskCache)
 				.defaultConverter(new BasicConverter())
 				.httpSender(new UrlConnectionHttpSender())
-				.legolasLog(new NoneLog())
+				.legolasLog(new Sl4fLog())
 				.build();
 		Legolas.getInstance().init(config);
 	}
@@ -64,8 +66,8 @@ public class HttpApiTest {
 	public void testSyncGetCss() throws InterruptedException {
 		HttpApi api = Legolas.getInstance().getApi(HttpApi.class);
 		try {
-			String response = api.getBaseCss();
-			logger.debug("response:{}", response);
+			ResponseBody body = api.getSinaImage();
+			logger.debug("response:{}", "");
 		} catch (Exception e) {
 			e.getCause();
 			logger.error("", e);

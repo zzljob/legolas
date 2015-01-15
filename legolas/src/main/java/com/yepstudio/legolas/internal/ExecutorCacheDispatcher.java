@@ -7,6 +7,7 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.Callable;
@@ -17,6 +18,7 @@ import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.yepstudio.legolas.CacheDispatcher;
@@ -49,6 +51,7 @@ public class ExecutorCacheDispatcher implements CacheDispatcher {
 	private final MemoryCache memoryCache;
 	private final DiskCache diskCache;
 	private final CompletionService<Boolean> service;
+	private AtomicBoolean enableCache = new AtomicBoolean(true);
 	
 	private static final Date DEFAULT_TWO_DIGIT_YEAR_START;
 
@@ -72,10 +75,9 @@ public class ExecutorCacheDispatcher implements CacheDispatcher {
 	}
 	
 	public void updateRequestCache(final BasicRequest wrapper, Response response) {
-		Legolas.getLog().d("updateRequestCache");
 		//开始存储Response
 		FutureTask<Void> memoryTask = null;
-		if (needUpdateMemoryCacheForResponse(wrapper)) {
+		if (needUpdateMemoryCacheForResponse(wrapper, response)) {
 			wrapper.appendLog("Memory Cache Response update. \n");
 			UpdateRequestCacheRunnable runnable = new UpdateRequestCacheRunnable(wrapper, response, memoryCache, diskCache);
 			runnable.updateMemoryResponse = true;
@@ -88,7 +90,7 @@ public class ExecutorCacheDispatcher implements CacheDispatcher {
 		FutureTask<Void> diskTask = null;
 		//存入磁盘缓存
 		//开始存储Response
-		if (needUpdateDiskCacheForResponse(wrapper)) {
+		if (needUpdateDiskCacheForResponse(wrapper, response)) {
 			wrapper.appendLog("Disk Cache Response update. \n");
 			UpdateRequestCacheRunnable runnable = new UpdateRequestCacheRunnable(wrapper, response, memoryCache, diskCache);
 			runnable.updateDiskResponse = true;
@@ -138,46 +140,47 @@ public class ExecutorCacheDispatcher implements CacheDispatcher {
 		taskExecutorForCache.execute(task); 
 	}
 	
-	private boolean needUpdateMemoryCacheForResponse(BasicRequest wrapper) {
-		Legolas.getLog().d("needUpdateMemoryCacheForResponse");
-		//没有禁用缓存就直接更新缓存
-		if (wrapper.getOptions().isCacheInMemory()) {
+	private boolean needUpdateMemoryCacheForResponse(BasicRequest wrapper, Response response) {
+		if (response.isFromMemoryCache()) {
+			return false;
+		}
+		RecoveryPolicy policy = wrapper.getRecoveryPolicy();
+		if (RecoveryPolicy.NONE != policy) {
 			return true;
 		}
-		RecoveryPolicy policy = wrapper.getOptions().getRecoveryPolicy();
-		return RecoveryPolicy.NONE != policy;
+		return wrapper.isCacheResponseInMemory();
 	}
 	
 	private boolean needLoadMemoryCacheForResponse(BasicRequest wrapper) {
-		Legolas.getLog().d("needLoadMemoryCacheForResponse");
-		//没有禁用缓存就直接更新缓存
-		if (wrapper.getOptions().isCacheInMemory()) {
-			return true;
+		if (!enableCache.get()) {
+			return false;
 		}
-		RecoveryPolicy policy = wrapper.getOptions().getRecoveryPolicy();
-		return RecoveryPolicy.NONE != policy;
+		return wrapper.isCacheResponseInMemory();
 	}
 	
-	private boolean needUpdateDiskCacheForResponse(BasicRequest wrapper) {
-		Legolas.getLog().d("needUpdateDiskCacheForResponse");
+	private boolean needUpdateDiskCacheForResponse(BasicRequest wrapper, Response response) {
+		if (response.isFromDiskCache()) {
+			return false;
+		}
 		//缓存的几个用途：
 		//1、缓存可以避免去请求网络
 		//2、支持304请求缓存
 		//3、支持网络请求出错
-		return true;
+		RecoveryPolicy policy = wrapper.getRecoveryPolicy();
+		if (RecoveryPolicy.NONE != policy) {
+			return true;
+		}
+		return wrapper.isCacheResponseOnDisk();
 	}
 	
 	private boolean needLoadDiskCacheForResponse(BasicRequest wrapper) {
-		Legolas.getLog().d("needLoadDiskCacheForResponse");
-		//缓存的几个用途：
-		//1、缓存可以避免去请求网络
-		//2、支持304请求缓存
-		//3、支持网络请求出错
-		return true;
+		if (!enableCache.get()) {
+			return false;
+		}
+		return wrapper.isCacheResponseOnDisk();
 	}
 	
 	public void updateAsyncRequestConverterCache(final AsyncRequest wrapper) {
-		Legolas.getLog().d("updateAsyncRequestConverterCache");
 		appendLogForUpdateCache(wrapper);
 		wrapper.appendLog("updateSyncRequestConverterCache: ");
 		if (!wrapper.getOptions().isCacheConverterResult()) {
@@ -308,6 +311,7 @@ public class ExecutorCacheDispatcher implements CacheDispatcher {
 			String key = wrapper.getCacheKey();
 			CacheEntry<Response> entry = makeCacheEntryForResponse(response);
 			if (entry != null) {
+				Legolas.getLog().d("CacheEntry:" + entry.toString());
 				memoryCache.put(key, entry);
 			}
 		}
@@ -320,24 +324,20 @@ public class ExecutorCacheDispatcher implements CacheDispatcher {
 			String key = wrapper.getCacheKey();
 			CacheEntry<Response> entry = makeCacheEntryForResponse(response);
 			if (entry != null) {
+				Legolas.getLog().d("CacheEntry:" + entry.toString());
 				diskCache.put(key, entry);
 			}
 		}
-
 	}
 
 	private static <T> CacheEntry<T> makeCacheEntryForConverterResult(T value, long maxExpired) {
-		Legolas.getLog().d("makeCacheEntryForConverterResult");
 		Map<String, String> responseHeaders = Collections.emptyMap();
-		String etag = null;
-		long serverDate = 0;
 		long softTtl = System.currentTimeMillis() + TimeUnit.MILLISECONDS.toMillis(maxExpired);
-		return new CacheEntry<T>(value, responseHeaders, etag, serverDate, softTtl);
+		return new CacheEntry<T>(value, responseHeaders, null, 0, 0, softTtl);
 	}
 	
 	
 	private static CacheEntry<Response> makeCacheEntryForResponse(Response response) {
-		Legolas.getLog().d("makeCacheEntryForResponse");
 		if (response == null) {
 			return null;
 		}
@@ -351,6 +351,7 @@ public class ExecutorCacheDispatcher implements CacheDispatcher {
 
 	        long serverDate = 0;
 	        long serverExpires = 0;
+	        long serverModified = 0;//Last-Modified
 	        long softExpire = 0;
 	        long maxAge = 0;
 	        boolean hasCacheControl = false;
@@ -358,11 +359,19 @@ public class ExecutorCacheDispatcher implements CacheDispatcher {
 	        String serverEtag = null;
 	        String headerValue;
 
+	        //服务器时间
 	        headerValue = headers.get("Date");
 	        if (headerValue != null) {
 	            serverDate = parseDateAsEpoch(headerValue);
 	        }
 
+	        //服务器改动时间
+	        headerValue = headers.get("Last-Modified");
+	        if (headerValue != null) {
+	        	serverModified = parseDateAsEpoch(headerValue);
+	        }
+
+	        //服务器的缓存控制
 	        headerValue = headers.get("Cache-Control");
 	        if (headerValue != null) {
 	            hasCacheControl = true;
@@ -387,6 +396,7 @@ public class ExecutorCacheDispatcher implements CacheDispatcher {
 	            serverExpires = parseDateAsEpoch(headerValue);
 	        }
 
+	        //ETag
 	        serverEtag = headers.get("ETag");
 
 	        // Cache-Control takes precedence over an Expires header, even if both exist and Expires
@@ -395,27 +405,36 @@ public class ExecutorCacheDispatcher implements CacheDispatcher {
 	            softExpire = now + maxAge * 1000;
 	        } else if (serverDate > 0 && serverExpires >= serverDate) {
 	            // Default semantic for Expire header in HTTP specification is softExpire.
-	            softExpire = now + (serverExpires - serverDate);
+	            softExpire = now + (serverExpires - serverDate);//本地的过期的时间
 	        }
-
-	        entry = new CacheEntry<Response>(response, headers, serverEtag, serverDate, softExpire);
+	        
+	        entry = new CacheEntry<Response>(response, headers, serverEtag, serverDate, serverModified, softExpire);
 		}
 		return entry;
 	}
 	
-	public static long parseDateAsEpoch(String dateStr) {
-		Legolas.getLog().d("parseDateAsEpoch:" + dateStr);
+	protected static long parseDateAsEpoch(String dateValue) {
+		//Legolas.getLog().d("parseDateAsEpoch:" + dateStr);
+		
+		if (dateValue != null 
+				&&dateValue.length() > 1 
+				&& dateValue.startsWith("'")
+				&& dateValue.endsWith("'")) {
+			dateValue = dateValue.substring(1, dateValue.length() - 1);
+		}
 
-		//RFC1036=EEE, dd MMM yyyy HH:mm:ss zzz
-		//RFC1123=EEEE, dd-MMM-yy HH:mm:ss zzz
-		//ASCTIME=EEE MMM d HH:mm:ss yyyy
-		String[] patterns = new String[] { "EEE, dd MMM yyyy HH:mm:ss zzz", "EEEE, dd-MMM-yy HH:mm:ss zzz", "EEE MMM d HH:mm:ss yyyy" };
+		String RFC1036 = "EEEE, dd-MMM-yy HH:mm:ss zzz";
+		String RFC1123 = "EEE, dd MMM yyyy HH:mm:ss zzz";
+		String ASCTIME = "EEE MMM d HH:mm:ss yyyy";
+		
+		//Thu, 15 Jan 2015 05:52:38 GMT
+		String[] patterns = new String[] { RFC1036, RFC1123, ASCTIME };
 		for (String string : patterns) {
-			SimpleDateFormat dateParser = new SimpleDateFormat(string);
+			SimpleDateFormat dateParser = new SimpleDateFormat(string, Locale.US);
 			dateParser.set2DigitYearStart(DEFAULT_TWO_DIGIT_YEAR_START);
 			try {
 				// Parse date in RFC1123 format if this header contains one
-				return dateParser.parse(dateStr).getTime();
+				return dateParser.parse(dateValue).getTime();
 			} catch (ParseException e) {
 				// Date in invalid format, fallback to 0
 			}
@@ -424,9 +443,9 @@ public class ExecutorCacheDispatcher implements CacheDispatcher {
 	}
 	
 	public CacheEntry<Response> getRequestCacheEntry(BasicRequest wrapper) {
-		Legolas.getLog().d("getRequestCacheEntry");
 		CacheEntry<Response> cacheEntry = null;
 		boolean loadMemoryCache = needLoadMemoryCacheForResponse(wrapper);
+		Legolas.getLog().d("needLoadMemoryCacheForResponse [" + loadMemoryCache + "]");
 		if (loadMemoryCache) {
 			//如果有Response没有在缓存里边那就从内存缓存拿出Response对象
 			wrapper.appendLog("MemoryCache load Response : ");
@@ -446,6 +465,7 @@ public class ExecutorCacheDispatcher implements CacheDispatcher {
 		}
 		
 		boolean loadDiskCache = needLoadDiskCacheForResponse(wrapper);
+		Legolas.getLog().d("needLoadDiskCacheForResponse [" + loadDiskCache + "]");
 		//内存缓存没命中
 		if (loadDiskCache) {
 			wrapper.appendLog("DiskCache load Response : ");
@@ -466,7 +486,14 @@ public class ExecutorCacheDispatcher implements CacheDispatcher {
 	}
 	
 	public boolean getSyncRequestConverterCache(SyncRequest wrapper) {
-		Legolas.getLog().d("getSyncRequestConverterCache");
+		if (!enableCache.get()) {
+			Legolas.getLog().d("Global enableCache : [false] getSyncRequestConverterCache fail");
+			return false;
+		}
+		if (!wrapper.isCacheConverterResult()) {
+			Legolas.getLog().d("CacheConverterResult : [false] getSyncRequestConverterCache fail");
+			return false;
+		}
 		LegolasOptions options = wrapper.getOptions();
 		appendLogForLoadCache(wrapper);
 		
@@ -539,7 +566,6 @@ public class ExecutorCacheDispatcher implements CacheDispatcher {
 	}
 	
 	private FutureTask<CacheEntry<?>> submitMemoryCacheTask(final String key) {
-		Legolas.getLog().d("submitMemoryCacheTask");
 		GetMemoryCacheCallable memoryCacheCallable = new GetMemoryCacheCallable(memoryCache, key);
 		FutureTask<CacheEntry<?>> memoryCacheTask = new FutureTask<CacheEntry<?>>(memoryCacheCallable);
 		taskExecutorForCache.execute(memoryCacheTask);
@@ -564,7 +590,6 @@ public class ExecutorCacheDispatcher implements CacheDispatcher {
 	}
 	
 	private FutureTask<CacheEntry<Response>> submitDiskCacheTask(final String key) {
-		Legolas.getLog().d("submitDiskCacheTask");
 		FutureTask<CacheEntry<Response>> diskCacheTask = null;
 		GetDiskCacheCallable diskCacheCallable = new GetDiskCacheCallable(diskCache, key);
 		diskCacheTask = new FutureTask<CacheEntry<Response>>(diskCacheCallable);
@@ -572,8 +597,7 @@ public class ExecutorCacheDispatcher implements CacheDispatcher {
 		return diskCacheTask;
 	}
 	
-	public boolean loadResultFromMemoryCacheForSync(SyncRequest wrapper) {
-		Legolas.getLog().d("loadResultFromMemoryCacheForSync");
+	private boolean loadResultFromMemoryCacheForSync(SyncRequest wrapper) {
 		//如果有Response没有在缓存里边那就从内存缓存拿出Response对象
 		Type responseType = wrapper.getResultType();
 		String key = wrapper.getCacheKey(responseType);
@@ -592,7 +616,6 @@ public class ExecutorCacheDispatcher implements CacheDispatcher {
 	}
 	
 	private boolean loadResponseListenerFromMemoryCacheForAsync(AsyncRequest wrapper) {
-		Legolas.getLog().d("loadResponseListenerFromMemoryCacheForAsync");
 		List<ResponseListenerWrapper> list = wrapper.getOnResponseListeners();
 		AtomicInteger count = new AtomicInteger(0);
 		if (list != null && !list.isEmpty()) {
@@ -642,7 +665,6 @@ public class ExecutorCacheDispatcher implements CacheDispatcher {
 	 */
 	@SuppressWarnings("unchecked")
 	private CacheEntry<Response> loadResponseFromMemoryCache(BasicRequest wrapper) {
-		Legolas.getLog().d("loadResponseFromMemoryCache");
 		//如果有Response没有在缓存里边那就从内存缓存拿出Response对象
 		String key = wrapper.getCacheKey();
 		FutureTask<CacheEntry<?>> task = submitMemoryCacheTask(key);
@@ -659,7 +681,6 @@ public class ExecutorCacheDispatcher implements CacheDispatcher {
 	}
 	
 	private CacheEntry<Response> loadResponseFromDiskCache(BasicRequest wrapper) {
-		Legolas.getLog().d("loadResponseFromDiskCache");
 		//如果有Response没有在缓存里边那就从内存缓存拿出Response对象
 		String key = wrapper.getCacheKey();
 		FutureTask<CacheEntry<Response>> task = submitDiskCacheTask(key);
@@ -693,7 +714,6 @@ public class ExecutorCacheDispatcher implements CacheDispatcher {
 	}
 	
 	private void appendLogForUpdateCache(BasicRequest wrapper) {
-		Legolas.getLog().d("appendLogForUpdateCache");
 		StringBuilder builder = new StringBuilder();
 		builder.append("-------------------<<UpdateCache-------------------\n");
 		builder.append("CacheConverterResult:").append(wrapper.getOptions().isCacheConverterResult()).append("\n");
@@ -711,10 +731,13 @@ public class ExecutorCacheDispatcher implements CacheDispatcher {
 	 * @return true全部从缓存读取，不需要请求网络，false没有从缓存读取到，需要请求(但是不代表没有Etag)
 	 */
 	public boolean getAsyncRequestConverterCache(AsyncRequest wrapper) {
-		Legolas.getLog().d("getAsyncRequestConverterCache");
-		appendLogForLoadCache(wrapper);
+		if (!enableCache.get()) {
+			Legolas.getLog().d("Global enableCache : [false] getAsyncRequestConverterCache fail");
+			return false;
+		}
 		
-		if (wrapper.getOptions().isCacheConverterResult()) {
+		appendLogForLoadCache(wrapper);
+		if (wrapper.isCacheConverterResult()) {
 			wrapper.appendLog("MemoryCache load All Listener Result : ");
 			if (loadResponseListenerFromMemoryCacheForAsync(wrapper)) {
 				//如果所有的Response都从缓存加载出来了，就直接结束
@@ -722,8 +745,16 @@ public class ExecutorCacheDispatcher implements CacheDispatcher {
 				return true;
 			} else {
 				wrapper.appendLog(" Losted \n");
+				Legolas.getLog().d("AsyncRequest CacheConverterResult : [true] getAsyncRequestConverterCache fail");
 			}
+		} else {
+			Legolas.getLog().d("AsyncRequest CacheConverterResult : [false] getAsyncRequestConverterCache fail");
 		}
 		return false;
+	}
+
+	@Override
+	public void enableCache(boolean enable) {
+		enableCache.set(enable);
 	}
 }

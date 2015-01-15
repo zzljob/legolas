@@ -1,5 +1,6 @@
 package com.yepstudio.legolas.internal;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.Date;
@@ -10,7 +11,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.http.impl.cookie.DateUtils;
 
@@ -31,6 +31,8 @@ import com.yepstudio.legolas.exception.HttpStatusException;
 import com.yepstudio.legolas.exception.NetworkException;
 import com.yepstudio.legolas.exception.ResponseException;
 import com.yepstudio.legolas.listener.LegolasListenerWrapper;
+import com.yepstudio.legolas.mime.ByteArrayResponseBody;
+import com.yepstudio.legolas.mime.FileResponseBody;
 import com.yepstudio.legolas.mime.RequestBody;
 import com.yepstudio.legolas.mime.ResponseBody;
 import com.yepstudio.legolas.request.AsyncRequest;
@@ -47,7 +49,6 @@ public class BasicLegolasEngine implements LegolasEngine {
 	private final CacheDispatcher cacheDispatcher;
 	private final ResponseDelivery responseDelivery;
 	private final ProfilerDelivery profilerDelivery;
-	private final AtomicBoolean denyCache = new AtomicBoolean(false);
 
 	public BasicLegolasEngine(Executor executor, HttpSender httpSender, CacheDispatcher cacheDispatcher, ResponseDelivery responseDelivery, ProfilerDelivery profilerDelivery) {
 		super();
@@ -137,15 +138,13 @@ public class BasicLegolasEngine implements LegolasEngine {
 		LegolasOptions options  = wrapper.getOptions();
 		CachePolicy cachePolicy = options.getCachePolicy();
 		Response response = null;
-		//如果没有全面禁用缓存那就直接从缓存里边拿内容
-		if (!denyCache.get()) {
-			//不需要请求，或者缓存了所有的Listener的结果，那就不需要请求了
-			if (cacheDispatcher.getAsyncRequestConverterCache(wrapper)) {
-				responseDelivery.postAsyncResponse(wrapper);
-				return response;
-			}
-			cacheEntry = cacheDispatcher.getRequestCacheEntry(wrapper);
+		
+		//不需要请求，或者缓存了所有的Listener的结果，那就不需要请求了
+		if (cacheDispatcher.getAsyncRequestConverterCache(wrapper)) {
+			responseDelivery.postAsyncResponse(wrapper);
+			return response;
 		}
+		cacheEntry = cacheDispatcher.getRequestCacheEntry(wrapper);
 		
 		if (cacheEntry != null && cacheEntry.getData() != null) {
 			response = cacheEntry.getData();
@@ -291,18 +290,47 @@ public class BasicLegolasEngine implements LegolasEngine {
 			headers.put("Pragma", "no-cache");
 			return ;
 		}
+		//If-None-Match
 		if (cacheEntry.getEtag() != null) {
 			headers.put("If-None-Match", cacheEntry.getEtag());
 		}
 		// 添加 If-Modified-Since
-		if (cacheEntry.getServerDate() > 0) {
-			Date refTime = new Date(cacheEntry.getServerDate());
+		if (cacheEntry.getServerModified() > 0) {
+			Date refTime = new Date(cacheEntry.getServerModified());
 			request.getHeaders().put("If-Modified-Since", DateUtils.formatDate(refTime));
 		}
 	}
 	
+	private Response getReadableResponse(Response response) throws IOException {
+		if (response == null || response.getBody() == null) {
+			return response;
+		}
+		ResponseBody body = response.getBody();
+		if (body instanceof ByteArrayResponseBody) {
+			return response;
+		} else if (body instanceof FileResponseBody) {
+			return response;
+		} else {
+			long max_length = ByteArrayResponseBody.MAX_LIMIT_SIZE;
+			
+			int statusCode = response.getStatus();
+			String message = response.getMessage();
+			Map<String, String> headers = response.getHeaders();
+			ResponseBody responseBody = null;
+			boolean fromMemoryCache = response.isFromMemoryCache();
+			boolean fromDiskCache = response.isFromDiskCache();
+			
+			if (0 <= body.length() && body.length() < max_length) {
+				responseBody = ByteArrayResponseBody.build(body);
+			} else {
+				File file = File.createTempFile("legolas_", "_temp");
+				responseBody = FileResponseBody.build(body, file);
+			}
+			return new Response(statusCode, message, headers, responseBody, fromMemoryCache, fromDiskCache);
+		}
+	}
+	
 	private Response sendHttpRequestOrRecovery(BasicRequest request, RecoveryPolicy recovery, CacheEntry<Response> cacheEntry) throws NetworkException {
-		Legolas.getLog().d("sendHttpRequestOrRecovery");
 		StringBuilder log = new StringBuilder();
 		
 		//发送请求
@@ -328,13 +356,22 @@ public class BasicLegolasEngine implements LegolasEngine {
 				ResponseBody body = cacheResponse.getBody();
 				response = new Response(response.getStatus(), response.getMessage(), response.getHeaders(), body, false, false);
 			}
+			
+			//开始转成字符或者文件的，使后面可以反复被读取
+			response = getReadableResponse(response);
+			int status = response.getStatus();
+			Legolas.getLog().v(String.format("status[%s] Body[%s], ", status, response.getBody()));
+			
+			Legolas.getLog().w("sendHttpRequest [success]");
 		} catch (IOException e) {
+			Legolas.getLog().w("sendHttpRequest has IOException", e);
 			//请求出错啦
 			appendLogForResponse(log, null, e);
 			
 			NetworkException exception = new NetworkException("request failed", e);
 			//执行恢复策略
-			if (RecoveryPolicy.RESPONSE_NONE == recovery) {
+			if (RecoveryPolicy.RESPONSE_ERROR == recovery) {
+				Legolas.getLog().w("RecoveryPolicy Recovery to [" + cacheResponse + "]");
 				response = cacheResponse;
 			} else if (RecoveryPolicy.NONE == recovery) {
 				throw exception;
@@ -363,12 +400,12 @@ public class BasicLegolasEngine implements LegolasEngine {
 		CacheEntry<Response> cacheEntry = null; 
 		
 		//如果没有全面禁用缓存那就直接从缓存里边拿内容
-		if (!denyCache.get()) {
-			if (cacheDispatcher.getSyncRequestConverterCache(wrapper)) {
-				return null;
-			}
-			cacheEntry = cacheDispatcher.getRequestCacheEntry(wrapper);
+		if (cacheDispatcher.getSyncRequestConverterCache(wrapper)) {
+			Legolas.getLog().d("getSyncRequestConverterCache [true], finish Request");
+			return null;
 		}
+		cacheEntry = cacheDispatcher.getRequestCacheEntry(wrapper);
+		Legolas.getLog().d("getRequestCacheEntry [" + cacheEntry + "]");
 		
 		if (cacheEntry != null && cacheEntry.getData() != null) {
 			if (CachePolicy.ALWAYS_USE_CACHE == cachePolicy) {
@@ -502,11 +539,6 @@ public class BasicLegolasEngine implements LegolasEngine {
 	@Override
 	public void stop() {
 		
-	}
-
-	@Override
-	public void denyCache(boolean denyCache) {
-		this.denyCache.set(denyCache);
 	}
 
 }

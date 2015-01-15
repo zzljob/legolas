@@ -36,7 +36,6 @@ public class ExecutorResponseDelivery implements ResponseDelivery {
 
 	@Override
 	public void postAsyncResponse(final AsyncRequest wrapper) {
-		Legolas.getLog().d("postAsyncResponse");
 		deliveryExecutor.execute(new Runnable() {
 			
 			@Override
@@ -47,7 +46,6 @@ public class ExecutorResponseDelivery implements ResponseDelivery {
 	}
 	
 	public void doPostAsyncResponse(AsyncRequest wrapper) {
-		Legolas.getLog().d("doPostAsyncResponse");
 		List<ResponseListenerWrapper> listeners = wrapper.getOnResponseListeners();
 		if (listeners != null && !listeners.isEmpty()) {
 			for (ResponseListenerWrapper listener : listeners) {
@@ -85,7 +83,6 @@ public class ExecutorResponseDelivery implements ResponseDelivery {
 
 	@Override
 	public void postAsyncError(final AsyncRequest wrapper, final LegolasException exception) {
-		Legolas.getLog().d("postAsyncError");
 		deliveryExecutor.execute(new Runnable() {
 
 			@Override
@@ -96,7 +93,6 @@ public class ExecutorResponseDelivery implements ResponseDelivery {
 	}
 	
 	public void doPostAsyncError(AsyncRequest wrapper, LegolasException exception) {
-		Legolas.getLog().d("doPostAsyncError");
 		List<OnErrorListener> listeners = wrapper.getOnErrorListeners();
 		if (listeners != null && !listeners.isEmpty()) {
 			for (OnErrorListener listener : listeners) {

@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class ByteArrayResponseBody extends StreamResponseBody {
 
 	private static final int DEFAULT_BUFFER_SIZE = 4096;
+	public static final long MAX_LIMIT_SIZE = 1 * 1024 * 1024;
 
 	private volatile byte[] bytes = null;
 	private final int bufferSize;
@@ -34,7 +35,9 @@ public class ByteArrayResponseBody extends StreamResponseBody {
 			String mimeType = body.mimeType();
 			long length = body.length();
 			InputStream stream = body.read();
-			return new ByteArrayResponseBody(mimeType, length, stream, bufferSize);
+			ByteArrayResponseBody byteBody = new ByteArrayResponseBody(mimeType, length, stream, bufferSize);
+			byteBody.read();
+			return byteBody;
 		}
 	}
 	

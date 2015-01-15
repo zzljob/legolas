@@ -22,7 +22,7 @@ public class SimpleCacheKeyGenerater implements CacheKeyGenerater {
 
 	@Override
 	public String generateKey(Request request, Type type) {
-		return String.format("%s:%s#%s", generateKey(request), type);
+		return String.format("#%s", generateKey(request), type);
 	}
 
 }

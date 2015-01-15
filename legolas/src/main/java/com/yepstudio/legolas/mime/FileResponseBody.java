@@ -2,7 +2,9 @@ package com.yepstudio.legolas.mime;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
 /**
  * 
@@ -14,7 +16,51 @@ import java.io.IOException;
  */
 public class FileResponseBody extends StreamResponseBody {
 
+	private static final int DEFAULT_BUFFER_SIZE = 4096;
 	private final File file;
+
+	public static FileResponseBody build(ResponseBody body, File file) throws IOException {
+		return build(body, file, DEFAULT_BUFFER_SIZE);
+	}
+
+	public static FileResponseBody build(ResponseBody body, File file, int bufferSize) throws IOException {
+		if (body == null || file == null) {
+			return null;
+		}
+		if (body instanceof FileResponseBody) {
+			return (FileResponseBody) body;
+		} else {
+			File dirFile = file.getParentFile();
+			if (!dirFile.exists()) {
+				dirFile.mkdirs();
+			}
+			if (file.exists()) {
+				file.delete();
+			}
+			long length = 0;
+			InputStream inputStream = body.read();
+			FileOutputStream outputStream = new FileOutputStream(file);
+			byte[] buffer = new byte[bufferSize];
+			try {
+				int read;
+				while ((read = inputStream.read(buffer)) != -1) {
+					outputStream.write(buffer, 0, read);
+					length += read;
+				}
+			} finally {
+				try {
+					outputStream.flush();
+					outputStream.close();
+				} catch (IOException e) {
+				}
+				try {
+					inputStream.close();
+				} catch (IOException e) {
+				}
+			}
+			return new FileResponseBody(body.mimeType(), length, file);
+		}
+	}
 
 	public FileResponseBody(String mimeType, long length, File file) throws IOException {
 		super(mimeType, length, new FileInputStream(file));
@@ -24,7 +70,7 @@ public class FileResponseBody extends StreamResponseBody {
 	public File getFile() {
 		return file;
 	}
-	
+
 	@Override
 	public String toString() {
 		return file.getAbsolutePath() + " (" + mimeType() + ")";

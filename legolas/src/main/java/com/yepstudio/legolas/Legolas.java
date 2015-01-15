@@ -4,9 +4,11 @@ import java.lang.ref.SoftReference;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.yepstudio.legolas.cache.disk.DiskCache;
 import com.yepstudio.legolas.cache.memory.MemoryCache;
@@ -14,8 +16,10 @@ import com.yepstudio.legolas.description.ApiDescription;
 import com.yepstudio.legolas.description.RequestDescription;
 import com.yepstudio.legolas.internal.NoneLog;
 import com.yepstudio.legolas.internal.RequestBuilder;
-import com.yepstudio.legolas.request.Request;
 import com.yepstudio.legolas.request.AsyncRequest;
+import com.yepstudio.legolas.request.BasicRequest;
+import com.yepstudio.legolas.request.Request;
+import com.yepstudio.legolas.request.SyncRequest;
 
 /**
  * 莱戈拉斯<br/>
@@ -37,7 +41,7 @@ public class Legolas {
 	
 	private Map<Class<?>, SoftReference<Object>> proxyCache = new ConcurrentHashMap<Class<?>, SoftReference<Object>>();
 	
-	private boolean inited = false;
+	private AtomicBoolean inited = new AtomicBoolean(false);
 	private LegolasConfiguration configuration;
 	
 	private Legolas() {
@@ -68,12 +72,12 @@ public class Legolas {
 	}
 	
 	public synchronized void init(LegolasConfiguration configuration) {
-		inited = true;
+		inited.set(true);
 		this.configuration = configuration;
 	}
 	
 	public boolean isInited() {
-		return inited;
+		return inited.get();
 	}
 	
 	private void checkConfiguration() {
@@ -104,7 +108,7 @@ public class Legolas {
 		ApiDescription apiDescription = new ApiDescription(apiClass, configuration);
 		long finishTime = System.currentTimeMillis();
 		getLog().d("ApiDescription be init : [" + (finishTime - birthTime) + "ms]");
-		ProxyHandler handler = new ProxyHandler(apiClass, apiDescription);
+		ProxyHandler handler = new ProxyHandler(configuration, apiClass, apiDescription);
 
 		proxy = Proxy.newProxyInstance(apiClass.getClassLoader(), new Class[] { apiClass }, handler);
 		return (T) proxy;
@@ -186,11 +190,6 @@ public class Legolas {
 		configuration.memoryCache.clear();
 	}
 	
-	public void enableProfiler(boolean enable) {
-		checkConfiguration();
-		configuration.profilerDelivery.enableProfiler(enable);
-	}
-
 	/**
 	 * Returns disk cache
 	 *
@@ -211,18 +210,25 @@ public class Legolas {
 		configuration.diskCache.clear();
 	}
 	
-	public void denyCache(boolean denyCache) {
+	public void denyAllCache(boolean denyCache) {
 		checkConfiguration();
-		configuration.legolasEngine.denyCache(denyCache);
+		configuration.cacheDispatcher.enableCache(!denyCache);
+	}
+	
+	public void enableProfiler(boolean enable) {
+		checkConfiguration();
+		configuration.profilerDelivery.enableProfiler(enable);
 	}
 	
 	public void pause() {
-		//engine.pause();
+		checkConfiguration();
+		configuration.legolasEngine.pause();
 	}
 
 	/** Resumes waiting "load&display" tasks */
 	public void resume() {
-		//engine.resume();
+		checkConfiguration();
+		configuration.legolasEngine.resume();
 	}
 
 	/**
@@ -233,26 +239,41 @@ public class Legolas {
 	 * ImageLoader still can be used after calling this method.
 	 */
 	public void stop() {
-		//engine.stop();
+		checkConfiguration();
+		configuration.legolasEngine.stop();
 	}
 	
-	public void destroy() {
+	public synchronized void destroy() {
 		if (configuration != null) {
-			configuration.log.i("Destroy Legolas");
-		};
-		stop();
-		//configuration.diskCache.close();
-		configuration = null;
+			getLog().i("Destroy Legolas");
+			configuration.legolasEngine.stop();
+			configuration.memoryCache.clear();
+			configuration.diskCache.close();
+			configuration = null;
+		}
+		inited.set(false);
 	}
 	
-	private class ProxyHandler implements InvocationHandler {
+	public <T> T syncRequest(SyncRequest request) throws LegolasException {
+		checkConfiguration();
+		return (T) configuration.legolasEngine.syncRequest(request);
+	}
+	
+	public void asyncRequest(AsyncRequest request) {
+		checkConfiguration();
+		configuration.legolasEngine.asyncRequest(request);
+	}
+	
+	private static class ProxyHandler implements InvocationHandler {
 		
 		private final ApiDescription apiDescription;
 		private final Class<?> apiClass;
+		private final LegolasConfiguration configuration;
 		
-		private ProxyHandler(Class<?> apiClass, ApiDescription apiDescription){
+		private ProxyHandler(LegolasConfiguration configuration, Class<?> apiClass, ApiDescription apiDescription){
 			this.apiDescription = apiDescription;
 			this.apiClass = apiClass;
+			this.configuration = configuration;
 		}
 
 		@Override
@@ -307,21 +328,26 @@ public class Legolas {
 						requestInterceptor.interceptor(builder);
 					}
 				}
-				
 			} catch (Throwable th) {
 				throw new IllegalArgumentException("build request has error before request, Interceptor has Exception", th);
 			}
 			
-			if (requestDescription.isSynchronous()) {
-				return configuration.legolasEngine.syncRequest(builder.buildSyncRequest());
+			Type type = requestDescription.getResultType();
+			if (SyncRequest.class == type) {
+				return builder.buildSyncRequest();
+			} else if (AsyncRequest.class == type) {
+				return builder.buildAsyncRequest();
+			} else {
+				if (requestDescription.isSynchronous()) {
+					return configuration.legolasEngine.syncRequest(builder.buildSyncRequest());
+				}
+				AsyncRequest request  = builder.buildAsyncRequest();
+				configuration.legolasEngine.asyncRequest(request);
+				if (Request.class == type || BasicRequest.class == type) {
+					return request;
+				}
+				return null;
 			}
-			
-			AsyncRequest request  = builder.buildAsyncRequest();
-			configuration.legolasEngine.asyncRequest(request);
-			if (Request.class == requestDescription.getResultType()) {
-				return request;
-			}
-			return null;
 		}
 	}
 }

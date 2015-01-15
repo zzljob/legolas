@@ -20,10 +20,14 @@ public abstract class Request implements Comparable<Request> {
 	private final Map<String, String> headers;
 	private final RequestBody body;
 	
-	private final Date birthTime = new Date();
+	protected final Date birthTime = new Date();
 	/**** 初始化的时间 ***/
-	private final StringBuffer log = new StringBuffer();
-	private final AtomicBoolean cancel = new AtomicBoolean(false);
+	protected final AtomicBoolean cacheConverterResult = new AtomicBoolean(true);
+	protected final AtomicBoolean cacheResponseInMemory = new AtomicBoolean(true);
+	protected final AtomicBoolean cacheResponseOnDisk = new AtomicBoolean(true);
+	
+	protected final StringBuffer log = new StringBuffer();
+	protected final AtomicBoolean cancel = new AtomicBoolean(false);
 	
 	public Request(String url, String method, String description, Map<String, String> headers, RequestBody body) {
 		super();
@@ -89,6 +93,10 @@ public abstract class Request implements Comparable<Request> {
 		return this;
 	}
 	
+	public Date getBirthTime() {
+		return birthTime;
+	}
+	
 	public abstract String getCharset();
 	
 	public abstract String getCacheKey();
@@ -112,10 +120,16 @@ public abstract class Request implements Comparable<Request> {
 	public abstract long getSpendTime();
 	
 	public abstract long getReadyTime();
-
-	public Date getBirthTime() {
-		return birthTime;
+	
+	public boolean isUseCache() {
+		return cacheConverterResult.get() || cacheResponseInMemory.get() || cacheResponseOnDisk.get();
 	}
-
-
+	
+	public synchronized void denyCache(boolean denyCache) {
+		cacheConverterResult.set(denyCache);
+		cacheResponseInMemory.set(denyCache);
+		cacheResponseOnDisk.set(denyCache);
+	}
+	
+	
 }

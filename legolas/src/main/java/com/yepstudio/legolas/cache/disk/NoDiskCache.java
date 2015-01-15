@@ -44,4 +44,9 @@ public class NoDiskCache implements DiskCache {
 		logger.debug("clear");
 	}
 
+	@Override
+	public void close() {
+		logger.debug("destroy");
+	}
+
 }

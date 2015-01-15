@@ -24,6 +24,7 @@ import com.yepstudio.legolas.annotation.Http;
 import com.yepstudio.legolas.annotation.Interceptors;
 import com.yepstudio.legolas.annotation.Multipart;
 import com.yepstudio.legolas.exception.LegolasConfigureError;
+import com.yepstudio.legolas.request.BasicRequest;
 import com.yepstudio.legolas.request.Request;
 
 /**
@@ -240,7 +241,8 @@ public class RequestDescription {
 	}
 	
 	public static boolean hasSynchronousReturnType(Type responseType) {
-		return !(responseType == void.class || responseType == Void.class || responseType == Request.class);
+		return !(responseType == void.class || responseType == Void.class
+				|| responseType == Request.class || responseType == BasicRequest.class);
 	}
 	
 	/**

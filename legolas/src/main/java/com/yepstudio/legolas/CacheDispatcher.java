@@ -19,5 +19,7 @@ public interface CacheDispatcher {
 	public CacheEntry<Response> getRequestCacheEntry(BasicRequest wrapper);
 
 	public void updateRequestCache(BasicRequest wrapper, Response response);
+	
+	public void enableCache(boolean enable);
 
 }

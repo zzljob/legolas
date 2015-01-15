@@ -6,7 +6,7 @@ import java.io.OutputStream;
 
 public class StreamRequestBody implements RequestBody {
 	
-	private static final int DEFAULT_BUFFER_SIZE = 1024;
+	private static final int DEFAULT_BUFFER_SIZE = 4096;
 	private static final String DEFAULT_MIME_TYPE = "application/octet-stream";
 
 	private final String mimeType;

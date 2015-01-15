@@ -16,8 +16,6 @@ public interface LegolasEngine {
 
 	public Object syncRequest(SyncRequest wrapper) throws LegolasException;
 
-	public void denyCache(boolean denyCache);
-
 	public void pause();
 
 	public void resume();

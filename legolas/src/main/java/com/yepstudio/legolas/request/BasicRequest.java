@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import com.yepstudio.legolas.CacheKeyGenerater;
 import com.yepstudio.legolas.Converter;
 import com.yepstudio.legolas.LegolasOptions;
+import com.yepstudio.legolas.LegolasOptions.RecoveryPolicy;
 import com.yepstudio.legolas.mime.RequestBody;
 
 /**
@@ -26,13 +27,13 @@ public abstract class BasicRequest extends Request {
 	private final String charset;
 	private final Converter converter;
 	private final CacheKeyGenerater cacheKeyGenerater;
-	
+
 	private Object lock = new Object();
 	/*** 开始请求的时候，如果缓存命中则为空 ***/
 	private Date startRequestTime;
 	/*** 完成时间，一定不为空 ***/
 	private Date finishRequestTime;
-	/***所有都完成的时间**/
+	/*** 所有都完成的时间 **/
 	private Date finishTime;
 	private AtomicBoolean allFinished = new AtomicBoolean(false);
 
@@ -47,6 +48,25 @@ public abstract class BasicRequest extends Request {
 		this.converter = converter;
 		this.charset = options.getRequestCharset();
 		this.cacheKeyGenerater = options.getCacheKeyGenerater();
+		cacheConverterResult.set(options.isCacheConverterResult());
+		cacheResponseInMemory.set(options.isCacheInMemory());
+		cacheResponseOnDisk.set(options.isCacheOnDisk());
+	}
+
+	public boolean isCacheConverterResult() {
+		return cacheConverterResult.get();
+	}
+	
+	public RecoveryPolicy getRecoveryPolicy() {
+		return options.getRecoveryPolicy();
+	}
+
+	public boolean isCacheResponseInMemory() {
+		return cacheResponseInMemory.get();
+	}
+
+	public boolean isCacheResponseOnDisk() {
+		return cacheResponseOnDisk.get();
 	}
 
 	public LegolasOptions getOptions() {
@@ -86,7 +106,7 @@ public abstract class BasicRequest extends Request {
 	public String getUuid() {
 		return uuid;
 	}
-	
+
 	public Date getRequestStartTime() {
 		return startRequestTime;
 	}
@@ -116,13 +136,13 @@ public abstract class BasicRequest extends Request {
 			return startRequestTime != null && finishRequestTime == null;
 		}
 	}
-	
+
 	public boolean isRequestStarted() {
 		synchronized (lock) {
 			return startRequestTime != null;
 		}
 	}
-	
+
 	public boolean isRequestFinished() {
 		synchronized (lock) {
 			return finishRequestTime != null;
@@ -132,23 +152,25 @@ public abstract class BasicRequest extends Request {
 	public synchronized boolean isFinished() {
 		return allFinished.get();
 	}
-	
+
 	public synchronized void finish() {
 		synchronized (lock) {
 			finishTime = new Date();
 		}
 		allFinished.set(true);
 	}
-	
+
 	/**
 	 * 毫秒数
+	 * 
 	 * @return
 	 */
 	public long getReadyTime() {
 		synchronized (lock) {
 			if (allFinished.get()) {
-				return finishTime.getTime() - getBirthTime().getTime() - getSpendTime();
-			} 
+				return finishTime.getTime() - getBirthTime().getTime()
+						- getSpendTime();
+			}
 			if (startRequestTime == null) {
 				return -1;
 			} else {
@@ -156,9 +178,10 @@ public abstract class BasicRequest extends Request {
 			}
 		}
 	}
-	
+
 	/**
 	 * 毫秒数
+	 * 
 	 * @return
 	 */
 	public long getSpendTime() {

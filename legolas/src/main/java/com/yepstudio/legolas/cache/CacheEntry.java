@@ -12,6 +12,9 @@ public class CacheEntry<T> {
 	/** Date of this response as reported by the server. */
 	private long serverDate;
 
+	/** Date of this response Last-Modified as reported by the server. */
+	private long serverModified;
+
 	/** TTL for this record. */
 	private long ttl;
 
@@ -23,20 +26,27 @@ public class CacheEntry<T> {
 	 */
 	private final Map<String, String> responseHeaders;
 
-	public CacheEntry(T data, Map<String, String> responseHeaders, String etag, long serverDate, long softTtl) {
-		this(data, responseHeaders, etag, serverDate, softTtl, softTtl);
+	public CacheEntry(T data, Map<String, String> responseHeaders, String etag, long serverDate, long serverModified, long softTtl) {
+		this(data, responseHeaders, etag, serverDate, serverModified, softTtl, softTtl);
 	}
 	
-	public CacheEntry(T data, Map<String, String> responseHeaders, String etag, long serverDate, long softTtl, long ttl) {
+	public CacheEntry(T data, Map<String, String> responseHeaders, String etag, long serverDate, long serverModified, long softTtl, long ttl) {
 		super();
 		this.data = data;
 		this.responseHeaders = responseHeaders;
 		this.etag = etag;
 		this.serverDate = serverDate;
+		this.serverModified = serverModified;
 		this.ttl = ttl;
 		this.softTtl = softTtl;
 	}
 
+	public void makeExpired(boolean fullExpire) {
+		if (fullExpire) {
+			this.ttl = 0;
+		}
+		this.softTtl = 0;
+	}
 
 	/** True if the entry is expired. */
 	public boolean isExpired() {
@@ -45,7 +55,7 @@ public class CacheEntry<T> {
 
 	/** True if a refresh is needed from the original data source. */
 	public boolean refreshNeeded() {
-		return this.softTtl < System.currentTimeMillis();
+		return true;
 	}
 
 	public T getData() {
@@ -64,38 +74,23 @@ public class CacheEntry<T> {
 		return responseHeaders;
 	}
 
-	@Override
-	public String toString() {
-		return "CacheEntry [data=" + data + ", etag=" + etag + ", serverDate="
-				+ serverDate + ", ttl=" + ttl + ", softTtl=" + softTtl
-				+ ", responseHeaders=" + responseHeaders + "]";
-	}
-
-	public void setData(T data) {
-		this.data = data;
-	}
-
-	public void setEtag(String etag) {
-		this.etag = etag;
-	}
-
-	public void setServerDate(long serverDate) {
-		this.serverDate = serverDate;
-	}
-
-	public void setTtl(long ttl) {
-		this.ttl = ttl;
-	}
-
-	public void setSoftTtl(long softTtl) {
-		this.softTtl = softTtl;
-	}
-
 	public long getTtl() {
 		return ttl;
 	}
 
 	public long getSoftTtl() {
 		return softTtl;
+	}
+
+	public long getServerModified() {
+		return serverModified;
+	}
+
+	@Override
+	public String toString() {
+		return "CacheEntry [data=" + data + ", etag=" + etag + ", serverDate="
+				+ serverDate + ", serverModified=" + serverModified + ", ttl="
+				+ ttl + ", softTtl=" + softTtl + ", responseHeaders="
+				+ responseHeaders + "]";
 	}
 }

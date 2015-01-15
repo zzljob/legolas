@@ -6,6 +6,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import com.yepstudio.legolas.Legolas;
 import com.yepstudio.legolas.LegolasConfiguration;
 import com.yepstudio.legolas.RequestInterceptor;
 import com.yepstudio.legolas.annotation.Api;
@@ -67,7 +68,10 @@ public class ApiDescription {
 		Method[] methods = clazz.getMethods();
 		if (methods != null) {
 			for (Method method : methods) {
+				long birthTime = System.currentTimeMillis();
 				requestDescriptionCache.put(method, new RequestDescription(method, config));
+				long finishTime = System.currentTimeMillis();
+				Legolas.getLog().d("RequestDescription [" + method.getName() + "] be init : [" + (finishTime - birthTime) + "ms]");
 			}
 		}
 	}

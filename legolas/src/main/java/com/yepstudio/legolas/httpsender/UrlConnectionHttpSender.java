@@ -42,7 +42,7 @@ public class UrlConnectionHttpSender implements HttpSender {
 
 	@Override
 	public Response execute(Request request) throws IOException {
-		Legolas.getLog().v("execute");
+		Legolas.getLog().v("execute request : " + request.getUrl());
 		HttpURLConnection connection = openConnection(request);
 		prepareRequest(connection, request);
 		return readResponse(request, connection);
@@ -93,7 +93,7 @@ public class UrlConnectionHttpSender implements HttpSender {
 	}
 
 	Response readResponse(Request request, HttpURLConnection connection) throws IOException {
-		Legolas.getLog().v(String.format("readResponse"));
+		Legolas.getLog().v(String.format("readResponse:"));
 		int status = connection.getResponseCode();
 		String reason = connection.getResponseMessage();
 
@@ -102,6 +102,7 @@ public class UrlConnectionHttpSender implements HttpSender {
 			String name = field.getKey();
 			for (String value : field.getValue()) {
 				headers.put(name, value);
+				Legolas.getLog().v(String.format("header: %s=%s", name, value));
 			}
 		}
 
@@ -113,6 +114,7 @@ public class UrlConnectionHttpSender implements HttpSender {
 		} else {
 			stream = connection.getInputStream();
 		}
+		Legolas.getLog().v(String.format("status[%s] mimeType[%s], length[%s], stream[%s]", status, mimeType, length, stream));
 		ResponseBody responseBody = new StreamResponseBody(mimeType, length, stream);
 		return new Response(status, reason, headers, responseBody);
 	}

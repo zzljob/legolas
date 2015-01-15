@@ -10,6 +10,7 @@ import com.yepstudio.legolas.annotation.MuitiParameters;
 import com.yepstudio.legolas.annotation.POST;
 import com.yepstudio.legolas.annotation.Query;
 import com.yepstudio.legolas.listener.LegolasListener;
+import com.yepstudio.legolas.mime.ResponseBody;
 import com.yepstudio.legolas.request.Request;
 
 @Description("数米金融数据API")
@@ -19,6 +20,10 @@ public interface HttpApi {
 	@Description("获得一个CSS文件")
 	@GET(value = "http://assets.imedao.com/style/common/base-1481b7.css", isAbsolute = true)
 	public String getBaseCss();
+
+	@Description("获得新浪的Logo")
+	@GET(value = "http://asialee.iteye.com/images/sina.jpg", isAbsolute = true)
+	public ResponseBody getSinaImage();
 	
 	@Description("获得新闻标题")
 	@GET("NewsTitle.ashx")
