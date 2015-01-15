@@ -32,11 +32,6 @@ public class LegolasOptions {
 	private final boolean cacheConverterResult;
 	private final CacheKeyGenerater cacheKeyGenerater; 
 
-	/** 错误是否重试 **/
-	private final boolean retryAuto;
-	/** 重试最大次数 **/
-	private final int retryMax;
-
 	protected LegolasOptions(Builder builder) {
 		converterArrayParamSplit = builder.converterArrayParamSplit;
 		converterDateParamFormat = builder.converterDateParamFormat;
@@ -50,8 +45,6 @@ public class LegolasOptions {
 		cacheConverterResult = builder.cacheConverterResult;
 		cacheKeyGenerater = builder.cacheKeyGenerater;
 
-		retryAuto = builder.retryAuto;
-		retryMax = builder.retryMax;
 	}
 
 	/** 缓存策略 **/
@@ -85,19 +78,6 @@ public class LegolasOptions {
 		private CachePolicy cachePolicy = CachePolicy.SERVER_CACHE_CONTROL;
 		private RecoveryPolicy recoveryPolicy = RecoveryPolicy.NONE;
 
-		private boolean retryAuto = false;
-		private int retryMax = 0;
-
-		public Builder retryAuto(boolean retry) {
-			retryAuto = retry;
-			return this;
-		}
-		
-		public Builder retryMax(int max) {
-			retryMax = max;
-			return this;
-		}
-		
 		public Builder delayBeforeRequest(long delay) {
 			delayBeforeRequest = delay;
 			return this;
@@ -176,14 +156,6 @@ public class LegolasOptions {
 
 	public boolean isCacheOnDisk() {
 		return cacheOnDisk;
-	}
-
-	public boolean isRetryAuto() {
-		return retryAuto;
-	}
-
-	public int getRetryMax() {
-		return retryMax;
 	}
 
 	public boolean isCacheConverterResult() {

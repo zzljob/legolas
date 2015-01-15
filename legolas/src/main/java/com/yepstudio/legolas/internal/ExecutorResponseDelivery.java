@@ -36,6 +36,9 @@ public class ExecutorResponseDelivery implements ResponseDelivery {
 
 	@Override
 	public void postAsyncResponse(final AsyncRequest wrapper) {
+		if (wrapper.isCancel()) {
+			return ;
+		}
 		deliveryExecutor.execute(new Runnable() {
 			
 			@Override
@@ -45,7 +48,10 @@ public class ExecutorResponseDelivery implements ResponseDelivery {
 		});
 	}
 	
-	public void doPostAsyncResponse(AsyncRequest wrapper) {
+	private void doPostAsyncResponse(AsyncRequest wrapper) {
+		if (wrapper.isCancel()) {
+			return ;
+		}
 		List<ResponseListenerWrapper> listeners = wrapper.getOnResponseListeners();
 		if (listeners != null && !listeners.isEmpty()) {
 			for (ResponseListenerWrapper listener : listeners) {
@@ -83,6 +89,9 @@ public class ExecutorResponseDelivery implements ResponseDelivery {
 
 	@Override
 	public void postAsyncError(final AsyncRequest wrapper, final LegolasException exception) {
+		if (wrapper.isCancel()) {
+			return ;
+		}
 		deliveryExecutor.execute(new Runnable() {
 
 			@Override
@@ -92,7 +101,10 @@ public class ExecutorResponseDelivery implements ResponseDelivery {
 		});
 	}
 	
-	public void doPostAsyncError(AsyncRequest wrapper, LegolasException exception) {
+	private void doPostAsyncError(AsyncRequest wrapper, LegolasException exception) {
+		if (wrapper.isCancel()) {
+			return ;
+		}
 		List<OnErrorListener> listeners = wrapper.getOnErrorListeners();
 		if (listeners != null && !listeners.isEmpty()) {
 			for (OnErrorListener listener : listeners) {
@@ -130,6 +142,9 @@ public class ExecutorResponseDelivery implements ResponseDelivery {
 
 	@Override
 	public void postAsyncRequest(final AsyncRequest wrapper) {
+		if (wrapper.isCancel()) {
+			return ;
+		}
 		Legolas.getLog().d("postAsyncRequest");
 		deliveryExecutor.execute(new Runnable() {
 
@@ -140,7 +155,10 @@ public class ExecutorResponseDelivery implements ResponseDelivery {
 		});
 	}
 	
-	public void doPostAsyncRequest(final AsyncRequest wrapper) {
+	private void doPostAsyncRequest(final AsyncRequest wrapper) {
+		if (wrapper.isCancel()) {
+			return ;
+		}
 		Legolas.getLog().d("doPostAsyncRequest");
 		List<OnRequestListener> listeners = wrapper.getOnRequestListeners();
 		if (listeners != null && !listeners.isEmpty()) {
@@ -200,17 +218,23 @@ public class ExecutorResponseDelivery implements ResponseDelivery {
 		@Override
 		public void run() {
 			if (requestListener != null) {
-				requestListener.onRequest(request);
+				if (!isCancel()) {
+					requestListener.onRequest(request);
+				}
 			}
 			if (responseListenerWrapper != null) {
 				OnResponseListener listener = responseListenerWrapper.getListener();
-				if (listener != null) {
+				if (listener != null && !isCancel()) {
 					listener.onResponse(responseListenerWrapper.getResponseValue());
 				}
 			}
-			if (errorListener != null) {
+			if (errorListener != null && !isCancel()) {
 				errorListener.onError(exception);
 			}
+		}
+		
+		private boolean isCancel() {
+			return request != null && request.isCancel();
 		}
 	}
 	
@@ -236,20 +260,24 @@ public class ExecutorResponseDelivery implements ResponseDelivery {
 					|| listenerWrapper.getListener() == null) {
 				return;
 			}
-			if (onRequest) {
+			if (onRequest && !isCancel()) {
 				Legolas.getLog().d("listenerWrapper onRequest");
 				listenerWrapper.getListener().onRequest(request);
 			}
-			if (onResponse) {
+			if (onResponse && !isCancel()) {
 				Legolas.getLog().d("listenerWrapper onResponse");
 				Object response = listenerWrapper.getResponseValue();
 				listenerWrapper.getListener().onResponse(request, response);
 			}
-			if (onError) {
+			if (onError && !isCancel()) {
 				Legolas.getLog().d("listenerWrapper onError");
 				Object error = listenerWrapper.getErrorValue();
 				listenerWrapper.getListener().onError(request, exception, error);
 			}
+		}
+		
+		private boolean isCancel() {
+			return request != null && request.isCancel();
 		}
 	}
 

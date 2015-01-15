@@ -26,6 +26,7 @@ import com.yepstudio.legolas.LegolasOptions.RecoveryPolicy;
 import com.yepstudio.legolas.ProfilerDelivery;
 import com.yepstudio.legolas.ResponseDelivery;
 import com.yepstudio.legolas.cache.CacheEntry;
+import com.yepstudio.legolas.exception.CancelException;
 import com.yepstudio.legolas.exception.ConversionException;
 import com.yepstudio.legolas.exception.HttpStatusException;
 import com.yepstudio.legolas.exception.NetworkException;
@@ -132,18 +133,23 @@ public class BasicLegolasEngine implements LegolasEngine {
 		}
 	}
 	
-	private Response processAsyncRequest(AsyncRequest wrapper) throws ConversionException, ResponseException, HttpStatusException, NetworkException {
+	private Response processAsyncRequest(AsyncRequest wrapper) throws CancelException, ConversionException, ResponseException, HttpStatusException, NetworkException {
 		Legolas.getLog().d("processAsyncRequest");
 		CacheEntry<Response> cacheEntry = null;
 		LegolasOptions options  = wrapper.getOptions();
 		CachePolicy cachePolicy = options.getCachePolicy();
 		Response response = null;
 		
+		checkCancelException(wrapper, response);
+		
 		//不需要请求，或者缓存了所有的Listener的结果，那就不需要请求了
 		if (cacheDispatcher.getAsyncRequestConverterCache(wrapper)) {
 			responseDelivery.postAsyncResponse(wrapper);
 			return response;
 		}
+		
+		checkCancelException(wrapper, response);
+		
 		cacheEntry = cacheDispatcher.getRequestCacheEntry(wrapper);
 		
 		if (cacheEntry != null && cacheEntry.getData() != null) {
@@ -169,11 +175,15 @@ public class BasicLegolasEngine implements LegolasEngine {
 			}
 		}
 		
+		checkCancelException(wrapper, response);
+		
 		response = sendHttpRequestOrRecovery(wrapper, options.getRecoveryPolicy(), cacheEntry);
 		if (response == null) {
 			throw new NetworkException("request failed and Recovery fail");
 		}
 		cacheDispatcher.updateRequestCache(wrapper, response);
+		
+		checkCancelException(wrapper, response);
 		
 		processAsyncResponse(wrapper, response);
 		cacheDispatcher.updateAsyncRequestConverterCache(wrapper);
@@ -186,6 +196,13 @@ public class BasicLegolasEngine implements LegolasEngine {
 		responseDelivery.postAsyncRequest(request);
 		Response response = null;
 		LegolasException exception = null;
+		
+		if (request.isCancel()) {
+			request.finish();
+			profilerDelivery.postRequestCancel(request, response);
+			return ;
+		}
+		
 		try {
 			response = processAsyncRequest(request);
 		} catch (HttpStatusException e) {
@@ -197,11 +214,18 @@ public class BasicLegolasEngine implements LegolasEngine {
 		} catch (ResponseException e) {
 			response = e.getResponse();
 			exception = e;
+		} catch (CancelException e) {
+			if (request.isCancel()) {
+				request.finish();
+				profilerDelivery.postRequestCancel(request, response);
+				return ;
+			}
 		} catch (LegolasException e) {
 			exception = e;
 		} catch (Throwable e) {
 			exception = new LegolasException(e);
 		}
+		
 		if (exception == null) {
 			responseDelivery.postAsyncResponse(request);
 		} else {
@@ -330,7 +354,15 @@ public class BasicLegolasEngine implements LegolasEngine {
 		}
 	}
 	
-	private Response sendHttpRequestOrRecovery(BasicRequest request, RecoveryPolicy recovery, CacheEntry<Response> cacheEntry) throws NetworkException {
+	private void checkCancelException(Request request, Response response) throws CancelException {
+		if (request.isCancel()) {
+			CancelException exception = new CancelException("Request be Cancel, response : " + response);
+			exception.setResponse(response);
+			throw exception;
+		}
+	}
+	
+	private Response sendHttpRequestOrRecovery(BasicRequest request, RecoveryPolicy recovery, CacheEntry<Response> cacheEntry) throws CancelException, NetworkException {
 		StringBuilder log = new StringBuilder();
 		
 		//发送请求
@@ -346,8 +378,12 @@ public class BasicLegolasEngine implements LegolasEngine {
 		
 		request.startRequest();
 		try {
+			checkCancelException(request, cacheResponse);
+			
 			response = httpSender.execute(request);
 			appendLogForResponse(log, response, null);
+			
+			checkCancelException(request, cacheResponse);
 			
 			if (cacheResponse != null && cacheResponse.getBody() != null && response != null) {
 				//处理304缓存请求请求
@@ -391,7 +427,7 @@ public class BasicLegolasEngine implements LegolasEngine {
 		return response;
 	}
 	
-	private Response doSyncRequest(SyncRequest wrapper) throws NetworkException, ConversionException, HttpStatusException {
+	private Response doSyncRequest(SyncRequest wrapper) throws NetworkException, ConversionException, HttpStatusException, LegolasException {
 		Legolas.getLog().d("doSyncRequest");
 		//不需要请求，直接返回解析的内容
 		Class<?> clazz = TypesHelper.getRawType(wrapper.getResultType());

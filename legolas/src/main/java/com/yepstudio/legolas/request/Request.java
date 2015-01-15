@@ -78,16 +78,6 @@ public abstract class Request implements Comparable<Request> {
 		return log.toString();
 	}
 	
-	
-	
-	public synchronized void cancel() {
-		cancel.set(true);
-	}
-	
-	public synchronized boolean isCancel() {
-		return cancel.get();
-	}
-
 	public Request appendLog(String logText) {
 		log.append(logText);
 		return this;
@@ -131,5 +121,12 @@ public abstract class Request implements Comparable<Request> {
 		cacheResponseOnDisk.set(denyCache);
 	}
 	
+	public synchronized void cancel() {
+		cancel.set(true);
+	}
+	
+	public synchronized boolean isCancel() {
+		return cancel.get();
+	}
 	
 }
