@@ -12,6 +12,7 @@ import com.yepstudio.legolas.annotation.Query;
 import com.yepstudio.legolas.listener.LegolasListener;
 import com.yepstudio.legolas.mime.ResponseBody;
 import com.yepstudio.legolas.request.Request;
+import com.yepstudio.legolas.response.Response;
 
 @Description("数米金融数据API")
 @Api("/News")
@@ -82,6 +83,6 @@ public interface HttpApi {
 			@Description("新闻类型") @Query("newstype") int newstype,
 			@Description("分页页数") @Query("pageno") int pageno,
 			@Description("从第几条数据开始") @Query("applyrecordno") int applyrecordno,
-			LegolasListener<String, String> listener);
+			LegolasListener<NewsTitleEntity, NewsTitleEntity> listener);
 
 }

@@ -14,11 +14,10 @@ import org.slf4j.LoggerFactory;
 import com.yepstudio.legolas.LegolasOptions.CachePolicy;
 import com.yepstudio.legolas.LegolasOptions.RecoveryPolicy;
 import com.yepstudio.legolas.cache.disk.BasicDiskCache;
-import com.yepstudio.legolas.converter.BasicConverter;
+import com.yepstudio.legolas.converter.GsonConverter;
 import com.yepstudio.legolas.httpsender.UrlConnectionHttpSender;
 import com.yepstudio.legolas.internal.Sl4fLog;
 import com.yepstudio.legolas.listener.LegolasListener;
-import com.yepstudio.legolas.mime.ResponseBody;
 import com.yepstudio.legolas.request.Request;
 import com.yepstudio.legolas.webapi.HttpApi;
 import com.yepstudio.legolas.webapi.HttpApi.NewsTitleEntity;
@@ -41,9 +40,10 @@ public class HttpApiTest {
 		BasicDiskCache diskCache = new BasicDiskCache(new File("D:/cache"));
 		LegolasConfiguration config = new LegolasConfiguration.Builder()
 				.defaultEndpoints(endpoint)
+				.converterResultMaxExpired(10, TimeUnit.MINUTES)
 				.defaultOptions(defaultHttpRequestOptions)
 				.diskCache(diskCache)
-				.defaultConverter(new BasicConverter())
+				.defaultConverter(new GsonConverter())
 				.httpSender(new UrlConnectionHttpSender())
 				.legolasLog(new Sl4fLog())
 				.build();
@@ -99,7 +99,7 @@ public class HttpApiTest {
 	@Test
 	public void testAsyncApi() throws InterruptedException {
 		HttpApi api = Legolas.getInstance().getApi(HttpApi.class);
-		LegolasListener<String, String> listener = new LegolasListener<String, String>() {
+		LegolasListener<NewsTitleEntity, NewsTitleEntity> listener = new LegolasListener<NewsTitleEntity, NewsTitleEntity>() {
 
 			@Override
 			public void onRequest(Request request) {
@@ -107,12 +107,12 @@ public class HttpApiTest {
 			}
 
 			@Override
-			public void onResponse(Request request, String response) {
+			public void onResponse(Request request, NewsTitleEntity response) {
 				logger.debug("onResponse:", response);
 			}
 
 			@Override
-			public void onError(Request request, LegolasException error, String response) {
+			public void onError(Request request, LegolasException error, NewsTitleEntity response) {
 				logger.debug("onError:", response);
 				logger.debug("onError:", error);
 			}

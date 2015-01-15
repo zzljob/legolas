@@ -349,12 +349,20 @@ public class BasicLegolasEngine implements LegolasEngine {
 			response = httpSender.execute(request);
 			appendLogForResponse(log, response, null);
 			
-			//处理304缓存请求请求
-			if (response != null && 304 == response.getStatus() && cacheResponse != null && cacheResponse.getBody() != null) {
-				//处理缓存
-				//设置缓存的流
-				ResponseBody body = cacheResponse.getBody();
-				response = new Response(response.getStatus(), response.getMessage(), response.getHeaders(), body, false, false);
+			if (cacheResponse != null && cacheResponse.getBody() != null && response != null) {
+				//处理304缓存请求请求
+				if (304 == response.getStatus()) {
+					//处理缓存
+					//设置缓存的流
+					ResponseBody body = cacheResponse.getBody();
+					response = new Response(response.getStatus(), response.getMessage(), response.getHeaders(), body, false, false);
+				} else if (400 <= response.getStatus()) {
+					//服务内部错误5xx，服务不可用4xx都将被恢复
+					if (RecoveryPolicy.HTTPSTATUS_ERROR == recovery) {
+						Legolas.getLog().v(String.format("status[%s] recovery[%s], recovery to [%s]", response.getStatus(), recovery, cacheResponse));
+						response = cacheResponse;
+					}
+				}
 			}
 			
 			//开始转成字符或者文件的，使后面可以反复被读取

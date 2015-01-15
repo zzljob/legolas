@@ -68,6 +68,8 @@ public class LegolasOptions {
 		NONE,
 		/** 服务器没有任何相应的时候，有三种状况：1、服务器宕机了 2、客户端网络连不上服务器 3、连接超时了。这几种状况都将被使用缓存恢复**/
 		RESPONSE_ERROR,
+		/** httpStatus不是2xx也不是3xx的时候**/
+		HTTPSTATUS_ERROR
 	}
 
 	public static class Builder {
