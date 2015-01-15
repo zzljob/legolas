@@ -25,6 +25,10 @@ public interface HttpApi {
 	@GET(value = "http://asialee.iteye.com/images/sina.jpg", isAbsolute = true)
 	public ResponseBody getSinaImage();
 	
+	@Description("获得新浪的Logo")
+	@GET(value = "http://rebirth.duapp.com/feed/list", isAbsolute = true)
+	public String get403();
+	
 	@Description("获得新闻标题")
 	@GET("NewsTitle.ashx")
 	public String syncGetNewsTitle(

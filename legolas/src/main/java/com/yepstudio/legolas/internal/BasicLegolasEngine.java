@@ -214,17 +214,17 @@ public class BasicLegolasEngine implements LegolasEngine {
 	
 	private void processAsyncResponse(AsyncRequest wrapper, Response response) throws HttpStatusException, ConversionException {
 		Legolas.getLog().d("processAsyncResponse");
-		if (200 <= response.getStatus() || response.getStatus() < 300) {
+		if (200 <= response.getStatus() && response.getStatus() < 300) {
 			// 2xx请求认为是对的
 			doAsyncConvertGoodResponse(wrapper, response);
-		} else if (300 <= response.getStatus() || response.getStatus() < 400) {
+		} else if (300 <= response.getStatus() && response.getStatus() < 400) {
 			// 3xx请求是缓存跟跳转相关的，在上面会处理过，所以认为是对的
 			doAsyncConvertGoodResponse(wrapper, response);
-		} else if (400 <= response.getStatus() || response.getStatus() < 500) {
+		} else if (400 <= response.getStatus() && response.getStatus() < 500) {
 			// 4xx请求是服务端错误
 			doAsyncConvertBadResponse(wrapper, response);
 			throw new HttpStatusException(response);
-		} else if (500 <= response.getStatus() || response.getStatus() < 600) {
+		} else if (500 <= response.getStatus() && response.getStatus() < 600) {
 			// 5xx请求是服务器内部错误
 			doAsyncConvertBadResponse(wrapper, response);
 			throw new HttpStatusException(response);
@@ -446,22 +446,22 @@ public class BasicLegolasEngine implements LegolasEngine {
 			}
 			
 			Converter converter =  wrapper.getConverter();
-			if (200 <= response.getStatus() || response.getStatus() < 300) {
+			if (200 <= response.getStatus() && response.getStatus() < 300) {
 				// 2xx请求认为是对的
 				Object syncResultValue = converter.convert(response, wrapper.getResultType());
 				wrapper.setResultValue(syncResultValue);
 				cacheDispatcher.updateSyncRequestConverterCache(wrapper);
 				return syncResultValue;
-			} else if (300 <= response.getStatus() || response.getStatus() < 400) {
+			} else if (300 <= response.getStatus() && response.getStatus() < 400) {
 				// 3xx请求是缓存跟跳转相关的，在上面会处理过，所以认为是对的
 				Object syncResultValue = converter.convert(response, wrapper.getResultType());
 				wrapper.setResultValue(syncResultValue);
 				cacheDispatcher.updateSyncRequestConverterCache(wrapper);
 				return syncResultValue;
-			} else if (400 <= response.getStatus() || response.getStatus() < 500) {
+			} else if (400 <= response.getStatus() && response.getStatus() < 500) {
 				// 4xx请求是服务端错误
 				throw makeHttpStatusException(wrapper, response, wrapper.getErrorType());
-			} else if (500 <= response.getStatus() || response.getStatus() < 600) {
+			} else if (500 <= response.getStatus() && response.getStatus() < 600) {
 				// 5xx请求是服务器内部错误
 				throw makeHttpStatusException(wrapper, response, wrapper.getErrorType());
 			} else {
@@ -486,7 +486,8 @@ public class BasicLegolasEngine implements LegolasEngine {
 				return new HttpStatusException(response, e);
 			}
 		}
-		HttpStatusException e = new HttpStatusException(response);
+		int status = response == null ? -1 : response.getStatus();
+		HttpStatusException e = new HttpStatusException(response, "bad request  status : " + status);
 		e.setErrorValue(wrapper.getErrorValue());
 		return e;
 	} 

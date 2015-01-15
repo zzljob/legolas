@@ -66,11 +66,10 @@ public class HttpApiTest {
 	public void testSyncGetCss() throws InterruptedException {
 		HttpApi api = Legolas.getInstance().getApi(HttpApi.class);
 		try {
-			ResponseBody body = api.getSinaImage();
+			String body = api.get403();
 			logger.debug("response:{}", "");
 		} catch (Exception e) {
-			e.getCause();
-			logger.error("", e);
+			logger.error("load fail", e.getCause());
 		}
 		
 		TimeUnit.SECONDS.sleep(10);
