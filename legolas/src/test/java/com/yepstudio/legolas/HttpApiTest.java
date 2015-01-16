@@ -14,10 +14,13 @@ import org.slf4j.LoggerFactory;
 import com.yepstudio.legolas.LegolasOptions.CachePolicy;
 import com.yepstudio.legolas.LegolasOptions.RecoveryPolicy;
 import com.yepstudio.legolas.cache.disk.BasicDiskCache;
+import com.yepstudio.legolas.cache.disk.SafeDiskCache;
+import com.yepstudio.legolas.cache.disk.ZipDiskCache;
 import com.yepstudio.legolas.converter.GsonConverter;
 import com.yepstudio.legolas.httpsender.UrlConnectionHttpSender;
 import com.yepstudio.legolas.internal.Sl4fLog;
 import com.yepstudio.legolas.listener.LegolasListener;
+import com.yepstudio.legolas.mime.ResponseBody;
 import com.yepstudio.legolas.request.Request;
 import com.yepstudio.legolas.webapi.HttpApi;
 import com.yepstudio.legolas.webapi.HttpApi.NewsTitleEntity;
@@ -37,7 +40,7 @@ public class HttpApiTest {
 				.recoveryPolicy(RecoveryPolicy.RESPONSE_ERROR)
 				.build(); 
 		
-		BasicDiskCache diskCache = new BasicDiskCache(new File("D:/cache"));
+		BasicDiskCache diskCache = new SafeDiskCache(new File("D:/cache"));
 		LegolasConfiguration config = new LegolasConfiguration.Builder()
 				.defaultEndpoints(endpoint)
 				.converterResultMaxExpired(10, TimeUnit.MINUTES)
@@ -66,8 +69,13 @@ public class HttpApiTest {
 	public void testSyncGetCss() throws InterruptedException {
 		HttpApi api = Legolas.getInstance().getApi(HttpApi.class);
 		try {
-			String body = api.get403();
-			logger.debug("response:{}", "");
+			String body = api.getBaseCss();
+			body = api.getBaseCss();
+			body = api.getBaseCss();
+			body = api.getBaseCss();
+			body = api.getBaseCss();
+			body = api.getBaseCss();
+			logger.debug("response:{}", body);
 		} catch (Exception e) {
 			logger.error("load fail", e.getCause());
 		}

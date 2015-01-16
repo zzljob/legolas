@@ -12,7 +12,6 @@ import com.yepstudio.legolas.annotation.Query;
 import com.yepstudio.legolas.listener.LegolasListener;
 import com.yepstudio.legolas.mime.ResponseBody;
 import com.yepstudio.legolas.request.Request;
-import com.yepstudio.legolas.response.Response;
 
 @Description("数米金融数据API")
 @Api("/News")

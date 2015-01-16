@@ -63,7 +63,11 @@ public class FileResponseBody extends StreamResponseBody {
 	}
 
 	public FileResponseBody(String mimeType, long length, File file) throws IOException {
-		super(mimeType, length, new FileInputStream(file));
+		this(mimeType, length, file, new FileInputStream(file));
+	}
+
+	public FileResponseBody(String mimeType, long length, File file, InputStream stream) throws IOException {
+		super(mimeType, length, stream);
 		this.file = file;
 	}
 
