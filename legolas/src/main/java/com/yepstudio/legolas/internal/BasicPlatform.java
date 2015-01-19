@@ -83,7 +83,7 @@ public class BasicPlatform extends Platform {
 
 	@Override
 	public Executor defaultTaskExecutorForListener() {
-		return new CurrentThreadExecutor();
+		return executor;
 	}
 
 }

@@ -44,7 +44,7 @@ public class SafeDiskCache extends BasicDiskCache {
 	 * 填充模式：NoPadding算法本身不对数据进行处理，加密数据由加密双方约定填补算法；PKCS5Padding加密前数据字节长度对8取余
 	 * </p>
 	 **/
-	private static String CIPHER_ALGORITHM = "DESede/CBC/PKCS5Padding";
+	private static String CIPHER_ALGORITHM = "DESede/ECB/PKCS5Padding";
 	
 	
 	private Cipher encryptCipher;//加密的

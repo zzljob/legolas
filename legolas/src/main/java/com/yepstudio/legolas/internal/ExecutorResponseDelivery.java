@@ -26,12 +26,18 @@ import com.yepstudio.legolas.response.ResponseListenerWrapper;
  */
 public class ExecutorResponseDelivery implements ResponseDelivery {
 	
+	private static final String DELIVERY_THREAD_NAME = "ResponseDeliveryControl";
 	private final Executor deliveryExecutor = Executors.newSingleThreadExecutor();
     private final Executor taskExecutor;
 
 	public ExecutorResponseDelivery(Executor executor) {
 		super();
 		this.taskExecutor = executor;
+	}
+	
+	protected void setControlThreadName() {
+		Thread thread = Thread.currentThread();
+		thread.setName(DELIVERY_THREAD_NAME);
 	}
 
 	@Override
@@ -43,6 +49,8 @@ public class ExecutorResponseDelivery implements ResponseDelivery {
 			
 			@Override
 			public void run() {
+				setControlThreadName();
+				Legolas.getLog().d("ResponseDelivery submit OnResponseListeners and OnLegolasListeners");
 				doPostAsyncResponse(wrapper);
 			}
 		});
@@ -96,6 +104,8 @@ public class ExecutorResponseDelivery implements ResponseDelivery {
 
 			@Override
 			public void run() {
+				setControlThreadName();
+				Legolas.getLog().d("ResponseDelivery submit OnErrorListeners");
 				doPostAsyncError(wrapper, exception);
 			}
 		});
@@ -145,11 +155,12 @@ public class ExecutorResponseDelivery implements ResponseDelivery {
 		if (wrapper.isCancel()) {
 			return ;
 		}
-		Legolas.getLog().d("postAsyncRequest");
 		deliveryExecutor.execute(new Runnable() {
 
 			@Override
 			public void run() {
+				setControlThreadName();
+				Legolas.getLog().d("ResponseDelivery submit OnRequestListeners");
 				doPostAsyncRequest(wrapper);
 			}
 		});

@@ -21,6 +21,7 @@ import com.yepstudio.legolas.response.Response;
  */
 public class ExecutorProfilerDelivery implements ProfilerDelivery {
 	
+	private static final String DELIVERY_THREAD_NAME = "ProfilerDeliveryControl";
 	private final Executor deliveryExecutor = Executors.newSingleThreadExecutor();
 	private final Executor taskExecutor;
 	private final Profiler<?> profiler;
@@ -31,18 +32,23 @@ public class ExecutorProfilerDelivery implements ProfilerDelivery {
 		this.profiler = profiler;
 		this.taskExecutor = taskExecutor;
 	}
+	
+	protected void setControlThreadName() {
+		Thread thread = Thread.currentThread();
+		thread.setName(DELIVERY_THREAD_NAME);
+	}
 
 	@Override
 	public void postRequestStart(final BasicRequest wrapper) {
 		if (!enableProfiler) {
 			return ;
 		}
-		Legolas.getLog().d("deliveryExecutor submit Runnable");
 		deliveryExecutor.execute(new Runnable() {
 			
 			@Override
 			public void run() {
-				Legolas.getLog().d("taskExecutor execute ProfilerRunnable");
+				setControlThreadName();
+				Legolas.getLog().d("ProfilerDelivery submit postRequestCancel Runnable");
 				ProfilerRunnable run = new ProfilerRunnable(profiler, wrapper, null, null);
 				run.isBeforeCall = true;
 				FutureTask<Void> task = new FutureTask<Void>(run, null);
@@ -63,12 +69,12 @@ public class ExecutorProfilerDelivery implements ProfilerDelivery {
 		if (!enableProfiler) {
 			return ;
 		}
-		Legolas.getLog().d("deliveryExecutor submit Runnable");
 		deliveryExecutor.execute(new Runnable() {
 			
 			@Override
 			public void run() {
-				Legolas.getLog().d("taskExecutor execute ProfilerRunnable");
+				setControlThreadName();
+				Legolas.getLog().d("ProfilerDelivery submit postRequestEnd Runnable");
 				ProfilerRunnable run = new ProfilerRunnable(profiler, wrapper, response, exception);
 				run.isEndCall = true;
 				FutureTask<Void> task = new FutureTask<Void>(run, null);
@@ -87,12 +93,12 @@ public class ExecutorProfilerDelivery implements ProfilerDelivery {
 		if (!enableProfiler) {
 			return ;
 		}
-		Legolas.getLog().d("deliveryExecutor submit Runnable");
 		deliveryExecutor.execute(new Runnable() {
 			
 			@Override
 			public void run() {
-				Legolas.getLog().d("taskExecutor execute ProfilerRunnable");
+				setControlThreadName();
+				Legolas.getLog().d("ProfilerDelivery submit postRequestCancel Runnable");
 				ProfilerRunnable run = new ProfilerRunnable(profiler, wrapper, response, null);
 				run.isCancleCall = true;
 				FutureTask<Void> task = new FutureTask<Void>(run, null);

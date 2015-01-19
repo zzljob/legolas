@@ -17,6 +17,7 @@ import com.yepstudio.legolas.cache.disk.BasicDiskCache;
 import com.yepstudio.legolas.cache.disk.SafeDiskCache;
 import com.yepstudio.legolas.cache.disk.ZipDiskCache;
 import com.yepstudio.legolas.converter.GsonConverter;
+import com.yepstudio.legolas.httpsender.HttpClientHttpSender;
 import com.yepstudio.legolas.httpsender.UrlConnectionHttpSender;
 import com.yepstudio.legolas.internal.Sl4fLog;
 import com.yepstudio.legolas.listener.LegolasListener;
@@ -47,7 +48,7 @@ public class HttpApiTest {
 				.defaultOptions(defaultHttpRequestOptions)
 				.diskCache(diskCache)
 				.defaultConverter(new GsonConverter())
-				.httpSender(new UrlConnectionHttpSender())
+				.httpSender(new HttpClientHttpSender())
 				.legolasLog(new Sl4fLog())
 				.build();
 		Legolas.getInstance().init(config);
