@@ -19,50 +19,93 @@ import javax.crypto.spec.SecretKeySpec;
 
 import com.yepstudio.legolas.Legolas;
 
+/**
+ * 
+ * 
+ * @author zzljob@gmail.com
+ * @create 2015年1月19日
+ * @version 1.0，2015年1月19日
+ *
+ */
 public class SafeDiskCache extends BasicDiskCache {
 	
-	private static String Algorithm = "DESede"; // 定义 加密算法,可用DES,DESede,Blowfish
+	private static final int DEFAULT_DISK_USAGE_BYTES = 1 * 100 * 1024 * 1024;
+	
+	/** 定义 加密算法, 可用DES, DESede, Blowfish **/
+	private static String ALGORITHM = "DESede";
+	/**
+	 * <p>
+	 * 定义 加密/解密算法/工作模式/填充方式
+	 * </p>
+	 * 需要注意不同的语言之间的工作模式和填充模式都可能会不一样<br/>
+	 * 同一种语言不同的平台也可能工作模式和填充模式都可能会不一样<br/>
+	 * <p>
+	 * DES一共有四种模式：电子密码本模式（ECB）、加密分组链接模式（CBC）、加密反馈模式（CFB）和输出反馈模式（OFB）<br/>
+	 * 填充模式：NoPadding算法本身不对数据进行处理，加密数据由加密双方约定填补算法；PKCS5Padding加密前数据字节长度对8取余
+	 * </p>
+	 **/
+	private static String CIPHER_ALGORITHM = "DESede/CBC/PKCS5Padding";
+	
+	
 	private Cipher encryptCipher;//加密的
 	private Cipher decryptCipher;//解密的
-	private byte[] key = null;
 	
-	public SafeDiskCache(File rootDirectory, int maxCacheSizeInBytes, byte[] key) {
+	public SafeDiskCache(File rootDirectory, int maxCacheSizeInBytes, Cipher encryptCipher, Cipher decryptCipher) {
 		super(rootDirectory, maxCacheSizeInBytes);
-		this.key = key;
+		this.encryptCipher = encryptCipher;
+		this.decryptCipher = decryptCipher;
 	}
 
-	public SafeDiskCache(File rootDirectory, byte[] key) {
-		super(rootDirectory);
-		this.key = key;
+	public SafeDiskCache(File rootDirectory, Cipher encryptCipher, Cipher decryptCipher) {
+		this(rootDirectory, DEFAULT_DISK_USAGE_BYTES, encryptCipher, decryptCipher);
+	}
+	
+	public SafeDiskCache(File rootDirectory, byte[] key) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException {
+		this(rootDirectory, null, null);
+		initCipherByDefaultAlgorithm(key);
 	}
 	
 	public SafeDiskCache(File rootDirectory) {
-		super(rootDirectory);
+		this(rootDirectory, null, null);
 	}
 	
 	@Override
 	public synchronized void initialize() {
 		super.initialize();
-		try {
-			SecretKey deskey = null;
-			if (key != null) {
-				deskey = new SecretKeySpec(key, Algorithm);
-			} else {
-				KeyGenerator keygen = KeyGenerator.getInstance(Algorithm);
-				keygen.init(168);
-				deskey = keygen.generateKey();
-			}
-			
-			encryptCipher = Cipher.getInstance(Algorithm);
-			encryptCipher.init(Cipher.ENCRYPT_MODE, deskey);
-
-			decryptCipher = Cipher.getInstance(Algorithm);
-			decryptCipher.init(Cipher.DECRYPT_MODE, deskey);
-		} catch (Exception e) {
-			Legolas.getLog().e("initialize", e);
-			throw new IllegalStateException("key is error ", e);
+		if (encryptCipher == null || decryptCipher == null) {
+			useDefaultKeyAndAlgorithm();
 		}
 	}
+	
+	public void initCipherByDefaultAlgorithm(byte[] key) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException {
+		SecretKey deskey = new SecretKeySpec(key, ALGORITHM);
+		
+		encryptCipher = Cipher.getInstance(CIPHER_ALGORITHM);
+		encryptCipher.init(Cipher.ENCRYPT_MODE, deskey);
+		
+		decryptCipher = Cipher.getInstance(CIPHER_ALGORITHM);
+		decryptCipher.init(Cipher.DECRYPT_MODE, deskey);
+	}
+	
+	public byte[] useDefaultKeyAndAlgorithm() {
+		SecretKey deskey = null;
+		try{
+			KeyGenerator keygen = KeyGenerator.getInstance(ALGORITHM);
+			keygen.init(168);
+			deskey = keygen.generateKey();
+			
+			encryptCipher = Cipher.getInstance(CIPHER_ALGORITHM);
+			encryptCipher.init(Cipher.ENCRYPT_MODE, deskey);
+			
+			decryptCipher = Cipher.getInstance(CIPHER_ALGORITHM);
+			decryptCipher.init(Cipher.DECRYPT_MODE, deskey);
+			
+			return deskey.getEncoded();
+		} catch (Exception e) {
+			throw new IllegalStateException("key is can not be init ", e);
+		}
+	}
+	
 	
 	/**
 	 * 获取解密的密钥
