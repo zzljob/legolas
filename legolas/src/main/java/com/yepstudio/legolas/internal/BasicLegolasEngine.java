@@ -154,7 +154,8 @@ public class BasicLegolasEngine implements LegolasEngine {
 		
 		cacheEntry = cacheDispatcher.getRequestCacheEntry(wrapper);
 		
-		if (cacheEntry != null && cacheEntry.getData() != null) {
+		boolean useCache = wrapper.isCacheResponseInMemory() || wrapper.isCacheResponseOnDisk();
+		if (cacheEntry != null && cacheEntry.getData() != null && useCache) {
 			response = cacheEntry.getData();
 			if (CachePolicy.ALWAYS_USE_CACHE == cachePolicy) {
 				// 处理response
@@ -453,7 +454,8 @@ public class BasicLegolasEngine implements LegolasEngine {
 		cacheEntry = cacheDispatcher.getRequestCacheEntry(wrapper);
 		Legolas.getLog().d("getRequestCacheEntry [" + cacheEntry + "]");
 		
-		if (cacheEntry != null && cacheEntry.getData() != null) {
+		boolean useCache = wrapper.isCacheResponseInMemory() || wrapper.isCacheResponseOnDisk();
+		if (cacheEntry != null && cacheEntry.getData() != null && useCache) {
 			if (CachePolicy.ALWAYS_USE_CACHE == cachePolicy) {
 				// 处理response
 				wrapper.setResultValue(processSyncResponse(wrapper, cacheEntry.getData()));

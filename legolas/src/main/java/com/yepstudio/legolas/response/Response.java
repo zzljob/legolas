@@ -4,6 +4,7 @@ import java.util.Map;
 
 import org.apache.http.protocol.HTTP;
 
+import com.yepstudio.legolas.Legolas;
 import com.yepstudio.legolas.mime.ResponseBody;
 
 /**
@@ -26,8 +27,8 @@ public final class Response {
 	/** Response Body. */
 	private final ResponseBody responseBody;
 	
-	private final boolean fromMemoryCache;
-	private final boolean fromDiskCache;
+	private boolean fromMemoryCache;
+	private boolean fromDiskCache;
 
 	public Response(int statusCode, String message, Map<String, String> headers) {
 		this(statusCode, message, headers, null, false, false);
@@ -45,7 +46,7 @@ public final class Response {
 		this.responseBody = responseBody;
 		this.fromMemoryCache = fromMemoryCache;
 		this.fromDiskCache = fromDiskCache;
-		//log.v(String.format("statusCode:%s, message:%s, headers:%s, responseBody:%s", statusCode, message, headers, responseBody));
+		Legolas.getLog().v(String.format("statusCode:%s, message:%s, headers:%s, responseBody:%s", statusCode, message, headers, responseBody));
 	}
 
 	public int getStatus() {
@@ -99,6 +100,14 @@ public final class Response {
 		}
 
 		return defaultCharset;
+	}
+
+	public void setFromMemoryCache(boolean fromMemoryCache) {
+		this.fromMemoryCache = fromMemoryCache;
+	}
+
+	public void setFromDiskCache(boolean fromDiskCache) {
+		this.fromDiskCache = fromDiskCache;
 	}
 
 }

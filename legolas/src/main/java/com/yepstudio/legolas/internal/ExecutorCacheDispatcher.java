@@ -144,16 +144,16 @@ public class ExecutorCacheDispatcher implements CacheDispatcher {
 		if (response.isFromMemoryCache()) {
 			return false;
 		}
-		RecoveryPolicy policy = wrapper.getRecoveryPolicy();
-		if (RecoveryPolicy.NONE != policy) {
-			return true;
-		}
-		return wrapper.isCacheResponseInMemory();
+		return true;
 	}
 	
 	private boolean needLoadMemoryCacheForResponse(BasicRequest wrapper) {
 		if (!enableCache.get()) {
 			return false;
+		}
+		RecoveryPolicy policy = wrapper.getRecoveryPolicy();
+		if (RecoveryPolicy.NONE != policy) {
+			return true;
 		}
 		return wrapper.isCacheResponseInMemory();
 	}
@@ -162,20 +162,16 @@ public class ExecutorCacheDispatcher implements CacheDispatcher {
 		if (response.isFromDiskCache()) {
 			return false;
 		}
-		//缓存的几个用途：
-		//1、缓存可以避免去请求网络
-		//2、支持304请求缓存
-		//3、支持网络请求出错
-		RecoveryPolicy policy = wrapper.getRecoveryPolicy();
-		if (RecoveryPolicy.NONE != policy) {
-			return true;
-		}
-		return wrapper.isCacheResponseOnDisk();
+		return true;
 	}
 	
 	private boolean needLoadDiskCacheForResponse(BasicRequest wrapper) {
 		if (!enableCache.get()) {
 			return false;
+		}
+		RecoveryPolicy policy = wrapper.getRecoveryPolicy();
+		if (RecoveryPolicy.NONE != policy) {
+			return true;
 		}
 		return wrapper.isCacheResponseOnDisk();
 	}
