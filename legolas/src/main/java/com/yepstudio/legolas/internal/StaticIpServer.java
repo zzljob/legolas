@@ -52,7 +52,7 @@ public class StaticIpServer extends Server {
 		} else {
 			target = temp;
 		}
-		return target;
+		return builder.toString();
 	}
 
 	public void setRemoteAddress(String name, String ip, int port) {
@@ -79,6 +79,10 @@ public class StaticIpServer extends Server {
 
 	public int getPort() {
 		return port;
+	}
+	
+	public static void main(String[] args) {
+		StaticIpServer smbApi = new StaticIpServer("数米API(线上)", "http://smb.fund123.cn/api", null, 80);
 	}
 
 }
