@@ -40,8 +40,8 @@ public class HttpApiTest {
 				.recoveryPolicy(RecoveryPolicy.RESPONSE_ERROR)
 				.build(); 
 		
-		String ConsumerKey = "SM_SDK_SMB_ANDROID";
-		String ConsumerSecret = "09F62474C5B24DA18CD4600E4DF0D1DB";
+		String ConsumerKey = "";
+		String ConsumerSecret = "";
 		OAuthRequestInterceptor appOAuth = new OAuthRequestInterceptor(ConsumerKey, ConsumerSecret);
 		LegolasConfiguration config = new LegolasConfiguration.Builder()
 				.defaultEndpoints(endpoint)
