@@ -383,6 +383,7 @@ public class BasicLegolasEngine implements LegolasEngine {
 		try {
 			checkCancelException(request, cacheResponse);
 			
+			Legolas.getLog().d("request:" + request.getUrl());
 			response = httpSender.execute(request);
 			appendLogForResponse(log, response, null);
 			

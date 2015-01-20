@@ -54,6 +54,10 @@ public final class FormUrlEncodedRequestBody implements RequestBody {
 		return fieldMap.keySet().toArray(new String[0]);
 	}
 	
+	public String getField(String name) {
+		return fieldMap.get(name);
+	}
+	
 	public void removeField(String name) {
 		if (isEmpty(name)) {
 			throw new IllegalArgumentException("name isEmpty ");
