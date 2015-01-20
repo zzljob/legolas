@@ -219,17 +219,6 @@ public class Legolas {
 		checkConfiguration();
 		configuration.profilerDelivery.enableProfiler(enable);
 	}
-	
-	private void pause() {
-		checkConfiguration();
-		configuration.legolasEngine.pause();
-	}
-
-	/** Resumes waiting "load&display" tasks */
-	private void resume() {
-		checkConfiguration();
-		configuration.legolasEngine.resume();
-	}
 
 	public synchronized void destroy() {
 		if (configuration != null) {
@@ -338,5 +327,17 @@ public class Legolas {
 				return null;
 			}
 		}
+	}
+	
+	public void setDefaultUserAgent(String UserAgent) {
+		configuration.defaultHeaders.put("User-Agent", UserAgent);
+	}
+
+	public LegolasConfiguration getConfiguration() {
+		return configuration;
+	}
+	
+	public RequestInterceptor getRequestInterceptor(String alias) {
+		return configuration.getRequestInterceptor(alias);
 	}
 }

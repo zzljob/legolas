@@ -2,6 +2,7 @@ package com.yepstudio.legolas;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
@@ -11,8 +12,8 @@ import com.yepstudio.legolas.internal.AndroidPlatform;
 import com.yepstudio.legolas.internal.BasicLegolasEngine;
 import com.yepstudio.legolas.internal.BasicPlatform;
 import com.yepstudio.legolas.internal.ExecutorCacheDispatcher;
-import com.yepstudio.legolas.internal.ExecutorResponseDelivery;
 import com.yepstudio.legolas.internal.ExecutorProfilerDelivery;
+import com.yepstudio.legolas.internal.ExecutorResponseDelivery;
 
 /**
  * 
@@ -64,14 +65,14 @@ public class LegolasConfiguration {
 		memoryCache = builder.memoryCache;
 		diskCache = builder.diskCache;
 		
-		defaultLegolasOption = builder.defaultHttpRequestOptions;
-		legolasOptionsForApi = builder.defaultHttpRequestOptionsForApi;
+		defaultLegolasOption = builder.defaultOptions;
+		legolasOptionsForApi = builder.optionsForApi;
 
 		defaultEndpoint = builder.defaultEndpoints;
-		endpointsForApi = builder.defaultEndpointsForApi;
+		endpointsForApi = builder.endpointsForApi;
 
 		defaultConverter = builder.defaultConverter;
-		defaultConverterForApi = builder.defaultConverterForApi;
+		defaultConverterForApi = builder.converterForApi;
 
 		defaultHeaders = builder.defaultHeaders;
 		requestInterceptors = builder.requestInterceptors;
@@ -100,14 +101,14 @@ public class LegolasConfiguration {
 		private ProfilerDelivery profilerDelivery;
 		private Boolean enableProfiler;
 		
-		private LegolasOptions defaultHttpRequestOptions;
-		private Map<Class<?>, LegolasOptions> defaultHttpRequestOptionsForApi;
+		private LegolasOptions defaultOptions;
+		private Map<Class<?>, LegolasOptions> optionsForApi;
 
 		private Endpoint defaultEndpoints;
-		private Map<Class<?>, Endpoint> defaultEndpointsForApi;
+		private Map<Class<?>, Endpoint> endpointsForApi;
 
 		private Converter defaultConverter;
-		private Map<Class<?>, Converter> defaultConverterForApi;
+		private Map<Class<?>, Converter> converterForApi;
 
 		private String UserAgent;
 		private Map<String, String> defaultHeaders;
@@ -163,11 +164,6 @@ public class LegolasConfiguration {
 			return this;
 		}
 
-		public Builder requestUserAgent(String UserAgent) {
-			this.UserAgent = UserAgent;
-			return this;
-		}
-		
 		public Builder httpSender(HttpSender httpSender) {
 			this.httpSender = httpSender;
 			return this;
@@ -178,37 +174,73 @@ public class LegolasConfiguration {
 			return this;
 		}
 		
-		public Builder defaultOptions(LegolasOptions defaultHttpRequestOptions) {
-			this.defaultHttpRequestOptions = defaultHttpRequestOptions;
+		public Builder defaultOptions(LegolasOptions defaultOptions) {
+			this.defaultOptions = defaultOptions;
 			return this;
 		}
 
-		public Builder defaultEndpoints(Endpoint defaultEndpoints) {
-			this.defaultEndpoints = defaultEndpoints;
+		public Builder defaultEndpoints(Endpoint endpoints) {
+			this.defaultEndpoints = endpoints;
 			return this;
 		}
 		
 		public Builder requestApiConverter(Class<?> apiClass, Converter converter) {
-			if (defaultConverterForApi == null) {
-				defaultConverterForApi = new HashMap<Class<?>, Converter>();
+			if (converterForApi == null) {
+				converterForApi = new HashMap<Class<?>, Converter>();
 			}
-			this.defaultConverterForApi.put(apiClass, converter);
+			this.converterForApi.put(apiClass, converter);
 			return this;
 		}
 		
-		public Builder requestApiOptions(Class<?> apiClass, LegolasOptions defaultHttpRequestOptions) {
-			if (defaultHttpRequestOptionsForApi == null) {
-				defaultHttpRequestOptionsForApi = new HashMap<Class<?>, LegolasOptions>();
+		public Builder requestApiConverter(Converter converter, Set<Class<?>> apiClassSets) {
+			if (converterForApi == null) {
+				converterForApi = new HashMap<Class<?>, Converter>();
 			}
-			defaultHttpRequestOptionsForApi.put(apiClass, defaultHttpRequestOptions);
+			if (apiClassSets != null) {
+				for (Class<?> apiClass : apiClassSets) {
+					converterForApi.put(apiClass, converter);
+				}
+			}
+			return this;
+		}
+		
+		public Builder requestApiOptions(Class<?> apiClass, LegolasOptions options) {
+			if (optionsForApi == null) {
+				optionsForApi = new HashMap<Class<?>, LegolasOptions>();
+			}
+			optionsForApi.put(apiClass, options);
+			return this;
+		}
+		
+		public Builder requestApiOptions(LegolasOptions options, Set<Class<?>> apiClassSets) {
+			if (optionsForApi == null) {
+				optionsForApi = new HashMap<Class<?>, LegolasOptions>();
+			}
+			if (apiClassSets != null) {
+				for (Class<?> apiClass : apiClassSets) {
+					optionsForApi.put(apiClass, options);
+				}
+			}
 			return this;
 		}
 
-		public Builder requestApiEndpoints(Class<?> apiClass, Endpoint defaultEndpoints) {
-			if (defaultEndpointsForApi == null) {
-				defaultEndpointsForApi = new HashMap<Class<?>, Endpoint>();
+		public Builder requestApiEndpoints(Class<?> apiClass, Endpoint endpoints) {
+			if (endpointsForApi == null) {
+				endpointsForApi = new HashMap<Class<?>, Endpoint>();
 			}
-			defaultEndpointsForApi.put(apiClass, defaultEndpoints);
+			endpointsForApi.put(apiClass, endpoints);
+			return this;
+		}
+
+		public Builder requestApiEndpoints(Endpoint endpoints, Set<Class<?>> apiClassSets) {
+			if (endpointsForApi == null) {
+				endpointsForApi = new HashMap<Class<?>, Endpoint>();
+			}
+			if (apiClassSets != null) {
+				for (Class<?> apiClass : apiClassSets) {
+					endpointsForApi.put(apiClass, endpoints);
+				}
+			}
 			return this;
 		}
 
@@ -287,8 +319,8 @@ public class LegolasConfiguration {
 				defaultConverter = platform.defaultConverter();
 			}
 			
-			if (defaultConverterForApi == null) {
-				defaultConverterForApi = null;
+			if (converterForApi == null) {
+				converterForApi = null;
 			}
 			
 			if (requestInterceptors == null) {
@@ -296,12 +328,12 @@ public class LegolasConfiguration {
 			}
 			
 			//设置一个默认的LegolasOptions
-			if (defaultHttpRequestOptions == null) {
-				defaultHttpRequestOptions = new LegolasOptions.Builder().build();
+			if (defaultOptions == null) {
+				defaultOptions = new LegolasOptions.Builder().build();
 			}
 			
 			//一个默认的服务端入口是必须的
-			if (defaultEndpoints == null && defaultEndpointsForApi == null) {
+			if (defaultEndpoints == null && endpointsForApi == null) {
 				throw new IllegalArgumentException("must set defaultEndpoints or defaultEndpointsForApi when build LegolasConfiguration");
 			}
 			

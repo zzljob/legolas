@@ -1,11 +1,13 @@
 package com.yepstudio.legolas.webapi;
 
 import com.google.gson.annotations.SerializedName;
+import com.yepstudio.legolas.OAuthRequestInterceptor;
 import com.yepstudio.legolas.annotation.Api;
 import com.yepstudio.legolas.annotation.Description;
 import com.yepstudio.legolas.annotation.Field;
 import com.yepstudio.legolas.annotation.FormUrlEncoded;
 import com.yepstudio.legolas.annotation.GET;
+import com.yepstudio.legolas.annotation.Interceptors;
 import com.yepstudio.legolas.annotation.MuitiParameters;
 import com.yepstudio.legolas.annotation.POST;
 import com.yepstudio.legolas.annotation.Query;
@@ -41,6 +43,7 @@ public interface HttpApi {
 	@Description("获得新闻标题多参数")
 	@POST("NewsTitle.ashx")
 	@FormUrlEncoded
+	@Interceptors(alias = "AppOAuth")
 	public NewsTitleEntity syncGetNewsTitleDto(NewsTitleDTO dto);
 
 	public static class NewsTitleEntity {
