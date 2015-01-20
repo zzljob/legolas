@@ -12,16 +12,15 @@ import org.slf4j.LoggerFactory;
 
 import com.yepstudio.legolas.LegolasOptions.CachePolicy;
 import com.yepstudio.legolas.LegolasOptions.RecoveryPolicy;
-import com.yepstudio.legolas.OAuthRequestInterceptor.OAuthType;
-import com.yepstudio.legolas.OAuthRequestInterceptor.Signature;
 import com.yepstudio.legolas.converter.GsonConverter;
 import com.yepstudio.legolas.httpsender.HttpClientHttpSender;
 import com.yepstudio.legolas.internal.Sl4fLog;
 import com.yepstudio.legolas.listener.LegolasListener;
 import com.yepstudio.legolas.request.Request;
 import com.yepstudio.legolas.webapi.HttpApi;
-import com.yepstudio.legolas.webapi.OpenApi;
 import com.yepstudio.legolas.webapi.HttpApi.NewsTitleEntity;
+import com.yepstudio.legolas.webapi.MessageApi;
+import com.yepstudio.legolas.webapi.OpenApi;
 import com.yepstudio.legolas.webapi.OpenApi.AuthorizeFrom;
 
 public class HttpApiTest {
@@ -115,6 +114,11 @@ public class HttpApiTest {
 		from.password = "123123";
 		String response = api.authorize(from);
 		logger.debug("response:{}", response);
+	}
+
+	@Test
+	public void testSyncMessageApi() {
+		MessageApi api = Legolas.getInstance().getInstanceByBindOrNew(null, MessageApi.class);
 	}
 	
 	@Test

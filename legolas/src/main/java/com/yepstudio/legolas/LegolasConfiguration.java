@@ -3,6 +3,7 @@ package com.yepstudio.legolas;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
@@ -38,13 +39,13 @@ public class LegolasConfiguration {
 	final DiskCache diskCache;
 	
 	final LegolasOptions defaultLegolasOption;
-	final Map<Class<?>, LegolasOptions> legolasOptionsForApi;
+	final Map<Class<?>, LegolasOptions> optionsForApi;
 
 	final Endpoint defaultEndpoint;
 	final Map<Class<?>, Endpoint> endpointsForApi;
 
 	final Converter defaultConverter;
-	final Map<Class<?>, Converter> defaultConverterForApi;
+	final Map<Class<?>, Converter> converterForApi;
 
 	final Map<String, String> defaultHeaders;
 
@@ -66,13 +67,13 @@ public class LegolasConfiguration {
 		diskCache = builder.diskCache;
 		
 		defaultLegolasOption = builder.defaultOptions;
-		legolasOptionsForApi = builder.optionsForApi;
+		optionsForApi = builder.optionsForApi;
 
 		defaultEndpoint = builder.defaultEndpoints;
 		endpointsForApi = builder.endpointsForApi;
 
 		defaultConverter = builder.defaultConverter;
-		defaultConverterForApi = builder.converterForApi;
+		converterForApi = builder.converterForApi;
 
 		defaultHeaders = builder.defaultHeaders;
 		requestInterceptors = builder.requestInterceptors;
@@ -102,18 +103,18 @@ public class LegolasConfiguration {
 		private Boolean enableProfiler;
 		
 		private LegolasOptions defaultOptions;
-		private Map<Class<?>, LegolasOptions> optionsForApi;
+		private Map<Class<?>, LegolasOptions> optionsForApi = new ConcurrentHashMap<Class<?>, LegolasOptions>();
 
 		private Endpoint defaultEndpoints;
-		private Map<Class<?>, Endpoint> endpointsForApi;
+		private Map<Class<?>, Endpoint> endpointsForApi = new ConcurrentHashMap<Class<?>, Endpoint>();
 
 		private Converter defaultConverter;
-		private Map<Class<?>, Converter> converterForApi;
+		private Map<Class<?>, Converter> converterForApi = new ConcurrentHashMap<Class<?>, Converter>();
 
 		private String UserAgent;
-		private Map<String, String> defaultHeaders;
+		private Map<String, String> defaultHeaders = defaultHeaders();
 
-		private Map<String, RequestInterceptor> requestInterceptors;
+		private Map<String, RequestInterceptor> requestInterceptors  = new ConcurrentHashMap<String, RequestInterceptor>();
 		
 		public Builder platform(Platform platform) {
 			this.platform = platform;
@@ -185,9 +186,6 @@ public class LegolasConfiguration {
 		}
 		
 		public Builder requestApiConverter(Class<?> apiClass, Converter converter) {
-			if (converterForApi == null) {
-				converterForApi = new HashMap<Class<?>, Converter>();
-			}
 			this.converterForApi.put(apiClass, converter);
 			return this;
 		}
@@ -205,17 +203,11 @@ public class LegolasConfiguration {
 		}
 		
 		public Builder requestApiOptions(Class<?> apiClass, LegolasOptions options) {
-			if (optionsForApi == null) {
-				optionsForApi = new HashMap<Class<?>, LegolasOptions>();
-			}
 			optionsForApi.put(apiClass, options);
 			return this;
 		}
 		
 		public Builder requestApiOptions(LegolasOptions options, Set<Class<?>> apiClassSets) {
-			if (optionsForApi == null) {
-				optionsForApi = new HashMap<Class<?>, LegolasOptions>();
-			}
 			if (apiClassSets != null) {
 				for (Class<?> apiClass : apiClassSets) {
 					optionsForApi.put(apiClass, options);
@@ -225,17 +217,11 @@ public class LegolasConfiguration {
 		}
 
 		public Builder requestApiEndpoints(Class<?> apiClass, Endpoint endpoints) {
-			if (endpointsForApi == null) {
-				endpointsForApi = new HashMap<Class<?>, Endpoint>();
-			}
 			endpointsForApi.put(apiClass, endpoints);
 			return this;
 		}
 
 		public Builder requestApiEndpoints(Endpoint endpoints, Set<Class<?>> apiClassSets) {
-			if (endpointsForApi == null) {
-				endpointsForApi = new HashMap<Class<?>, Endpoint>();
-			}
 			if (apiClassSets != null) {
 				for (Class<?> apiClass : apiClassSets) {
 					endpointsForApi.put(apiClass, endpoints);
@@ -245,18 +231,17 @@ public class LegolasConfiguration {
 		}
 
 		public Builder requestHeader(String name, String value) {
-			if (defaultHeaders == null) {
-				defaultHeaders = defaultHeaders();
-			}
 			defaultHeaders.put(name, value);
 			return this;
 		}
 		
 		public Builder registerRequestInterceptors(String alias, RequestInterceptor interceptor) {
-			if (requestInterceptors == null) {
-				requestInterceptors = new HashMap<String, RequestInterceptor>();
-			}
 			requestInterceptors.put(alias, interceptor);
+			return this;
+		}
+		
+		public Builder defaultUserAgent(String userAgent) {
+			this.UserAgent = userAgent;
 			return this;
 		}
 
@@ -269,15 +254,8 @@ public class LegolasConfiguration {
 				legolasLog = platform.defaultLog();
 			}
 			
-			if (UserAgent == null) {
-				//默认UserAgent
-				StringBuilder ua = new StringBuilder();
-				ua.append(Legolas.LOG_TAG).append("_");
-				ua.append(Legolas.getVersion());
-				this.UserAgent = ua.toString();
-			}
-			if (defaultHeaders == null) {
-				defaultHeaders = defaultHeaders();
+			if (UserAgent != null) {
+				defaultHeaders.put("User-Agent", UserAgent);
 			}
 			
 			// Cache
@@ -320,11 +298,11 @@ public class LegolasConfiguration {
 			}
 			
 			if (converterForApi == null) {
-				converterForApi = null;
+				converterForApi = new ConcurrentHashMap<Class<?>, Converter>();
 			}
 			
 			if (requestInterceptors == null) {
-				requestInterceptors = null;
+				requestInterceptors = new ConcurrentHashMap<String, RequestInterceptor>();
 			}
 			
 			//设置一个默认的LegolasOptions
@@ -351,10 +329,14 @@ public class LegolasConfiguration {
 		}
 		
 		private Map<String, String> defaultHeaders() {
-			Map<String, String> headers = new HashMap<String, String>();
+			Map<String, String> headers = new ConcurrentHashMap<String, String>();
 			headers.put("Accept-Encoding", "gzip,deflate");
 			headers.put("Cache-Control", "max-age=0");
-			headers.put("User-Agent", UserAgent);
+			
+			StringBuilder ua = new StringBuilder();
+			ua.append(Legolas.LOG_TAG).append("_");
+			ua.append(Legolas.getVersion());
+			headers.put("User-Agent", ua.toString());
 			return headers;
 		}
 		
@@ -391,10 +373,10 @@ public class LegolasConfiguration {
 	}
 
 	public LegolasOptions getApiLegolasOptions(Class<?> apiClass) {
-		if (legolasOptionsForApi == null || apiClass == null) {
+		if (optionsForApi == null || apiClass == null) {
 			return null;
 		}
-		return legolasOptionsForApi.get(apiClass);
+		return optionsForApi.get(apiClass);
 	}
 
 	public LegolasOptions getDefaultLegolasOptions() {
@@ -422,10 +404,26 @@ public class LegolasConfiguration {
 	}
 
 	public Converter getApiConverter(Class<?> clazz) {
-		if (defaultConverterForApi == null || clazz == null) {
+		if (converterForApi == null || clazz == null) {
 			return null;
 		}
-		return defaultConverterForApi.get(clazz);
+		return converterForApi.get(clazz);
+	}
+	
+	public void requestApiConverter(Class<?> apiClass, Converter converter) {
+		converterForApi.put(apiClass, converter);
+	}
+	
+	public void requestApiOptions(Class<?> apiClass, LegolasOptions options) {
+		optionsForApi.put(apiClass, options);
+	}
+
+	public void requestApiEndpoints(Class<?> apiClass, Endpoint endpoints) {
+		endpointsForApi.put(apiClass, endpoints);
+	}
+	
+	public void requestHeader(String name, String value) {
+		defaultHeaders.put(name, value);
 	}
 
 }
