@@ -101,8 +101,6 @@ public class BasicConverter implements Converter {
 			return true;
 		} else if (File.class.equals(clazz)) {
 			return true;
-		} else if (File.class.equals(clazz)) {
-			return true;
 		} else if (String.class.equals(clazz)) {
 			return true;
 		} else if (StringBuilder.class.equals(clazz)) {

@@ -36,22 +36,33 @@ public class StaticIpServer extends Server {
 	}
 
 	static String replaceHost(String url, String ip, int port) {
-		String target = "";
 		if (url.indexOf("://") < 0) {
 			throw new IllegalStateException("url需要带上协议");
 		}
 		String temp = url.substring(url.indexOf("://") + 3);
+		String host = "";
+		String other = "";
+		
+		int len = temp.indexOf("/");
+		if (len > 0) {
+			host = temp.substring(0, len);
+			other = temp.substring(len);//后面那部分
+		} else {
+			host = temp;
+			other = "";
+		}
 
 		StringBuilder builder = new StringBuilder();
 		builder.append(url.substring(0, url.indexOf("://") + 3));
-		builder.append(ip).append(":").append(port);
-		int len = temp.indexOf("/");
-		if (len > 0) {
-			builder.append(temp.substring(len));
-			target = temp.substring(0, len);
+		if (ip != null && "".equals(ip.trim())) {
+			builder.append(ip);
 		} else {
-			target = temp;
+			builder.append(host);
 		}
+		if (port > -1) {
+			builder.append(":").append(port);
+		}
+		builder.append(other);
 		return builder.toString();
 	}
 
@@ -64,7 +75,7 @@ public class StaticIpServer extends Server {
 		super.url = replaceHost(this.url, ip, port);
 		super.name = name;
 	}
-	
+
 	public void setRemoteAddress(String ip, int port) {
 		setRemoteAddress("", ip, port);
 	}
@@ -79,10 +90,6 @@ public class StaticIpServer extends Server {
 
 	public int getPort() {
 		return port;
-	}
-	
-	public static void main(String[] args) {
-		StaticIpServer smbApi = new StaticIpServer("数米API(线上)", "http://smb.fund123.cn/api", null, 80);
 	}
 
 }

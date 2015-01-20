@@ -7,6 +7,7 @@ import java.lang.reflect.Type;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParseException;
+import com.yepstudio.legolas.Legolas;
 import com.yepstudio.legolas.exception.ConversionException;
 import com.yepstudio.legolas.mime.ByteArrayResponseBody;
 import com.yepstudio.legolas.response.Response;
@@ -59,6 +60,7 @@ public class GsonConverter extends BasicConverter {
 				if (debug) {
 					ByteArrayResponseBody body = ByteArrayResponseBody.build(response.getBody());
 					String bodyString = new String(body.getBytes(), charset);
+					Legolas.getLog().i("bodyString : " + bodyString);
 					// 输出日志
 					return gson.fromJson(bodyString, type);
 				} else {

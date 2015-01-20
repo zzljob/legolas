@@ -4,7 +4,6 @@ import java.io.UnsupportedEncodingException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -17,6 +16,7 @@ import java.util.TreeSet;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
+import com.yepstudio.legolas.internal.Base64Encoder;
 import com.yepstudio.legolas.mime.FormUrlEncodedRequestBody;
 import com.yepstudio.legolas.mime.RequestBody;
 
@@ -203,14 +203,14 @@ public class OAuthRequestInterceptor implements RequestInterceptor {
 		String realSignature = signature.toString().replace("-", "");
 		mac = Mac.getInstance(realSignature);
 		
-		SecretKeySpec spec = new SecretKeySpec(key.getBytes(charset), signature.toString());
+		SecretKeySpec spec = new SecretKeySpec(key.getBytes(charset), realSignature);
 		mac.init(spec);
 		byteHMAC = mac.doFinal(value.getBytes(charset));
 		return base64(byteHMAC);
 	}
 	
 	protected String base64(byte[] bytes) {
-		return Base64.getEncoder().encodeToString(bytes);
+		return Base64Encoder.encode(bytes);
 	}
 	
 	@Override
