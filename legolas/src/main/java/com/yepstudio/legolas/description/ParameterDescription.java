@@ -1,6 +1,6 @@
 package com.yepstudio.legolas.description;
 
-import java.lang.reflect.Parameter;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.WildcardType;
@@ -26,6 +26,7 @@ import com.yepstudio.legolas.annotation.Path;
 import com.yepstudio.legolas.annotation.Query;
 import com.yepstudio.legolas.annotation.Querys;
 import com.yepstudio.legolas.exception.LegolasConfigureError;
+import com.yepstudio.legolas.internal.TypesHelper;
 import com.yepstudio.legolas.listener.LegolasListener;
 import com.yepstudio.legolas.request.OnRequestListener;
 import com.yepstudio.legolas.response.OnErrorListener;
@@ -66,10 +67,9 @@ public class ParameterDescription {
 	private final boolean errorListener;
 	private final boolean legolasListener;
 	
-	public ParameterDescription(Parameter param) {
-		type = param.getParameterizedType();
-		
-		Class<?> clazz = param.getType();
+	public ParameterDescription(Type param, Annotation[] annotation) {
+		type = param;
+		Class<?> clazz = TypesHelper.getRawType(type);
 		MuitiParameters objParam = clazz.getAnnotation(MuitiParameters.class);
 		classParameter = objParam != null;
 		if (classParameter) {
@@ -99,10 +99,17 @@ public class ParameterDescription {
 			validateLegolasListener(responseType, errorType);
 		}
 		
-		Description desp = param.getAnnotation(Description.class);
+		Description desp = null;
+		if (annotation != null) {
+			for (Annotation a : annotation) {
+				if (Description.class == a.annotationType()) {
+					desp = (Description) a;
+				}
+			}
+		}
 		this.description = desp == null ? "" : desp.value();
 		
-		this.parameterType = parseParameterType(param);
+		this.parameterType = parseParameterType(param, annotation);
 		if (this.parameterType != ParameterType.NONE && classParameter) {
 			throw new LegolasConfigureError(LOG_VALIDATE_CLASS_PARAM_LIMIT);
 		}
@@ -113,15 +120,12 @@ public class ParameterDescription {
 		}
 		
 		if (isIgnore()) {
-			Legolas.getLog().w("param is ignore : " + param.getName());
+			Legolas.getLog().w("param is ignore ");
 		}
 	}
 	
-	private List<ParameterItemDescription> parseClassParameter(Parameter param) {
-		if (type == null) {
-			return null;
-		}
-		Class<?> clazz = param.getType();
+	private List<ParameterItemDescription> parseClassParameter(Type param) {
+		Class<?> clazz = TypesHelper.getRawType(param);
 		if (clazz.isInterface() || clazz.isEnum()) {
 			throw new LegolasConfigureError(LOG_VALIDATE_CLASS_PARAM_MUST_CLASS);
 		}
@@ -159,9 +163,46 @@ public class ParameterDescription {
 		return name != null && !"".equals(name.trim());
 	}
 	
-	private ParameterType parseParameterType(Parameter param) {
+	private ParameterType parseParameterType(Type param, Annotation[] annotation) {
 		ParameterType parameterType = ParameterType.NONE;
-		Path path = param.getAnnotation(Path.class);
+		Path path = null;
+		Header header = null;
+		Headers headers = null;
+		Query query = null;
+		Querys querys = null;
+		Field field = null;
+		Fields fields = null;
+		Part part = null;
+		Parts parts = null;
+		Body body = null;
+		if (annotation != null) {
+			for (Annotation a : annotation) {
+				if (Path.class == a.annotationType()) {
+					path = (Path) a;
+				} else if (Header.class == a.annotationType()) {
+					header = (Header) a;
+				} else if (Headers.class == a.annotationType()) {
+					headers = (Headers) a;
+				} else if (Headers.class == a.annotationType()) {
+					headers = (Headers) a;
+				} else if (Query.class == a.annotationType()) {
+					query = (Query) a;
+				} else if (Querys.class == a.annotationType()) {
+					querys = (Querys) a;
+				} else if (Field.class == a.annotationType()) {
+					field = (Field) a;
+				} else if (Fields.class == a.annotationType()) {
+					fields = (Fields) a;
+				} else if (Part.class == a.annotationType()) {
+					part = (Part) a;
+				} else if (Parts.class == a.annotationType()) {
+					parts = (Parts) a;
+				} else if (Body.class == a.annotationType()) {
+					body = (Body) a;
+				}
+			}
+		}
+		
 		if (path != null) {
 			if (parameterType == ParameterType.NONE) {
 				parameterType = ParameterType.PATH;
@@ -172,7 +213,6 @@ public class ParameterDescription {
 			}
 		}
 
-		Header header = param.getAnnotation(Header.class);
 		if (header != null) {
 			if (parameterType == ParameterType.NONE) {
 				parameterType = ParameterType.HEADER;
@@ -183,7 +223,6 @@ public class ParameterDescription {
 			}
 		}
 
-		Headers headers = param.getAnnotation(Headers.class);
 		if (headers != null) {
 			if (parameterType == ParameterType.NONE) {
 				parameterType = ParameterType.HEADER;
@@ -193,7 +232,6 @@ public class ParameterDescription {
 			}
 		}
 
-		Query query = param.getAnnotation(Query.class);
 		if (query != null) {
 			if (parameterType == ParameterType.NONE) {
 				parameterType = ParameterType.QUERY;
@@ -204,7 +242,6 @@ public class ParameterDescription {
 			}
 		}
 
-		Querys querys = param.getAnnotation(Querys.class);
 		if (querys != null) {
 			if (parameterType == ParameterType.NONE) {
 				parameterType = ParameterType.QUERY;
@@ -214,7 +251,6 @@ public class ParameterDescription {
 			}
 		}
 
-		Field field = param.getAnnotation(Field.class);
 		if (field != null) {
 			if (parameterType == ParameterType.NONE) {
 				parameterType = ParameterType.FIELD;
@@ -225,7 +261,6 @@ public class ParameterDescription {
 			}
 		}
 
-		Fields fields = param.getAnnotation(Fields.class);
 		if (fields != null) {
 			if (parameterType == ParameterType.NONE) {
 				parameterType = ParameterType.FIELD;
@@ -235,7 +270,6 @@ public class ParameterDescription {
 			}
 		}
 
-		Part part = param.getAnnotation(Part.class);
 		if (part != null) {
 			if (parameterType == ParameterType.NONE) {
 				parameterType = ParameterType.PART;
@@ -246,7 +280,6 @@ public class ParameterDescription {
 			}
 		}
 
-		Parts parts = param.getAnnotation(Parts.class);
 		if (parts != null) {
 			if (parameterType == ParameterType.NONE) {
 				parameterType = ParameterType.PART;
@@ -256,7 +289,6 @@ public class ParameterDescription {
 			}
 		}
 		
-		Body body = param.getAnnotation(Body.class);
 		if (body != null) {
 			if (parameterType == ParameterType.NONE) {
 				parameterType = ParameterType.BODY;

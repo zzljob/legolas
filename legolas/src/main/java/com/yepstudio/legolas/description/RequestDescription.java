@@ -142,10 +142,13 @@ public class RequestDescription {
 			expansionInterceptors = false;
 		}
 		
-		Parameter[] parameters = method.getParameters();
+		Type[] parameters = method.getGenericParameterTypes();
+		Annotation[][] annotationArray = method.getParameterAnnotations();
 		if (parameters != null) {
 			for (int i = 0; i < parameters.length; i++) {
-				this.parameters.add(new ParameterDescription(parameters[i]));
+				Type type = parameters[i];
+				Annotation[] ann = annotationArray[i];
+				this.parameters.add(new ParameterDescription(type, ann));
 			}
 		}
 		
