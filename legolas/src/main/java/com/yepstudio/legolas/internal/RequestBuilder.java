@@ -150,7 +150,7 @@ public class RequestBuilder implements RequestInterceptorFace {
 	
 	private void appendLogForRequest(StringBuilder builder) {
 		builder.append("-------------------Init>>-------------------\n");
-		builder.append("Endpoint：").append(endpoint.getUrl());
+		builder.append("Endpoint：").append(endpoint.getRequestUrl());
 		if (!isEmpty(endpoint.getName())) {
 			builder.append("(").append(endpoint.getName()).append(")");
 		}
@@ -385,8 +385,8 @@ public class RequestBuilder implements RequestInterceptorFace {
 			if(apiDescription.isAbsoluteApiPath()){
 				builder.append(apiDescription.getApiPath());
 			} else {
-				builder.append(endpoint.getUrl());
-				if ((endpoint != null && endpoint.getUrl() != null && endpoint.getUrl().endsWith("/"))
+				builder.append(endpoint.getRequestUrl());
+				if ((endpoint != null && endpoint.getRequestUrl() != null && endpoint.getRequestUrl().endsWith("/"))
 						|| (apiDescription.getApiPath() != null && apiDescription.getApiPath().startsWith("/"))) {
 					//都不需要加/
 				} else {

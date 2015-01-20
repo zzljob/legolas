@@ -21,7 +21,7 @@ public interface Endpoint {
 	 * 
 	 * @return
 	 */
-	public String getUrl();
+	public String getRequestUrl();
 
 	/**
 	 * Api 的HOST

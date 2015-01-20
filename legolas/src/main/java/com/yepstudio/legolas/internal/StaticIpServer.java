@@ -1,8 +1,5 @@
 package com.yepstudio.legolas.internal;
 
-import java.net.MalformedURLException;
-import java.net.URL;
-
 /**
  * 服务端，{@link com.yepstudio.legolas.Endpoint} 的一个实现
  * 
@@ -12,24 +9,33 @@ import java.net.URL;
  */
 public class StaticIpServer extends Server {
 
+	private static final String DEFAULT_NAME = "";
+
+	private String url;
+	private String ip;
+	private int port;
+
+	public StaticIpServer(String url) {
+		this(DEFAULT_NAME, url, null, 80);
+	}
+
 	public StaticIpServer(String url, String ip) {
-		this("", url, ip, 80);
+		this(DEFAULT_NAME, url, ip, 80);
 	}
-	
+
 	public StaticIpServer(String url, String ip, int port) {
-		this("", url, ip, port);
+		this(DEFAULT_NAME, url, ip, port);
 	}
-	
+
 	public StaticIpServer(String name, String url, String ip, int port) {
-		super(name, replaceHost(url, ip, port));
-		try {
-			host = new URL(url).getHost();
-		} catch (MalformedURLException e) {
-			throw new IllegalStateException("不是一个合法的URL");
-		}
+		super(name, url);
+		this.url = url;
+		this.ip = ip;
+		this.port = port;
+		setRemoteAddress(ip, port);
 	}
-	
-	private static String replaceHost(String url, String ip, int port) {
+
+	static String replaceHost(String url, String ip, int port) {
 		String target = "";
 		if (url.indexOf("://") < 0) {
 			throw new IllegalStateException("url需要带上协议");
@@ -47,6 +53,27 @@ public class StaticIpServer extends Server {
 			target = temp;
 		}
 		return target;
+	}
+
+	public void setRemoteAddress(String ip, int port) {
+		this.ip = ip;
+		this.port = port;
+		if (ip == null || "".equals(ip.trim())) {
+			ip = getHost();
+		}
+		super.url = replaceHost(this.url, ip, port);
+	}
+
+	public String getNativeUrl() {
+		return this.url;
+	}
+
+	public String getIp() {
+		return ip;
+	}
+
+	public int getPort() {
+		return port;
 	}
 
 }

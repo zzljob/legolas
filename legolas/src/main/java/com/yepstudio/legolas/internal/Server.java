@@ -14,9 +14,9 @@ import com.yepstudio.legolas.Endpoint;
  */
 public class Server implements Endpoint {
 
-	private final String url;
-	private final String name;
-	protected String host;
+	protected String url;
+	protected String name;
+	protected final String host;
 
 	public Server(String url) {
 		this("", url);
@@ -39,7 +39,7 @@ public class Server implements Endpoint {
 		return name;
 	}
 
-	public String getUrl() {
+	public String getRequestUrl() {
 		return url;
 	}
 
