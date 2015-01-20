@@ -55,13 +55,18 @@ public class StaticIpServer extends Server {
 		return target;
 	}
 
-	public void setRemoteAddress(String ip, int port) {
+	public void setRemoteAddress(String name, String ip, int port) {
 		this.ip = ip;
 		this.port = port;
 		if (ip == null || "".equals(ip.trim())) {
 			ip = getHost();
 		}
 		super.url = replaceHost(this.url, ip, port);
+		super.name = name;
+	}
+	
+	public void setRemoteAddress(String ip, int port) {
+		setRemoteAddress("", ip, port);
 	}
 
 	public String getNativeUrl() {
