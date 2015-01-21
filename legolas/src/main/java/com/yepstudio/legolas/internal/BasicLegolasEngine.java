@@ -184,11 +184,9 @@ public class BasicLegolasEngine implements LegolasEngine {
 		if (response == null) {
 			throw new NetworkException("request failed and Recovery fail");
 		}
-		cacheDispatcher.updateRequestCache(wrapper, response);
-		
 		checkCancelException(wrapper, response);
-		
 		processAsyncResponse(wrapper, response);
+		cacheDispatcher.updateRequestCache(wrapper, response);
 		cacheDispatcher.updateAsyncRequestConverterCache(wrapper);
 		return response;
 	}
@@ -407,10 +405,11 @@ public class BasicLegolasEngine implements LegolasEngine {
 			
 			//开始转成字符或者文件的，使后面可以反复被读取
 			response = getReadableResponse(response);
-			int status = response.getStatus();
-			Legolas.getLog().v(String.format("status[%s] Body[%s], ", status, response.getBody()));
-			
-			Legolas.getLog().w("sendHttpRequest [success]");
+			if (response != null) {
+				int status = response.getStatus();
+				Legolas.getLog().v(String.format("status[%s] Body[%s], ", status, response.getBody()));
+				Legolas.getLog().w("sendHttpRequest [success]");
+			}
 		} catch (IOException e) {
 			Legolas.getLog().w("sendHttpRequest has IOException", e);
 			//请求出错啦
