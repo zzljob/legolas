@@ -1,5 +1,6 @@
 package com.yepstudio.legolas.response;
 
+import java.util.Date;
 import java.util.Map;
 
 import org.apache.http.protocol.HTTP;
@@ -29,6 +30,7 @@ public final class Response {
 	
 	private boolean fromMemoryCache;
 	private boolean fromDiskCache;
+	protected final Date birthTime = new Date();
 
 	public Response(int statusCode, String message, Map<String, String> headers) {
 		this(statusCode, message, headers, null, false, false);
@@ -108,6 +110,10 @@ public final class Response {
 
 	public void setFromDiskCache(boolean fromDiskCache) {
 		this.fromDiskCache = fromDiskCache;
+	}
+
+	public Date getBirthTime() {
+		return birthTime;
 	}
 
 }
