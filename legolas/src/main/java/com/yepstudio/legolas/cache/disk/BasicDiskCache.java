@@ -83,7 +83,9 @@ public class BasicDiskCache implements DiskCache {
         File[] files = mRootDirectory.listFiles();
         if (files != null) {
             for (File file : files) {
-                file.delete();
+				if (!file.delete()) {
+					file.deleteOnExit();
+				}
             }
         }
         mEntries.clear();

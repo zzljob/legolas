@@ -8,6 +8,7 @@ import android.os.Environment;
 
 import com.yepstudio.legolas.Converter;
 import com.yepstudio.legolas.HttpSender;
+import com.yepstudio.legolas.Legolas;
 import com.yepstudio.legolas.LegolasLog;
 import com.yepstudio.legolas.cache.disk.BasicDiskCache;
 import com.yepstudio.legolas.cache.disk.DiskCache;
@@ -58,7 +59,9 @@ public class AndroidPlatform extends BasicPlatform {
 		if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())
 				&& !Environment.MEDIA_MOUNTED_READ_ONLY.equals(Environment.getExternalStorageState())) {
 			File file = Environment.getExternalStorageDirectory();
-			DiskCache cache = new BasicDiskCache(new File(file, "legolas"));
+			String version = Legolas.getVersion();
+			File cacheFile = new File(file, "legolas/v" + version + "/");
+			DiskCache cache = new BasicDiskCache(cacheFile);
 			return cache;
 		} else {
 			return new NoDiskCache();

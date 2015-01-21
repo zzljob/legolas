@@ -48,7 +48,7 @@ public class AndroidConverter extends BasicConverter {
 		try {
 			if (JSONObject.class.equals(type)) {
 				String jsonText = getJsonText(response);
-				if (jsonText == null || jsonText.length() < 1){
+				if (jsonText == null || jsonText.length() < 1) {
 					return null;
 				}
 				jsonText = subString(jsonText, "{", "}");

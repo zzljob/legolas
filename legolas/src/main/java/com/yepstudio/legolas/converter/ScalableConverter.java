@@ -29,7 +29,7 @@ public class ScalableConverter implements Converter {
 	public Object convert(Response response, Type type) throws ConversionException {
 		ConversionException throwE = null;
 		for (Converter converter : converters) {
-			if (converter == null) {
+			if (converter == null || !converter.isSupport(type)) {
 				continue;
 			}
 			try {

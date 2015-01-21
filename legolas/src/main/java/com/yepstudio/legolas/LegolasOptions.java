@@ -71,7 +71,7 @@ public class LegolasOptions {
 		private String requestDefaultCharset = "UTF-8";
 
 		private long delayBeforeRequest = 0;// 请求前等待几毫秒
-		private boolean cacheInMemory = false;
+		private boolean cacheInMemory = true;
 		private boolean cacheOnDisk = true;
 		private boolean cacheConverterResult = false;
 		private CacheKeyGenerater cacheKeyGenerater;

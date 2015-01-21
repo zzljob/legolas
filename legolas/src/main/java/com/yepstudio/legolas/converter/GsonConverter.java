@@ -3,12 +3,15 @@ package com.yepstudio.legolas.converter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Type;
+import java.util.HashSet;
+import java.util.Set;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParseException;
 import com.yepstudio.legolas.Legolas;
 import com.yepstudio.legolas.exception.ConversionException;
+import com.yepstudio.legolas.internal.TypesHelper;
 import com.yepstudio.legolas.mime.ByteArrayResponseBody;
 import com.yepstudio.legolas.response.Response;
 
@@ -24,6 +27,12 @@ public class GsonConverter extends BasicConverter {
 
 	protected final Gson gson;
 	protected boolean debug;
+	private static final Set<String> noSupportClass = new HashSet<String>();
+	
+	static {
+		noSupportClass.add("org.json.JSONObject");
+		noSupportClass.add("org.json.JSONArray");
+	}
 
 	public GsonConverter() {
 		this(new GsonBuilder().create());
@@ -47,7 +56,11 @@ public class GsonConverter extends BasicConverter {
 	}
 	
 	public boolean isSupport(Type type) {
-		return true;
+		if (super.isSupport(type)) {
+			return true;
+		}
+		Class<?> clazz = TypesHelper.getRawType(type);
+		return !noSupportClass.contains(clazz.getName());
 	}
 	
 	public Object convert(Response response, Type type) throws ConversionException {
