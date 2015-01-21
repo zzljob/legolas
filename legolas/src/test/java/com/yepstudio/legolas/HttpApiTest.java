@@ -110,8 +110,8 @@ public class HttpApiTest {
 	public void testSyncAuthorize() {
 		OpenApi api = Legolas.getInstance().getApi(OpenApi.class);
 		AuthorizeFrom from = new AuthorizeFrom();
-		from.username = "15657121873";
-		from.password = "123123";
+		from.username = "";
+		from.password = "";
 		String response = api.authorize(from);
 		logger.debug("response:{}", response);
 	}
