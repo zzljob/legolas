@@ -148,11 +148,13 @@ public class ExecutorProfilerDelivery implements ProfilerDelivery {
 				Legolas.getLog().d("profiler afterCall");
 				Object beforeCallData = wrapper.getProfilerExpansion();
 				profiler.afterCall(response, exception, beforeCallData);
+				wrapper.setProfilerExpansion(null);
 			}
 			if (isCancleCall) {
 				Legolas.getLog().d("profiler cancelCall");
 				Object beforeCallData = wrapper.getProfilerExpansion();
 				profiler.cancelCall(beforeCallData);
+				wrapper.setProfilerExpansion(null);
 			}
 		}
 
