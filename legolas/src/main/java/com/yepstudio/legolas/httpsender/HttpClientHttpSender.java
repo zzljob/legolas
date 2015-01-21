@@ -2,6 +2,7 @@ package com.yepstudio.legolas.httpsender;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -23,11 +24,10 @@ import org.apache.http.message.BasicHeader;
 import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
-import org.apache.http.util.EntityUtils;
 
 import com.yepstudio.legolas.HttpSender;
-import com.yepstudio.legolas.Legolas;
 import com.yepstudio.legolas.mime.ByteArrayResponseBody;
+import com.yepstudio.legolas.mime.FileResponseBody;
 import com.yepstudio.legolas.mime.RequestBody;
 import com.yepstudio.legolas.mime.ResponseBody;
 import com.yepstudio.legolas.mime.StreamResponseBody;
@@ -81,6 +81,9 @@ public class HttpClientHttpSender implements HttpSender {
 		Map<String, String> headers = new HashMap<String, String>();
 		String contentType = "application/octet-stream";
 		for (org.apache.http.Header header : response.getAllHeaders()) {
+			if (header == null) {
+				continue;
+			}
 			String name = header.getName();
 			String value = header.getValue();
 			if (ResponseBody.Content_Type.equalsIgnoreCase(name)) {
@@ -94,7 +97,11 @@ public class HttpClientHttpSender implements HttpSender {
 			long length = entity.getContentLength();
 			InputStream stream;
 			stream = entity.getContent();
-			String encoding = entity.getContentEncoding().getValue();
+			String encoding = null;
+			org.apache.http.Header contentEncodingHeader = entity.getContentEncoding();
+			if (contentEncodingHeader != null) {
+				encoding = contentEncodingHeader.getValue();
+			}
 			
 			if (stream == null) {
 				return new Response(status, reason, headers);
@@ -108,12 +115,23 @@ public class HttpClientHttpSender implements HttpSender {
 			} else {
 				inputStream = stream;
 			}
-			Legolas.getLog().v(String.format("status[%s] mimeType[%s], length[%s], stream[%s]", status, contentType, length, inputStream));
 			ResponseBody responseBody = new StreamResponseBody(contentType, length, inputStream);
+			
+			long max_length = ByteArrayResponseBody.MAX_LIMIT_SIZE;
+			if (0 <= responseBody.length() && responseBody.length() < max_length) {
+				responseBody = ByteArrayResponseBody.build(responseBody);
+			} else {
+				File file = File.createTempFile("legolas_", "_temp");
+				responseBody = FileResponseBody.build(responseBody, file);
+			}
+			
+			stream.close();
+			inputStream.close();
+			entity.consumeContent();
 			return new Response(status, reason, headers, responseBody);
 		}
 
-		return null;
+		return new Response(status, reason, headers);
 	}
 	
 	static boolean isDeflateEncoding(String encoding) {
