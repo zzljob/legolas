@@ -1,6 +1,6 @@
 package com.yepstudio.legolas;
 
-import com.yepstudio.legolas.internal.SimpleCacheKeyGenerater;
+import com.yepstudio.legolas.internal.ExcludeParamsCacheKeyGenerater;
 
 /**
  * 
@@ -44,7 +44,21 @@ public class LegolasOptions {
 		cacheOnDisk = builder.cacheOnDisk;
 		cacheConverterResult = builder.cacheConverterResult;
 		cacheKeyGenerater = builder.cacheKeyGenerater;
-
+	}
+	
+	public Builder cloneBuilder() {
+		Builder builder = new Builder();
+		builder.converterArrayParamSplit = converterArrayParamSplit;
+		builder.converterDateParamFormat = converterDateParamFormat;
+		builder.requestDefaultCharset = requestCharset;
+		builder.delayBeforeRequest = delayBeforeRequest;
+		builder.cachePolicy = cachePolicy;
+		builder.recoveryPolicy = recoveryPolicy;
+		builder.cacheInMemory = cacheInMemory;
+		builder.cacheOnDisk = cacheOnDisk;
+		builder.cacheConverterResult = cacheConverterResult;
+		builder.cacheKeyGenerater = cacheKeyGenerater;
+		return builder;
 	}
 
 	/** 缓存策略 **/
@@ -60,9 +74,14 @@ public class LegolasOptions {
 		/** 不进行任何恢复策略 **/
 		NONE,
 		/** 服务器没有任何相应的时候，有三种状况：1、服务器宕机了 2、客户端网络连不上服务器 3、连接超时了。这几种状况都将被使用缓存恢复**/
-		RESPONSE_ERROR,
+		RESPONSE_NONE,
 		/** httpStatus不是2xx也不是3xx的时候**/
-		HTTPSTATUS_ERROR
+		HTTPSTATUS_ERROR,
+		/**
+		 *  服务器没有给出期望的相应，相当于RESPONSE_NONE或者HTTPSTATUS_ERROR<br/>
+		 *  如果是转换错误这里是不会恢复的
+		 **/
+		RESPONSE_NOT_EXPECTED,
 	}
 
 	public static class Builder {
@@ -76,7 +95,7 @@ public class LegolasOptions {
 		private boolean cacheConverterResult = false;
 		private CacheKeyGenerater cacheKeyGenerater;
 		private CachePolicy cachePolicy = CachePolicy.SERVER_CACHE_CONTROL;
-		private RecoveryPolicy recoveryPolicy = RecoveryPolicy.NONE;
+		private RecoveryPolicy recoveryPolicy = RecoveryPolicy.RESPONSE_NOT_EXPECTED;
 
 		public Builder delayBeforeRequest(long delay) {
 			delayBeforeRequest = delay;
@@ -120,7 +139,7 @@ public class LegolasOptions {
 
 		public LegolasOptions build() {
 			if (cacheKeyGenerater == null) {
-				cacheKeyGenerater = new SimpleCacheKeyGenerater();
+				cacheKeyGenerater = new ExcludeParamsCacheKeyGenerater("oauth_*");
 			}
 			return new LegolasOptions(this);
 		}

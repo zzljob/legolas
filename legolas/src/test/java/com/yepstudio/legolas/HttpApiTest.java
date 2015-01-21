@@ -36,7 +36,7 @@ public class HttpApiTest {
 				.cacheInMemory(false)
 				.cacheOnDisk(true)
 				.cachePolicy(CachePolicy.SERVER_CACHE_CONTROL)
-				.recoveryPolicy(RecoveryPolicy.RESPONSE_ERROR)
+				.recoveryPolicy(RecoveryPolicy.RESPONSE_NONE)
 				.build(); 
 		
 		String ConsumerKey = "";

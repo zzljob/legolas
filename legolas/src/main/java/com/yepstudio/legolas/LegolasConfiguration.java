@@ -379,7 +379,7 @@ public class LegolasConfiguration {
 		return optionsForApi.get(apiClass);
 	}
 
-	public LegolasOptions getDefaultLegolasOptions() {
+	public LegolasOptions getDefaultOptions() {
 		return defaultLegolasOption;
 	}
 

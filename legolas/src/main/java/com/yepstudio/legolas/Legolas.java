@@ -35,7 +35,7 @@ import com.yepstudio.legolas.request.SyncRequest;
 public class Legolas {
 	
 	public static final String LOG_TAG = "Legolas";
-	private static final String version = "2.0.0";
+	private static final String version = "3.0.0";
 	
 	private static Legolas instance;
 	
@@ -271,7 +271,7 @@ public class Legolas {
 			}
 			LegolasOptions options = configuration.getApiLegolasOptions(apiClass);
 			if (options == null) {
-				options = configuration.getDefaultLegolasOptions();
+				options = configuration.getDefaultOptions();
 			}
 			Map<String, String> defaultHeaders = configuration.getDefaultHeaders();
 			
@@ -337,7 +337,21 @@ public class Legolas {
 		return configuration;
 	}
 	
+	public LegolasOptions.Builder cloneDefaultOptions() {
+		return configuration.getDefaultOptions().cloneBuilder();
+	}
+
+	public LegolasOptions.Builder cloneApiOptions(Class<?> apiClass) {
+		LegolasOptions option = configuration.getApiLegolasOptions(apiClass);
+		if (option == null) {
+			return null;
+		} else {
+			return option.cloneBuilder();
+		}
+	}
+	
 	public RequestInterceptor getRequestInterceptor(String alias) {
 		return configuration.getRequestInterceptor(alias);
 	}
+	
 }

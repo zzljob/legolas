@@ -398,7 +398,7 @@ public class BasicLegolasEngine implements LegolasEngine {
 					response = new Response(response.getStatus(), response.getMessage(), response.getHeaders(), body, false, false);
 				} else if (400 <= response.getStatus()) {
 					//服务内部错误5xx，服务不可用4xx都将被恢复
-					if (RecoveryPolicy.HTTPSTATUS_ERROR == recovery) {
+					if (RecoveryPolicy.HTTPSTATUS_ERROR == recovery || RecoveryPolicy.RESPONSE_NOT_EXPECTED == recovery) {
 						Legolas.getLog().v(String.format("status[%s] recovery[%s], recovery to [%s]", response.getStatus(), recovery, cacheResponse));
 						response = cacheResponse;
 					}
@@ -418,7 +418,7 @@ public class BasicLegolasEngine implements LegolasEngine {
 			
 			NetworkException exception = new NetworkException("request failed", e);
 			//执行恢复策略
-			if (RecoveryPolicy.RESPONSE_ERROR == recovery) {
+			if (RecoveryPolicy.RESPONSE_NONE == recovery || RecoveryPolicy.RESPONSE_NOT_EXPECTED == recovery) {
 				Legolas.getLog().w("RecoveryPolicy Recovery to [" + cacheResponse + "]");
 				response = cacheResponse;
 			} else if (RecoveryPolicy.NONE == recovery) {
