@@ -330,9 +330,6 @@ public class LegolasConfiguration {
 		
 		private Map<String, String> defaultHeaders() {
 			Map<String, String> headers = new ConcurrentHashMap<String, String>();
-			headers.put("Accept-Encoding", "gzip,deflate");
-			headers.put("Cache-Control", "max-age=0");
-			
 			StringBuilder ua = new StringBuilder();
 			ua.append(Legolas.LOG_TAG).append("_");
 			ua.append(Legolas.getVersion());

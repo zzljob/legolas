@@ -77,12 +77,12 @@ public class ExcludeParamsCacheKeyGenerater extends SimpleCacheKeyGenerater {
 		if (excludeParamNames != null && excludeParamNames.contains(paramName)) {
 			return true;
 		}
-		if (excludeParamRegex != null) {
-			return paramName.matches(excludeParamRegex);
+		if (excludeParamRegex != null && paramName.matches(excludeParamRegex)) {
+			return true;
 		}
 		return false;
 	}
-
+	
 	private void fillAllQuerys(TreeMap<String, String> map, String queryStr) {
 		String[] ss = queryStr.split("&");
 		if (ss != null && ss.length > 0) {

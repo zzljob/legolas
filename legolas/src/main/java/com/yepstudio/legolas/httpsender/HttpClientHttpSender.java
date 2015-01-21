@@ -8,6 +8,8 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.InflaterInputStream;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -24,9 +26,11 @@ import org.apache.http.params.HttpParams;
 import org.apache.http.util.EntityUtils;
 
 import com.yepstudio.legolas.HttpSender;
+import com.yepstudio.legolas.Legolas;
 import com.yepstudio.legolas.mime.ByteArrayResponseBody;
 import com.yepstudio.legolas.mime.RequestBody;
 import com.yepstudio.legolas.mime.ResponseBody;
+import com.yepstudio.legolas.mime.StreamResponseBody;
 import com.yepstudio.legolas.request.Request;
 import com.yepstudio.legolas.response.Response;
 
@@ -85,14 +89,53 @@ public class HttpClientHttpSender implements HttpSender {
 			headers.put(name, value);
 		}
 
-		ByteArrayResponseBody body = null;
 		HttpEntity entity = response.getEntity();
 		if (entity != null) {
-			byte[] bytes = EntityUtils.toByteArray(entity);
-			body = new ByteArrayResponseBody(contentType, bytes);
+			long length = entity.getContentLength();
+			InputStream stream;
+			stream = entity.getContent();
+			String encoding = entity.getContentEncoding().getValue();
+			
+			if (stream == null) {
+				return new Response(status, reason, headers);
+			}
+			
+			InputStream inputStream;
+			if (isGzipEncoding(encoding)) {
+				inputStream = new GZIPInputStream(stream);
+			} else if (isDeflateEncoding(encoding)) {
+				inputStream = new InflaterInputStream(stream);
+			} else {
+				inputStream = stream;
+			}
+			Legolas.getLog().v(String.format("status[%s] mimeType[%s], length[%s], stream[%s]", status, contentType, length, inputStream));
+			ResponseBody responseBody = new StreamResponseBody(contentType, length, inputStream);
+			return new Response(status, reason, headers, responseBody);
 		}
 
-		return new Response(status, reason, headers, body);
+		return null;
+	}
+	
+	static boolean isDeflateEncoding(String encoding) {
+		if ("deflate".equalsIgnoreCase(encoding)) {
+			return true;
+		}
+		if (encoding == null || "".equalsIgnoreCase(encoding.trim())) {
+			return false;
+		} else {
+			return encoding.indexOf("deflate") > -1;
+		}
+	}
+	
+	static boolean isGzipEncoding(String encoding) {
+		if ("gzip".equalsIgnoreCase(encoding)) {
+			return true;
+		}
+		if (encoding == null || "".equalsIgnoreCase(encoding.trim())) {
+			return false;
+		} else {
+			return encoding.indexOf("gzip") > -1;
+		}
 	}
 
 	private static class GenericHttpRequest extends HttpEntityEnclosingRequestBase {
@@ -105,6 +148,7 @@ public class HttpClientHttpSender implements HttpSender {
 
 			// Add all headers.
 			Map<String, String> headers = request.getHeaders();
+			headers.put("Accept-Encoding", "gzip,deflate");
 			for (String key : headers.keySet()) {
 				addHeader(new BasicHeader(key, headers.get(key)));
 			}

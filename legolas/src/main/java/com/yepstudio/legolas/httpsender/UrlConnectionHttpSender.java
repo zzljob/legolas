@@ -9,11 +9,14 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.InflaterInputStream;
 
 import com.yepstudio.legolas.HttpSender;
 import com.yepstudio.legolas.Legolas;
 import com.yepstudio.legolas.mime.RequestBody;
 import com.yepstudio.legolas.mime.ResponseBody;
+import com.yepstudio.legolas.mime.StreamResponseBody;
 import com.yepstudio.legolas.request.Request;
 import com.yepstudio.legolas.response.Response;
 
@@ -72,6 +75,7 @@ public class UrlConnectionHttpSender implements HttpSender {
 		connection.setDoInput(true);
 
 		Map<String, String> headers = request.getHeaders();
+		headers.put("Accept-Encoding", "gzip,deflate");
 		for (String key : headers.keySet()) {
 			Legolas.getLog().v(String.format("addRequestProperty, %s=>%s", key, headers.get(key)));
 			connection.addRequestProperty(key, headers.get(key));
@@ -114,35 +118,40 @@ public class UrlConnectionHttpSender implements HttpSender {
 		} else {
 			stream = connection.getInputStream();
 		}
-		Legolas.getLog().v(String.format("status[%s] mimeType[%s], length[%s], stream[%s]", status, mimeType, length, stream));
-		ResponseBody responseBody = new StreamResponseBody(mimeType, length, stream);
+		String encoding = connection.getContentEncoding();
+		InputStream inputStream;
+		if (isGzipEncoding(encoding)) {
+			inputStream = new GZIPInputStream(stream);
+		} else if (isDeflateEncoding(encoding)) {
+			inputStream = new InflaterInputStream(stream);
+		} else {
+			inputStream = stream;
+		}
+		
+		Legolas.getLog().v(String.format("status[%s] mimeType[%s], length[%s], stream[%s]", status, mimeType, length, inputStream));
+		ResponseBody responseBody = new StreamResponseBody(mimeType, length, inputStream);
 		return new Response(status, reason, headers, responseBody);
 	}
-
-	private static class StreamResponseBody implements ResponseBody {
-		private final String mimeType;
-		private final long length;
-		private final InputStream stream;
-
-		private StreamResponseBody(String mimeType, long length, InputStream stream) {
-			this.mimeType = mimeType;
-			this.length = length;
-			this.stream = stream;
+	
+	private boolean isDeflateEncoding(String encoding) {
+		if ("deflate".equalsIgnoreCase(encoding)) {
+			return true;
 		}
-
-		@Override
-		public String mimeType() {
-			return mimeType;
+		if (encoding == null || "".equalsIgnoreCase(encoding.trim())) {
+			return false;
+		} else {
+			return encoding.indexOf("deflate") > -1;
 		}
-
-		@Override
-		public long length() {
-			return length;
+	}
+	
+	private boolean isGzipEncoding(String encoding) {
+		if ("gzip".equalsIgnoreCase(encoding)) {
+			return true;
 		}
-
-		@Override
-		public InputStream read() throws IOException {
-			return stream;
+		if (encoding == null || "".equalsIgnoreCase(encoding.trim())) {
+			return false;
+		} else {
+			return encoding.indexOf("gzip") > -1;
 		}
 	}
 }
