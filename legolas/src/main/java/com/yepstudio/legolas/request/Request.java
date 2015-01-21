@@ -129,6 +129,8 @@ public abstract class Request implements Comparable<Request> {
 		return cancel.get();
 	}
 	
+	public abstract String getUuid();
+	
 	public abstract boolean isRetry();
 	
 	public abstract boolean retry();
