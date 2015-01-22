@@ -295,7 +295,6 @@ public class RequestBuilder implements RequestInterceptorFace {
 			} else if (pd.getParameterType() == ParameterType.FIELD) {
 				if (formBody != null) {
 					String value = object2String(pd.getResponseType(), objArg);
-					multipartBody.addPart(pd.getName(), body);
 					formBody.addOrReplaceField(pd.getName(), value);
 					appendLogForParameter(requestBuildLog, pd, value);
 				}
