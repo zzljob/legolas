@@ -80,7 +80,7 @@ public final class FormUrlEncodedRequestBody implements RequestBody {
 				content.append(urlEncodeOrNot(key));
 				content.append("=");
 				content.append(urlEncodeOrNot(fieldMap.get(key)));
-				if (isFrist) {
+				if (!isFrist) {
 					content.append("&");
 					isFrist = false;
 				}
