@@ -15,23 +15,23 @@ import com.yepstudio.legolas.response.Response;
  * @version 2.0, 2014年4月24日
  *
  */
-public class SimpleProfiler implements Profiler<Request> {
+public class SimpleProfiler implements Profiler<Void> {
 	
 	private static Logger logger = LoggerFactory.getLogger(SimpleProfiler.class);
 
 	@Override
-	public Request beforeCall(Request request) {
+	public Void beforeCall(Request request) {
 		logger.debug("beforeCall....");
-		return request;
+		return null;
 	}
 
 	@Override
-	public void afterCall(Response response, LegolasException exception, Request request) {
+	public void afterCall(Request request, Response response, LegolasException exception, Void before) {
 		logger.debug("afterCall....Ready[{}ms], Spend[{}ms]", request.getReadyTime(), request.getSpendTime());
 	}
 
 	@Override
-	public void cancelCall(Request beforeCallData) {
+	public void cancelCall(Request request, Response response, Void beforeCallData) {
 		logger.debug("cancelCall....");
 	}
 
