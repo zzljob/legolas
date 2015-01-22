@@ -23,6 +23,7 @@ import com.yepstudio.legolas.description.ApiDescription;
 import com.yepstudio.legolas.description.ParameterDescription;
 import com.yepstudio.legolas.description.ParameterItemDescription;
 import com.yepstudio.legolas.description.RequestDescription;
+import com.yepstudio.legolas.exception.LegolasConfigureError;
 import com.yepstudio.legolas.listener.LegolasListener;
 import com.yepstudio.legolas.listener.LegolasListenerWrapper;
 import com.yepstudio.legolas.mime.FileRequestBody;
@@ -376,25 +377,44 @@ public class RequestBuilder implements RequestInterceptorFace {
 		return value.toString();
 	}
 	
+	private String parseApiUrl() {
+		StringBuilder builder = new StringBuilder();
+		if(apiDescription.isAbsoluteApiPath()){
+			builder.append(apiDescription.getApiPath());
+		} else {
+			if (endpoint == null || endpoint.getRequestUrl() == null) {
+				throw new LegolasConfigureError("this api need endpoint, but not find");
+			}
+			builder.append(endpoint.getRequestUrl());
+			String apiPath = apiDescription.getApiPath();
+			apiPath = apiPath == null ? "" : apiPath;
+			//二个都没有/分隔符的话就添加一个
+			if (!endpoint.getRequestUrl().endsWith("/") && !apiPath.startsWith("/")) {
+				builder.append("/");
+			}
+			//二个都有/分隔符的话就去除一个
+			if (endpoint.getRequestUrl().endsWith("/") && apiPath.startsWith("/")) {
+				builder.deleteCharAt(builder.length() - 1);
+			}
+			builder.append(apiPath);
+		}
+		return builder.toString();
+	}
+	
 	private void parseRequestUrl() {
 		StringBuilder builder = new StringBuilder();
 		if (requestDescription.isAbsolutePath()) {
 			builder.append(requestPath);
 		} else {
-			if(apiDescription.isAbsoluteApiPath()){
-				builder.append(apiDescription.getApiPath());
-			} else {
-				builder.append(endpoint.getRequestUrl());
-				if ((endpoint != null && endpoint.getRequestUrl() != null && endpoint.getRequestUrl().endsWith("/"))
-						|| (apiDescription.getApiPath() != null && apiDescription.getApiPath().startsWith("/"))) {
-					//都不需要加/
-				} else {
-					builder.append("/");
-				}
-				builder.append(apiDescription.getApiPath());
-			}
-			if (!requestPath.startsWith("/") && !builder.toString().endsWith("/")) {
+			String apiUrl = parseApiUrl();
+			builder.append(apiUrl);
+			
+			requestPath = requestPath == null ? "" : requestPath;
+			if (!requestPath.startsWith("/") && !apiUrl.endsWith("/")) {
 				builder.append("/");
+			}
+			if (requestPath.startsWith("/") && apiUrl.endsWith("/")) {
+				builder.deleteCharAt(builder.length() - 1);
 			}
 			builder.append(requestPath);
 		}
