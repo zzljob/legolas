@@ -496,8 +496,40 @@ public class RequestBuilder implements RequestInterceptorFace {
 		return header;
 	}
 	
+	public static String replaceHost(String url, String ip, int port) {
+		if (url.indexOf("://") < 0) {
+			throw new IllegalStateException("url需要带上协议");
+		}
+		String temp = url.substring(url.indexOf("://") + 3);
+		String host = "";
+		String other = "";
+		
+		int len = temp.indexOf("/");
+		if (len > 0) {
+			host = temp.substring(0, len);
+			other = temp.substring(len);//后面那部分
+		} else {
+			host = temp;
+			other = "";
+		}
+
+		StringBuilder builder = new StringBuilder();
+		builder.append(url.substring(0, url.indexOf("://") + 3));
+		if (ip != null && !"".equals(ip.trim())) {
+			builder.append(ip);
+		} else {
+			builder.append(host);
+		}
+		if (port > -1) {
+			builder.append(":").append(port);
+		}
+		builder.append(other);
+		return builder.toString();
+	}
+	
 	public SyncRequest buildSyncRequest() {
 		String url = applyQuery(getRequestUrl());
+		url = replaceHost(url, endpoint.getIp(), endpoint.getPort());
 		String method = getRequestMethod();
 		String description = makeRequestDescription();
 		Map<String, String> header = aggregationHeader();
@@ -518,6 +550,7 @@ public class RequestBuilder implements RequestInterceptorFace {
 		}
 		
 		String url = applyQuery(getRequestUrl());
+		url = replaceHost(url, endpoint.getIp(), endpoint.getPort());
 		String method = getRequestMethod();
 		String description = makeRequestDescription();
 		Map<String, String> header = aggregationHeader();

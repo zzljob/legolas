@@ -37,4 +37,8 @@ public interface Endpoint {
 	 */
 	public String getName();
 
+	public String getIp();
+
+	public int getPort();
+
 }

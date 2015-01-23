@@ -47,5 +47,13 @@ public class Server implements Endpoint {
 	public String getHost() {
 		return host;
 	}
+	
+	public String getIp() {
+		return null;
+	}
+
+	public int getPort() {
+		return -1;
+	}
 
 }

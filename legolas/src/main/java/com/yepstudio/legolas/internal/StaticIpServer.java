@@ -10,8 +10,6 @@ package com.yepstudio.legolas.internal;
 public class StaticIpServer extends Server {
 
 	private static final String DEFAULT_NAME = "";
-
-	private String url;
 	private String ip;
 	private int port;
 
@@ -32,56 +30,16 @@ public class StaticIpServer extends Server {
 		this.url = url;
 		this.ip = ip;
 		this.port = port;
-		setRemoteAddress(ip, port);
-	}
-
-	static String replaceHost(String url, String ip, int port) {
-		if (url.indexOf("://") < 0) {
-			throw new IllegalStateException("url需要带上协议");
-		}
-		String temp = url.substring(url.indexOf("://") + 3);
-		String host = "";
-		String other = "";
-		
-		int len = temp.indexOf("/");
-		if (len > 0) {
-			host = temp.substring(0, len);
-			other = temp.substring(len);//后面那部分
-		} else {
-			host = temp;
-			other = "";
-		}
-
-		StringBuilder builder = new StringBuilder();
-		builder.append(url.substring(0, url.indexOf("://") + 3));
-		if (ip != null && !"".equals(ip.trim())) {
-			builder.append(ip);
-		} else {
-			builder.append(host);
-		}
-		if (port > -1) {
-			builder.append(":").append(port);
-		}
-		builder.append(other);
-		return builder.toString();
 	}
 
 	public void setRemoteAddress(String name, String ip, int port) {
 		this.ip = ip;
 		this.port = port;
-		if (ip == null || "".equals(ip.trim())) {
-			ip = getHost();
-		}
-		super.url = replaceHost(this.url, ip, port);
 		super.name = name;
 	}
 
 	public void setRemoteAddress(String ip, int port) {
 		setRemoteAddress("", ip, port);
-	}
-
-	public String getNativeUrl() {
-		return this.url;
 	}
 
 	public String getIp() {
