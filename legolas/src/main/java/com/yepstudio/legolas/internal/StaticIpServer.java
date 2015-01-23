@@ -91,10 +91,5 @@ public class StaticIpServer extends Server {
 	public int getPort() {
 		return port;
 	}
-	
-	public static void main(String[] args) {
-		StaticIpServer smbApi = new StaticIpServer("数米API(线上)", "http://smb.fund123.cn/api", null, -1);
-		smbApi.setRemoteAddress("数米API(测试环境)", "192.168.123.84", 18080);
-	}
 
 }
