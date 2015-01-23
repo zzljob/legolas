@@ -54,7 +54,7 @@ public class StaticIpServer extends Server {
 
 		StringBuilder builder = new StringBuilder();
 		builder.append(url.substring(0, url.indexOf("://") + 3));
-		if (ip != null && "".equals(ip.trim())) {
+		if (ip != null && !"".equals(ip.trim())) {
 			builder.append(ip);
 		} else {
 			builder.append(host);
@@ -90,6 +90,11 @@ public class StaticIpServer extends Server {
 
 	public int getPort() {
 		return port;
+	}
+	
+	public static void main(String[] args) {
+		StaticIpServer smbApi = new StaticIpServer("数米API(线上)", "http://smb.fund123.cn/api", null, -1);
+		smbApi.setRemoteAddress("数米API(测试环境)", "192.168.123.84", 18080);
 	}
 
 }
