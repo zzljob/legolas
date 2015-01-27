@@ -139,7 +139,8 @@ public class LegolasOptions {
 
 		public LegolasOptions build() {
 			if (cacheKeyGenerater == null) {
-				cacheKeyGenerater = new ExcludeParamsCacheKeyGenerater("oauth_.+");
+				String[] excludeParams = new String[] { "oauth_nonce", "oauth_timestamp", "oauth_signature" };
+				cacheKeyGenerater = new ExcludeParamsCacheKeyGenerater(excludeParams);
 			}
 			return new LegolasOptions(this);
 		}
