@@ -69,25 +69,22 @@ public final class FormUrlEncodedRequestBody implements RequestBody {
 	
 	private void build() {
 		if (content.length() > 0) {
-			content.delete(0, content.length() - 1);
+			content.delete(0, content.length());
 		}
 		if (fieldMap.isEmpty()) {
 			return;
 		}
-		boolean isFrist = true;
 		for (String key : fieldMap.keySet()) {
 			try {
 				content.append(urlEncodeOrNot(key));
 				content.append("=");
 				content.append(urlEncodeOrNot(fieldMap.get(key)));
-				if (!isFrist) {
-					content.append("&");
-					isFrist = false;
-				}
+				content.append("&");
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
 		}
+		content.deleteCharAt(content.length() - 1);
 	}
 	
 	private String urlEncodeOrNot(String value) throws UnsupportedEncodingException {
