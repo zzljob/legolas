@@ -35,7 +35,7 @@ import com.yepstudio.legolas.request.SyncRequest;
 public class Legolas {
 	
 	public static final String LOG_TAG = "Legolas";
-	private static final String version = "3.0.0";
+	private static final String version = "1.3.1-SNAPSHOT";
 	
 	private static Legolas instance;
 	

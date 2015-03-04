@@ -20,10 +20,14 @@ public final class GsonRequestBody extends StringRequestBody {
 	}
 	
 	public GsonRequestBody(Object object,String charset) {
-		this("text/plain", new GsonBuilder().create(), object, charset, 2048);
+		this("application/json", object, charset);
+	}
+	
+	public GsonRequestBody(String mimeType, Object object,String charset) {
+		this(mimeType, object, charset, new GsonBuilder().create(), 2048);
 	}
 
-	public GsonRequestBody(String mimeType, Gson gson, Object object, String charset, int bufferSize) {
+	public GsonRequestBody(String mimeType, Object object, String charset, Gson gson, int bufferSize) {
 		super(mimeType, parseJson(object, gson), charset, bufferSize);
 		this.object = object;
 		this.gson = gson;

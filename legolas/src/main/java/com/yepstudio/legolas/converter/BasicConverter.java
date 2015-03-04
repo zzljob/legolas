@@ -44,7 +44,7 @@ public class BasicConverter implements Converter {
 		String charset = null;
 		try{
 			Class<?> clazz = TypesHelper.getRawType(type);
-			if (clazz.isAssignableFrom(ResponseBody.class)) {
+			if (ResponseBody.class.isAssignableFrom(clazz)) {
 				return response.getBody();
 			} else if (clazz == String.class) {
 				charset = response.parseCharset(defaultCharset);
@@ -97,7 +97,7 @@ public class BasicConverter implements Converter {
 	
 	public boolean isSupport(Type type) {
 		Class<?> clazz = TypesHelper.getRawType(type);
-		if (clazz.isAssignableFrom(ResponseBody.class)) {
+		if (ResponseBody.class.isAssignableFrom(clazz)) {
 			return true;
 		} else if (File.class.equals(clazz)) {
 			return true;

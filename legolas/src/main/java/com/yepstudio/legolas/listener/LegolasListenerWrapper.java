@@ -84,8 +84,8 @@ public class LegolasListenerWrapper {
 				|| Response.class.equals(clazz) 
 				|| Request.class.equals(clazz)
 				|| AsyncRequest.class.equals(clazz)
-				|| clazz.isAssignableFrom(RequestBody.class) 
-				|| clazz.isAssignableFrom(ResponseBody.class)) {
+				|| RequestBody.class.isAssignableFrom(clazz) 
+				|| ResponseBody.class.isAssignableFrom(clazz)) {
 			return false;
 		}
 		return true;

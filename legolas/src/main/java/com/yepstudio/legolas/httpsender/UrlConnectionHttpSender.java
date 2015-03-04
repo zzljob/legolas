@@ -72,12 +72,14 @@ public class UrlConnectionHttpSender implements HttpSender {
 			}
 		}
 
+		Legolas.getLog().v(String.format("----------------Request--------------"));
+		
 		connection.setDoInput(true);
 
 		Map<String, String> headers = request.getHeaders();
 		headers.put("Accept-Encoding", "gzip,deflate");
 		for (String key : headers.keySet()) {
-			Legolas.getLog().v(String.format("addRequestProperty, %s=>%s", key, headers.get(key)));
+			Legolas.getLog().v(String.format("addRequestHeader: %s=>%s", key, headers.get(key)));
 			connection.addRequestProperty(key, headers.get(key));
 		}
 
@@ -85,6 +87,7 @@ public class UrlConnectionHttpSender implements HttpSender {
 		if (body != null) {
 			connection.setDoOutput(true);
 			connection.addRequestProperty(RequestBody.Content_Type, body.mimeType());
+			Legolas.getLog().v(String.format("addRequestHeader: Content-Type=>%s", body.mimeType()));
 			long length = body.length();
 			if (length != -1) {
 				connection.setFixedLengthStreamingMode((int) length);
@@ -97,7 +100,7 @@ public class UrlConnectionHttpSender implements HttpSender {
 	}
 
 	Response readResponse(Request request, HttpURLConnection connection) throws IOException {
-		Legolas.getLog().v(String.format("readResponse:"));
+		Legolas.getLog().v(String.format("------------------Response----------------------"));
 		int status = connection.getResponseCode();
 		String reason = connection.getResponseMessage();
 

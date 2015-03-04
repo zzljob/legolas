@@ -203,16 +203,14 @@ public class RequestBuilder implements RequestInterceptorFace {
 	}
 	
 	private RequestBody object2body(Type type, Object object) throws IOException {
-		if (object == null) {
-			return new StringRequestBody("", options.getRequestCharset());
-		}
-		if (type == null) {
-			return new StringRequestBody(object2String(object), options.getRequestCharset());
+		String charset = options.getRequestCharset();
+		if (object == null || type == null) {
+			return new StringRequestBody(object2String(object), charset);
 		}
 		Class<?> clazz = TypesHelper.getRawType(type);
-		if (clazz.isAssignableFrom(RequestBody.class)) {
+		if (RequestBody.class.isAssignableFrom(clazz)) {
 			return (RequestBody) object;
-		} else if (clazz.isAssignableFrom(File.class)) {
+		} else if (File.class.isAssignableFrom(clazz)) {
 			return new FileRequestBody((File) object);
 		} else {
 			return new StringRequestBody(object2String(type, object), options.getRequestCharset());
@@ -275,19 +273,19 @@ public class RequestBuilder implements RequestInterceptorFace {
 			Object objArg = arguments[i];
 			
 			if (pd.getParameterType() == ParameterType.HEADER) {
-				String value = object2String(pd.getResponseType(), objArg);
+				String value = object2String(pd.getType(), objArg);
 				headerMap.put(pd.getName(), value);
 				appendLogForParameter(requestBuildLog, pd, value);
 			} else if (pd.getParameterType() == ParameterType.PATH) {
-				String value = object2String(pd.getResponseType(), objArg);
+				String value = object2String(pd.getType(), objArg);
 				pathMap.put(pd.getName(), value);
 				appendLogForParameter(requestBuildLog, pd, value);
 			} else if (pd.getParameterType() == ParameterType.QUERY) {
-				String value = object2String(pd.getResponseType(), objArg);
+				String value = object2String(pd.getType(), objArg);
 				queryMap.put(pd.getName(), value);
 				appendLogForParameter(requestBuildLog, pd, value);
 			} else if (pd.getParameterType() == ParameterType.PART) {
-				RequestBody partBody = object2body(pd.getResponseType(), objArg);
+				RequestBody partBody = object2body(pd.getType(), objArg);
 				if (multipartBody != null && partBody !=null) {
 					String value = getRequestBodyDescription(partBody);
 					appendLogForParameter(requestBuildLog, pd, value);
@@ -295,12 +293,12 @@ public class RequestBuilder implements RequestInterceptorFace {
 				}
 			} else if (pd.getParameterType() == ParameterType.FIELD) {
 				if (formBody != null) {
-					String value = object2String(pd.getResponseType(), objArg);
+					String value = object2String(pd.getType(), objArg);
 					formBody.addOrReplaceField(pd.getName(), value);
 					appendLogForParameter(requestBuildLog, pd, value);
 				}
 			} else if (pd.getParameterType() == ParameterType.BODY) {
-				body = object2body(pd.getResponseType(), objArg);
+				body = object2body(pd.getType(), objArg);
 				String value = getRequestBodyDescription(body);
 				appendLogForParameter(requestBuildLog, pd, value);
 			} else {
