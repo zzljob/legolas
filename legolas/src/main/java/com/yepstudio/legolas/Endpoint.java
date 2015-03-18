@@ -37,6 +37,10 @@ public interface Endpoint {
 	 */
 	public String getName();
 
+	/**
+	 * 获取服务器的Ip地址
+	 * @return
+	 */
 	public String getIp();
 
 	public int getPort();
