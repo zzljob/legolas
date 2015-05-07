@@ -28,17 +28,17 @@ public class StatusLegolasListener<R, E> implements LegolasListener<R, E> {
 	
 	@Override
 	public void onResponse(Request request, R response) {
-		countDown.countDown();
 		success.set(true);
 		successResponse = response;
+		countDown.countDown();
 	}
 
 	@Override
 	public void onError(Request request, LegolasException error, E response) {
-		countDown.countDown();
 		success.set(false);
 		failResponse = response;
 		exception = error;
+		countDown.countDown();
 	}
 
 	public boolean isRequesting() {
