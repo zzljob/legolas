@@ -31,6 +31,7 @@ public class StatusLegolasListener<R, E> implements LegolasListener<R, E> {
 		success.set(true);
 		successResponse = response;
 		countDown.countDown();
+		onFinish();
 	}
 
 	@Override
@@ -39,6 +40,10 @@ public class StatusLegolasListener<R, E> implements LegolasListener<R, E> {
 		failResponse = response;
 		exception = error;
 		countDown.countDown();
+		onFinish();
+	}
+	
+	public void onFinish() {
 	}
 
 	public boolean isRequesting() {
