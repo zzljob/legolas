@@ -113,8 +113,4 @@ public class StatusLegolasListener<R, E> implements LegolasListener<R, E> {
 			return String.format("Http响应状态不正确：%s(%s)", r.getMessage(), r.getStatus());
 		}
 	}
-
-	public CountDownLatch getCountDownLatch() {
-		return countDown;
-	}
 }
