@@ -185,7 +185,7 @@ public class RequestBuilder implements RequestInterceptorFace {
 				}
 				String value = object2String(pathMap.get(pathName));
 				String encodeValue = encodeValue(value);
-				fullPath = fullPath.replaceAll("{" + pathName + "}", encodeValue);
+				fullPath = fullPath.replaceAll("\\{" + pathName + "\\}", encodeValue);
 			}
 		}
 		requestPath = fullPath;

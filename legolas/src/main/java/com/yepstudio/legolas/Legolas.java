@@ -283,7 +283,7 @@ public class Legolas {
 			try {
 				builder = new RequestBuilder(endpoint, apiDescription, method, converter, options, defaultHeaders, args);
 			} catch (Throwable th) {
-				throw new IllegalArgumentException("Argument can be parse", th);
+				throw new IllegalArgumentException("Argument can not be parse", th);
 			}
 			
 			try {
